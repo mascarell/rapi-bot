@@ -88,7 +88,7 @@ function initDiscordBot() {
 
 	bot.on('ready', () => {
 		// Set the activity of the bot
-		bot.user.setActivity('Playing Simulation Room', { type: 'PLAYING' });
+		bot.user.setActivity('SIMULATION ROOM', { type: 'PLAYING' });
 	})
 
 	// Login
