@@ -62,19 +62,20 @@ const botCommands = {
 		execute(msg, args) {
 			msg.channel.send(`<:vegesmug:1056608088037265539> CUSTOM COMMANDS <:vegesmug:1056608088037265539> \n
 ➜ **/rules** : follow them or you'll get banned by Rapi  
-➜ **/help** : list of commands for all Commanders  
+➜ **/help** : list of commands for all Commanders 
 ➜ **/nikke** : random Nikke memes from the community 
-➜ **/youtube** : subscribe to the best YouTube channel
+➜ **/youtube** : subscribe to the best YouTube channel 
+➜ **good girl** : say thanks to the best girl & bot in this server 
 `)
 		}
 	},
-	// yoduermoabajo: {
-	// 	name: 'yo duermo abajo',
-	// 	description: 'espanita',
-	// 	execute(msg, args) {
-	// 		msg.channel.send('Y ARRIBA ESPAÑA 🇪🇸☝🏻')
-	// 	}
-	// },
+	goodgirl: {
+		name: 'good girl',
+		description: 'good girl Rapi',
+		execute(msg, args) {
+			msg.channel.send('Thank you Commander.')
+		}
+	},
 }
 
 function initDiscordBot() {	
