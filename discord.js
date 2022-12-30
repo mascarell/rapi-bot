@@ -87,13 +87,20 @@ function initDiscordBot() {
 		bot.commands.set(botCommands[key].name, botCommands[key])
 	})
 
+	// Set the rich presence activity of the bot
 	bot.on('ready', () => {
-		// Set the activity of the bot
-		bot.user.setActivity('SIMULATION ROOM', { type: 'PLAYING' });
+		bot.user.setActivity('SIMULATION ROOM', { type: 'PLAYING' })
 	})
 
-	// Login
+	// Login the bot
 	bot.login(TOKEN)
+
+	// Greet new users when they join the server
+	bot.on('guildMemberAdd', member => {
+		const channel = member.guild.channels.cache.find(ch => ch.name === 'welcome')
+		if (!channel) return
+		channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
+	})
 
 	// On message, find command and execute
 	bot.on('message', message => {
@@ -103,6 +110,68 @@ function initDiscordBot() {
 		let user = guild.member(msg.author.id)
 
 		msg.content = message.content.toLowerCase()
+
+		// Not the best way, but here we collect reactions for the roles
+		if (message.content === '!create-role-reactions' && user.roles.cache.find(r => r.name === "Captain")) {
+			message.channel.send(`Get your roles here Commander. \n
+🍑 : Nikke 
+🔞 : Degenerate (nsfw channel) 
+💖 : YouTube (youtube alerts) 
+📰 : Updates (server & misc updates) \n
+( ͡° ͜ʖ ͡°)  
+`).then(sentMessage => {
+				sentMessage.react('🍑')
+				sentMessage.react('🔞')
+				sentMessage.react('💖')
+				sentMessage.react('📰')
+
+				// Add role when reacting to the message
+				bot.on('messageReactionAdd', (reaction, user, sentMessage) => {
+					let roleName
+					guild.members.fetch(user.id).then(member => {
+						switch (reaction.emoji.name) {
+							case '🍑':
+								roleName = "Nikke"
+								break
+							case '🔞':
+								roleName = "Degenerate"
+								break
+							case '💖':
+								roleName = "YouTube"
+								break
+							case '📰':
+								roleName = "Updates"
+								break
+						}
+
+						member.roles.add(member.guild.roles.cache.find(role => role.name === roleName)) // Add role
+					})
+				})
+
+				// Remove role when reacting to the message
+				bot.on('messageReactionRemove', (reaction, user, sentMessage) => {
+					let roleName
+					guild.members.fetch(user.id).then(member => {
+						switch (reaction.emoji.name) {
+							case '🍑':
+								roleName = "Nikke"
+								break
+							case '🔞':
+								roleName = "Degenerate"
+								break
+							case '💖':
+								roleName = "YouTube"
+								break
+							case '📰':
+								roleName = "Updates"
+								break
+						}
+
+						member.roles.remove(member.guild.roles.cache.find(role => role.name === roleName)) // Add role
+					})
+				})
+			})
+		}
 
 		// Establish arguments
 		let args = []
