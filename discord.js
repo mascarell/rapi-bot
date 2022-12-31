@@ -66,6 +66,7 @@ const botCommands = {
 ➜ **/nikke** : random Nikke memes from the community 
 ➜ **/youtube** : subscribe to the best YouTube channel 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
+➜ **wrong girl** : hey, take care who you talk to  
 `)
 		}
 	},
@@ -74,6 +75,18 @@ const botCommands = {
 		description: 'good girl Rapi',
 		execute(msg, args) {
 			msg.channel.send('Thank you Commander.')
+		}
+	},
+	wronggirl: {
+		name: 'wrong girl',
+		description: 'wrong girl Rapi',
+		execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: 'https://i.imgur.com/rQPg8Ja.png',
+				}],
+				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
+			})
 		}
 	},
 }
