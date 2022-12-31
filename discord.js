@@ -97,9 +97,7 @@ function initDiscordBot() {
 
 	// Greet new users when they join the server
 	bot.on('guildMemberAdd', member => {
-		const channel = member.guild.channels.cache.find(ch => ch.name === 'welcome')
-		if (!channel) return
-		channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
+		member.guild.systemChannel.send(`Welcome Commander ${member}, please take care when going to the surface.`);
 	})
 
 	// On message, find command and execute
