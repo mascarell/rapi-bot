@@ -67,6 +67,7 @@ const botCommands = {
 ➜ **/youtube** : subscribe to the best YouTube channel 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
+➜ **bad girl** : we all wanted to slap her  
 `)
 		}
 	},
