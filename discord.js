@@ -10,6 +10,16 @@ const pre = '/' // what we use for the bot commands (nor for all of them tho)
 let bot = new Discord.Client() // the bot itself
 let previousMemes = [] // tmp variable so we don't repeat memes two times in a row
 
+const randomRapiMessages = [
+	`You’re too quiet, Commander, is everything alright?`,
+	`Commander, Anis was just joking with the Christmas present…`,
+	`Commander! When it's the next mission?`,
+	`Please take care next time you go to the surface Commander.`,
+	`Don't push yourself too hard Commander!`,
+	`No matter what you think of us, we'll always be by your side.`,
+	`Commander, I'll protect you.`,
+]
+
 // Bot commands object
 // The name has to be lowercase
 const botCommands = {
@@ -68,6 +78,8 @@ const botCommands = {
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
+\n
+I’m an open source Nikke so if you want to upgrade me or how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
 		}
 	},
@@ -122,8 +134,23 @@ function initDiscordBot() {
 
 	// Greet new users when they join the server
 	bot.on('guildMemberAdd', member => {
-		member.guild.systemChannel.send(`Welcome Commander ${member}, please take care when going to the surface.`);
+		let guild = bot.guilds.cache.get('1054761356416528475')
+		const channel = guild.channels.cache.find(ch => ch.name === 'welcome')
+		channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
 	})
+
+	// Send random messages in #nikke channel to increase engagement every 6 hours
+	let nikkeMessage = new CronJobb(
+		// '* * * * *',
+		'0 */4 * * *',
+		function () {
+			let guild = bot.guilds.cache.get('1054761356416528475')
+			const channel = guild.channels.cache.find(ch => ch.name === 'general')
+			if (!channel) return
+			channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)])
+		}
+	)
+	nikkeMessage.start()
 
 	// On message, find command and execute
 	bot.on('message', message => {
