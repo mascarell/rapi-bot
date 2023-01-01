@@ -89,6 +89,17 @@ const botCommands = {
 			})
 		}
 	},
+	badgirl: {
+		name: 'bad girl',
+		description: 'bad girl',
+		execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: 'https://i.imgur.com/6htltYd.gif',
+				}],
+			})
+		}
+	},
 }
 
 function initDiscordBot() {	
