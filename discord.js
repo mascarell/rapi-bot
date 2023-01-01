@@ -162,7 +162,7 @@ function initDiscordBot() {
 		msg.content = message.content.toLowerCase()
 
 		// Not the best way, but here we collect reactions for the roles
-		if (message.content === '!create-role-reactions' && user.roles.cache.find(r => r.name === "Captain")) {
+		if (message.content === '!roles' && user.roles.cache.find(r => r.name === "Captain")) {
 			message.channel.send(`Get your roles here Commander. \n
 🍑 : Nikke 
 🔞 : Degenerate (nsfw channel) 
