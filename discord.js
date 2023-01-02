@@ -78,6 +78,7 @@ const botCommands = {
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
+➜ **reward?** : 10 gems!?  
 \n
 I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
@@ -109,6 +110,17 @@ I’m an open source Nikke so if you want to upgrade me or see how I work, you c
 			msg.reply({
 				files: [{
 					attachment: 'https://i.imgur.com/6htltYd.gif',
+				}],
+			})
+		}
+	},
+	reward: {
+		name: 'reward?',
+		description: 'reward?',
+		execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: 'https://i.imgur.com/sWUuYyb.jpg',
 				}],
 			})
 		}
