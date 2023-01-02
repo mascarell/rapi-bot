@@ -79,7 +79,7 @@ const botCommands = {
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
 \n
-I’m an open source Nikke so if you want to upgrade me or how I work, you can do so here: https://github.com/mascarell/lootandwaifus
+I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
 		}
 	},
