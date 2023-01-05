@@ -177,12 +177,14 @@ function initDiscordBot() {
 		if (message.content === '!roles' && user.roles.cache.find(r => r.name === "Captain")) {
 			message.channel.send(`Get your roles here Commander. \n
 🍑 : Nikke 
+🐱 : Eversoul 
 🔞 : Degenerate (nsfw channel) 
 💖 : YouTube (youtube alerts) 
 📰 : Updates (server & misc updates) \n
 ( ͡° ͜ʖ ͡°)  
 `).then(sentMessage => {
 				sentMessage.react('🍑')
+				sentMessage.react('🐱')
 				sentMessage.react('🔞')
 				sentMessage.react('💖')
 				sentMessage.react('📰')
@@ -194,6 +196,9 @@ function initDiscordBot() {
 						switch (reaction.emoji.name) {
 							case '🍑':
 								roleName = "Nikke"
+								break
+							case '🐱':
+								roleName = "Eversoul"
 								break
 							case '🔞':
 								roleName = "Degenerate"
@@ -217,6 +222,9 @@ function initDiscordBot() {
 						switch (reaction.emoji.name) {
 							case '🍑':
 								roleName = "Nikke"
+								break
+							case '🐱':
+								roleName = "Eversoul"
 								break
 							case '🔞':
 								roleName = "Degenerate"
