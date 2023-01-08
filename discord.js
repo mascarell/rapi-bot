@@ -154,7 +154,7 @@ function initDiscordBot() {
 	// Send random messages in #nikke channel to increase engagement every 6 hours
 	let nikkeMessage = new CronJobb(
 		// '* * * * *',
-		'0 */4 * * *',
+		'0 */7 * * *',
 		function () {
 			let guild = bot.guilds.cache.get('1054761356416528475')
 			const channel = guild.channels.cache.find(ch => ch.name === 'general')
