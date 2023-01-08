@@ -103,6 +103,30 @@ I’m an open source Nikke so if you want to upgrade me or see how I work, you c
 			})
 		}
 	},
+	soundslike: {
+		name: 'sounds like...',
+		description: 'Sounds like skill issue',
+		execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: 'https://i.imgur.com/hEZW8Xg.mp4',
+				}],
+				content: `It sounds like you have some skill issues Commander.`,
+			})
+		}
+	},
+	fuckTencent: {
+		name: 'fuck tencent',
+		description: `Commander, I don't like bears`,
+		execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: 'https://i.imgur.com/lF7i8gC.jpg',
+				}],
+				content: `Commander, I don't like bears.`,
+			})
+		}
+	},
 	badgirl: {
 		name: 'bad girl',
 		description: 'bad girl',
@@ -157,7 +181,7 @@ function initDiscordBot() {
 		'0 */7 * * *',
 		function () {
 			let guild = bot.guilds.cache.get('1054761356416528475')
-			const channel = guild.channels.cache.find(ch => ch.name === 'general')
+			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
 			if (!channel) return
 			channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)])
 		}
@@ -258,7 +282,11 @@ function initDiscordBot() {
 		if (!bot.commands.has(command)) return
 
 		try {
-			bot.commands.get(command).execute(msg, args)
+			// Execute commands only in bot category or moderator channel
+			if (message.channel.parentID === '1054761748890132480' || message.channel.name === "moderator-only") {
+				// message was sent in the specified category
+				bot.commands.get(command).execute(msg, args)
+			}
 		} catch (error) {
 			console.error(error)
 			msg.reply('RIP BOT BRO 💩')
