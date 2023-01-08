@@ -48,7 +48,18 @@ const botCommands = {
 			})
 		}
 	},
-	diff: {
+	skillissue: {
+		name: 'sounds like...',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/skill.gif',
+				}],
+				content: `It sounds like you have some skill issues Commander.`,
+			})
+		}
+	},
+	youtube: {
 		name: pre + 'youtube',
 		execute(msg, args) {
 			msg.channel.send('https://www.youtube.com/@lootandwaifus')
@@ -100,18 +111,6 @@ I’m an open source Nikke so if you want to upgrade me or see how I work, you c
 					attachment: 'https://i.imgur.com/rQPg8Ja.png',
 				}],
 				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
-			})
-		}
-	},
-	soundslike: {
-		name: 'sounds like...',
-		description: 'Sounds like skill issue',
-		execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: 'https://i.imgur.com/hEZW8Xg.mp4',
-				}],
-				content: `It sounds like you have some skill issues Commander.`,
 			})
 		}
 	},
