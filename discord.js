@@ -283,7 +283,7 @@ function initDiscordBot() {
 
 		try {
 			// Execute commands only in bot category or moderator channel
-			if (message.channel.parentID === '1054761748890132480' || message.channel.name === "moderator-only") {
+			if (message.channel.parentID === '1054761748890132480' || message.channel.name === "moderator-only" || message.channel.name === "roles") {
 				// message was sent in the specified category
 				bot.commands.get(command).execute(msg, args)
 			}
