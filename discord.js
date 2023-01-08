@@ -90,6 +90,8 @@ const botCommands = {
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
 ➜ **reward?** : 10 gems!?  
+➜ **sounds like...** : you are just bad, commander  
+➜ **fuck tencent** : no one likes this bear  
 \n
 I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
@@ -282,10 +284,8 @@ function initDiscordBot() {
 
 		try {
 			// Execute commands only in bot category or moderator channel
-			if (message.channel.parentID === '1054761748890132480' || message.channel.name === "moderator-only" || message.channel.name === "roles") {
-				// message was sent in the specified category
+			// if (message.channel.parentID === '1054761748890132480' || message.channel.name === "moderator-only" || message.channel.name === "roles") 
 				bot.commands.get(command).execute(msg, args)
-			}
 		} catch (error) {
 			console.error(error)
 			msg.reply('RIP BOT BRO 💩')
