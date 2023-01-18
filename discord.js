@@ -125,6 +125,9 @@ const botCommands = {
 ➜ **reward?** : 10 gems!?  
 ➜ **sounds like...** : you are just bad, commander  
 ➜ **fuck tencent** : no one likes this bear  
+➜ **booba** : booba  
+➜ **whale levels** : how much do you spend?  
+➜ **i swear she is actually 3000 years old** : what?  
 \n
 I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
