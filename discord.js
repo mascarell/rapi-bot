@@ -70,17 +70,6 @@ const botCommands = {
 			})
 		}
 	},
-	booba: {
-		name: 'booba',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/booba.gif',
-				}],
-				content: `Commander... What are you looking at?`,
-			})
-		}
-	},
 	whale: {
 		name: 'whale levels',
 		async execute(msg, args) {
@@ -125,7 +114,6 @@ const botCommands = {
 ➜ **reward?** : 10 gems!?  
 ➜ **sounds like...** : you are just bad, commander  
 ➜ **fuck tencent** : no one likes this bear  
-➜ **booba** : booba  
 ➜ **whale levels** : how much do you spend?  
 ➜ **i swear she is actually 3000 years old** : what?  
 \n
