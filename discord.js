@@ -59,6 +59,39 @@ const botCommands = {
 			})
 		}
 	},
+	iswear: {
+		name: 'i swear she is actually 3000 years old',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/iswear.png',
+				}],
+				content: `Commander... I'm calling the authorities.`,
+			})
+		}
+	},
+	booba: {
+		name: 'booba',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/booba.gif',
+				}],
+				content: `Commander... What are you looking at?`,
+			})
+		}
+	},
+	whale: {
+		name: 'whale levels',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/whaling.png',
+				}],
+				content: `Commander, it's fine if you are poor.`,
+			})
+		}
+	},
 	youtube: {
 		name: pre + 'youtube',
 		execute(msg, args) {
