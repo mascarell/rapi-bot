@@ -116,6 +116,7 @@ const botCommands = {
 ➜ **fuck tencent** : no one likes this bear  
 ➜ **whale levels** : how much do you spend?  
 ➜ **i swear she is actually 3000 years old** : what?  
+➜ **ready rapi?** : 100% ready  
 \n
 I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
