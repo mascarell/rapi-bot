@@ -152,6 +152,17 @@ I’m an open source Nikke so if you want to upgrade me or see how I work, you c
 			})
 		}
 	},
+	readyRapi: {
+		name: 'ready rapi?',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/ready.png',
+				}],
+				content: `Commander... ready for what?`,
+			})
+		}
+	},
 	badgirl: {
 		name: 'bad girl',
 		description: 'bad girl',
