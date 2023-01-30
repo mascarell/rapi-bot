@@ -70,6 +70,17 @@ const botCommands = {
 			})
 		}
 	},
+	teengame: {
+		name: '12+ game',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/12game.png',
+				}],
+				content: `Commander the surface is obviously safe for 12 year old kids.`,
+			})
+		}
+	},
 	whale: {
 		name: 'whale levels',
 		async execute(msg, args) {
@@ -117,6 +128,7 @@ const botCommands = {
 ➜ **whale levels** : how much do you spend?  
 ➜ **i swear she is actually 3000 years old** : what?  
 ➜ **ready rapi?** : 100% ready  
+➜ **12+ game** : kid safe game  
 \n
 I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
 `)
