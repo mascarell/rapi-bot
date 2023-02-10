@@ -208,7 +208,7 @@ const botCommands = {
 				files: [{
 					attachment: './public/images/nikke/booba.gif',
 				}],
-				content: `Commander... ready for what?`,
+				content: `Commander... stop calling Soda to your room`,
 			})
 		}
 	},
