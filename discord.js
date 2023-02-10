@@ -48,6 +48,31 @@ const botCommands = {
 			})
 		}
 	},
+	meme: {
+		name: pre + 'meme',
+		async execute(msg, args) {
+			// Pick image from folder
+			let files = await getFiles('./public/images/meme/')
+			// Get Random
+			let randomMeme = files[Math.floor(Math.random() * files.length)]
+
+			while (previousMemes.includes(randomMeme.path) === true){
+				randomMeme = files[Math.floor(Math.random() * files.length)]
+			}
+
+			previousMemes.push(randomMeme.path)
+			if (previousMemes.length > files.length / 2) {
+				previousMemes.splice(0, 5)
+			}
+		
+			msg.reply({
+				files: [{
+					attachment: randomMeme.path,
+				}],
+				content: `- ${randomMeme.name}`,
+			})
+		}
+	},
 	skillissue: {
 		name: 'sounds like...',
 		async execute(msg, args) {
@@ -117,6 +142,7 @@ const botCommands = {
 			msg.channel.send(`<:vegesmug:1056608088037265539> CUSTOM COMMANDS <:vegesmug:1056608088037265539> \n
 ➜ **/rules** : follow them or you'll get banned by Rapi  
 ➜ **/help** : list of commands for all Commanders 
+➜ **/meme** : random general memes from the community 
 ➜ **/nikke** : random Nikke memes from the community 
 ➜ **/youtube** : subscribe to the best YouTube channel 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
@@ -129,8 +155,7 @@ const botCommands = {
 ➜ **i swear she is actually 3000 years old** : what?  
 ➜ **ready rapi?** : 100% ready  
 ➜ **12+ game** : kid safe game  
-\n
-I’m an open source Nikke so if you want to upgrade me or see how I work, you can do so here: https://github.com/mascarell/lootandwaifus
+➜ **booba?** : not dragon moomy but still good  
 `)
 		}
 	},
@@ -171,6 +196,17 @@ I’m an open source Nikke so if you want to upgrade me or see how I work, you c
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/ready.png',
+				}],
+				content: `Commander... ready for what?`,
+			})
+		}
+	},
+	booba: {
+		name: 'booba?',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/booba.gif',
 				}],
 				content: `Commander... ready for what?`,
 			})
@@ -245,76 +281,6 @@ function initDiscordBot() {
 		let user = guild.member(msg.author.id)
 
 		msg.content = message.content.toLowerCase()
-
-		// Not the best way, but here we collect reactions for the roles
-		if (message.content === '!roles' && user.roles.cache.find(r => r.name === "Captain")) {
-			message.channel.send(`Get your roles here Commander. \n
-🍑 : Nikke 
-🔞 : Degenerate (nsfw channel) 
-💖 : YouTube (youtube alerts) 
-💜 : Twitch (stream alerts) 
-📰 : Updates (server & misc updates) \n
-( ͡° ͜ʖ ͡°)  
-`).then(sentMessage => {
-				sentMessage.react('🍑')
-				sentMessage.react('🔞')
-				sentMessage.react('💖')
-				sentMessage.react('💜')
-				sentMessage.react('📰')
-
-				// Add role when reacting to the message
-				bot.on('messageReactionAdd', (reaction, user, sentMessage) => {
-					let roleName
-					guild.members.fetch(user.id).then(member => {
-						switch (reaction.emoji.name) {
-							case '🍑':
-								roleName = "Nikke"
-								break
-							case '🔞':
-								roleName = "Degenerate"
-								break
-							case '💖':
-								roleName = "YouTube"
-								break
-							case '💜':
-								roleName = "Twitch"
-								break
-							case '📰':
-								roleName = "Updates"
-								break
-						}
-
-						member.roles.add(member.guild.roles.cache.find(role => role.name === roleName)) // Add role
-					})
-				})
-
-				// Remove role when reacting to the message
-				bot.on('messageReactionRemove', (reaction, user, sentMessage) => {
-					let roleName
-					guild.members.fetch(user.id).then(member => {
-						switch (reaction.emoji.name) {
-							case '🍑':
-								roleName = "Nikke"
-								break
-							case '🔞':
-								roleName = "Degenerate"
-								break
-							case '💖':
-								roleName = "YouTube"
-								break
-							case '💜':
-								roleName = "Twitch"
-								break
-							case '📰':
-								roleName = "Updates"
-								break
-						}
-
-						member.roles.remove(member.guild.roles.cache.find(role => role.name === roleName)) // Add role
-					})
-				})
-			})
-		}
 
 		// Establish arguments
 		let args = []
