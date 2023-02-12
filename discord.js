@@ -52,7 +52,32 @@ const botCommands = {
 		name: pre + 'meme',
 		async execute(msg, args) {
 			// Pick image from folder
-			let files = await getFiles('./public/images/meme/')
+			let files = await getFiles('./public/images/memes/')
+			// Get Random
+			let randomMeme = files[Math.floor(Math.random() * files.length)]
+
+			while (previousMemes.includes(randomMeme.path) === true){
+				randomMeme = files[Math.floor(Math.random() * files.length)]
+			}
+
+			previousMemes.push(randomMeme.path)
+			if (previousMemes.length > files.length / 2) {
+				previousMemes.splice(0, 5)
+			}
+		
+			msg.reply({
+				files: [{
+					attachment: randomMeme.path,
+				}],
+				content: `- ${randomMeme.name}`,
+			})
+		}
+	},
+	booba: {
+		name: 'booba?',
+		async execute(msg, args) {
+			// Pick image from folder
+			let files = await getFiles('./public/images/booba/')
 			// Get Random
 			let randomMeme = files[Math.floor(Math.random() * files.length)]
 
@@ -198,17 +223,6 @@ const botCommands = {
 					attachment: './public/images/nikke/ready.png',
 				}],
 				content: `Commander... ready for what?`,
-			})
-		}
-	},
-	booba: {
-		name: 'booba?',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/booba.gif',
-				}],
-				content: `Commander... stop calling Soda to your room`,
 			})
 		}
 	},
