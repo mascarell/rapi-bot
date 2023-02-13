@@ -109,6 +109,17 @@ const botCommands = {
 			})
 		}
 	},
+	kindaweird: {
+		name: 'kinda weird...',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/kindaweird.png',
+				}],
+				content: `But why, Commander?...`,
+			})
+		}
+	},
 	iswear: {
 		name: 'i swear she is actually 3000 years old',
 		async execute(msg, args) {
