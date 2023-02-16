@@ -143,7 +143,7 @@ const botCommands = {
 		}
 	},
 	justice: {
-		name: 'JUSTICE FOR ADE',
+		name: 'justice for ade',
 		async execute(msg, args) {
 			msg.reply({
 				files: [{
