@@ -203,6 +203,8 @@ const botCommands = {
 ➜ **ready rapi?** : 100% ready  
 ➜ **12+ game** : kid safe game  
 ➜ **booba?** : not dragon moomy but still good  
+➜ **kinda weird...** : tf commander...  
+➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
 `)
 		}
 	},
