@@ -142,6 +142,17 @@ const botCommands = {
 			})
 		}
 	},
+	justice: {
+		name: 'JUSTICE FOR ADE',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/ade.png',
+				}],
+				content: `Commander, let's take her out of NPC jail.`,
+			})
+		}
+	},
 	whale: {
 		name: 'whale levels',
 		async execute(msg, args) {
