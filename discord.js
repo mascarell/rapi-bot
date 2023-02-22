@@ -18,6 +18,7 @@ const randomRapiMessages = [
 	`Don't push yourself too hard Commander!`,
 	`No matter what you think of us, we'll always be by your side.`,
 	`Commander, I'll protect you.`,
+	`Lap of discipline.`,
 ]
 
 // Bot commands object
