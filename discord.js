@@ -328,6 +328,12 @@ function initDiscordBot() {
 
 		msg.content = message.content.toLowerCase()
 
+		// check if we're mentioning the bot
+		if (message.mentions.has(bot.user)) {
+			// The bot was mentioned in the message
+			message.channel.send(`Did you mention me, Commander ${message.author}?.`);
+		}
+
 		// Establish arguments
 		let args = []
 		if (msg[0] === pre) {
