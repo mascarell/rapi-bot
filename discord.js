@@ -331,7 +331,7 @@ function initDiscordBot() {
 		// check if we're mentioning the bot
 		if (message.mentions.has(bot.user)) {
 			// The bot was mentioned in the message
-			message.channel.send(`Did you mention me, Commander ${message.author}?.`);
+			message.channel.send(`Did you mention me, Commander ${message.author}?`);
 		}
 
 		// Establish arguments
