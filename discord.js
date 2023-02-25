@@ -212,7 +212,7 @@ const botCommands = {
 ➜ **booba?** : not dragon moomy but still good  
 ➜ **kinda weird...** : tf commander...  
 ➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
-➜ /compositions : get help with your team compositions  
+➜ **/compositions** : get help with your team compositions  
 `)
 		}
 	},
