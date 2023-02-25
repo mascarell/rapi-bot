@@ -38,7 +38,7 @@ const botCommands = {
 
 			previousMemes.push(randomMeme.path)
 			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 5)
+				previousMemes.splice(0, 20)
 			}
 		
 			msg.reply({
@@ -63,7 +63,7 @@ const botCommands = {
 
 			previousMemes.push(randomMeme.path)
 			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 5)
+				previousMemes.splice(0, 20)
 			}
 		
 			msg.reply({
@@ -169,6 +169,12 @@ const botCommands = {
 		name: pre + 'youtube',
 		execute(msg, args) {
 			msg.channel.send('https://www.youtube.com/@lootandwaifus')
+		}
+	},
+	compositions: {
+		name: pre + 'compositions',
+		execute(msg, args) {
+			msg.channel.send('Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/')
 		}
 	},
 	rules: {
