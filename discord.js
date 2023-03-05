@@ -143,6 +143,17 @@ const botCommands = {
 			})
 		}
 	},
+	kyle: {
+		name: 'kyle',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/memes/kyle.png',
+				}],
+				content: `Im not talking to the manager, Commander ${msg.client.users.cache.get('430766929972822028')}`,
+			})
+		}
+	},
 	justice: {
 		name: 'justice for ade',
 		async execute(msg, args) {
