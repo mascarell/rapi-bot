@@ -150,7 +150,7 @@ const botCommands = {
 				files: [{
 					attachment: './public/images/memes/kyle.png',
 				}],
-				content: `Im not talking to the manager, Commander ${msg.client.users.cache.get('430766929972822028')}`,
+				content: `I'm not talking to the manager, Commander ${msg.client.users.cache.get('430766929972822028')}`,
 			})
 		}
 	},
