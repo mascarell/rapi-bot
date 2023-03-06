@@ -154,6 +154,17 @@ const botCommands = {
 			})
 		}
 	},
+	cunny: {
+		name: 'bird breeder',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/memes/bird.jpg',
+				}],
+				content: `Commander ${msg.client.users.cache.get('669753705393815562')} please leave the parrot alone.`,
+			})
+		}
+	},
 	justice: {
 		name: 'justice for ade',
 		async execute(msg, args) {
