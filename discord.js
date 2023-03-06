@@ -150,7 +150,7 @@ const botCommands = {
 				files: [{
 					attachment: './public/images/memes/kyle.png',
 				}],
-				content: `I'm not talking to the manager, Commander ${msg.client.users.cache.get('430766929972822028')}`,
+				content: `Commander, the manager isn't available right now.`,
 			})
 		}
 	},
@@ -161,7 +161,7 @@ const botCommands = {
 				files: [{
 					attachment: './public/images/memes/bird.jpg',
 				}],
-				content: `Commander ${msg.client.users.cache.get('669753705393815562')} please leave the parrot alone.`,
+				content: `Commander please leave the parrot alone.`,
 			})
 		}
 	},
