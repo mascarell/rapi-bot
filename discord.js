@@ -212,6 +212,18 @@ const botCommands = {
 `)
 		}
 	},
+	lucky: {
+		name: 'ur so lucky',
+		execute(msg, args) {
+			msg.channel.send(`kys commander 
+ur so lucky commander 
+u complain, but get so lucky 
+like for what 
+kinda crazy commander 
+🙄 
+`)
+		}
+	},
 	help: {
 		name: pre + 'help',
 		execute(msg, args) {
