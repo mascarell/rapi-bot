@@ -257,6 +257,13 @@ kinda crazy commander
 			msg.channel.send('Thank you Commander.')
 		}
 	},
+	dammit: {
+		name: 'dammit rapi',
+		description: 'dammit rapi',
+		execute(msg, args) {
+			msg.channel.send('Sorry Commander.')
+		}
+	},
 	wronggirl: {
 		name: 'wrong girl',
 		description: 'wrong girl Rapi',
