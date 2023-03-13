@@ -19,6 +19,9 @@ const randomRapiMessages = [
 	`No matter what you think of us, we'll always be by your side.`,
 	`Commander, I'll protect you.`,
 	`Lap of discipline.`,
+	`Is it time to break Syuen ribs again, Commander?`,
+	`I found a sock under your bed Commander, care to explain?`,
+	`Marian please stop wearing your underwear inside out...`,
 ]
 
 // Bot commands object
@@ -247,6 +250,7 @@ kinda crazy commander
 ➜ **kinda weird...** : tf commander...  
 ➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
 ➜ **/compositions** : get help with your team compositions  
+➜ **dammit Rapi** : 😭  
 `)
 		}
 	},
