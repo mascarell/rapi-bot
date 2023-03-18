@@ -146,28 +146,6 @@ const botCommands = {
 			})
 		}
 	},
-	kyle: {
-		name: 'kyle',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/memes/kyle.png',
-				}],
-				content: `Commander, the manager isn't available right now.`,
-			})
-		}
-	},
-	cunny: {
-		name: 'bird breeder',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/memes/bird.jpg',
-				}],
-				content: `Commander please leave the parrot alone.`,
-			})
-		}
-	},
 	justice: {
 		name: 'justice for ade',
 		async execute(msg, args) {
@@ -212,18 +190,6 @@ const botCommands = {
 ➜ Don't be a dick in general 
 ➜ Feel free to share your content on <#1054761687779123270>
 ➜ Suggest new memes, videos or anything in <#1055127265656193044>
-`)
-		}
-	},
-	lucky: {
-		name: 'ur so lucky',
-		execute(msg, args) {
-			msg.channel.send(`kys commander 
-ur so lucky commander 
-u complain, but get so lucky 
-like for what 
-kinda crazy commander 
-🙄 
 `)
 		}
 	},
@@ -394,9 +360,13 @@ function initDiscordBot() {
 		if (!bot.commands.has(command)) return
 
 		try {
-			// Execute commands only in bot category or moderator channel
-			// if (message.channel.parentID === '1054761748890132480' || message.channel.name === "moderator-only" || message.channel.name === "roles") 
+			const ignoredRole = message.guild.roles.cache.find(role => role.name === 'Grounded');
+
+			if (message.member.roles.cache.has(ignoredRole.id)) { // Ignore the message
+				return; 
+			} else { // do command
 				bot.commands.get(command).execute(msg, args)
+			}
 		} catch (error) {
 			console.error(error)
 			msg.reply('RIP BOT BRO 💩')
