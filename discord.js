@@ -337,7 +337,7 @@ function initDiscordBot() {
 	nikkeMessage.start()
 
 	// On message, find command and execute
-	bot.on('message', message => {
+	bot.on('message', async message => {
 		// Get message from param and turn lowercase
 		let msg = message
 		let guild = bot.guilds.cache.get('1054761356416528475')
@@ -347,10 +347,17 @@ function initDiscordBot() {
 
 		// check if we're mentioning the bot
 		if (message.mentions.has(bot.user)) {
-			// The bot was mentioned in the message
 			// message.channel.send(`Did you mention me, Commander ${message.author}?`);
-			message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
-			message.channel.send(`https://cataas.com/cat?width=600&seed=${Math.floor(Math.random() * 1000)}`);
+			try {
+				const response = await fetch(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
+				const data = await response.json();
+				
+				message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
+				message.channel.send(data[0].url);
+			} catch (error) {
+				console.error(error);
+				message.reply('Oops! Something went wrong while fetching the cat image.');
+			}
 		}
 
 		// Establish arguments
