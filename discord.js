@@ -174,6 +174,12 @@ const botCommands = {
 			msg.channel.send('https://www.youtube.com/@lootandwaifus')
 		}
 	},
+	// cat: {
+	// 	name: pre + 'cat',
+	// 	execute(msg, args) {
+	// 		msg.channel.send(`https://cataas.com/cat?width=600&seed=${Math.floor(Math.random() * 1000) }`)
+	// 	}
+	// },
 	compositions: {
 		name: pre + 'compositions',
 		execute(msg, args) {
@@ -342,7 +348,9 @@ function initDiscordBot() {
 		// check if we're mentioning the bot
 		if (message.mentions.has(bot.user)) {
 			// The bot was mentioned in the message
-			message.channel.send(`Did you mention me, Commander ${message.author}?`);
+			// message.channel.send(`Did you mention me, Commander ${message.author}?`);
+			message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
+			message.channel.send(`https://cataas.com/cat?width=600&seed=${Math.floor(Math.random() * 1000)}`);
 		}
 
 		// Establish arguments
