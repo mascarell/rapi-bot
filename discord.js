@@ -347,7 +347,6 @@ function initDiscordBot() {
 
 		// check if we're mentioning the bot
 		if (message.mentions.has(bot.user)) {
-			// message.channel.send(`Did you mention me, Commander ${message.author}?`);
 			try {
 				const response = await fetch(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
 				const data = await response.json();
@@ -356,7 +355,7 @@ function initDiscordBot() {
 				message.channel.send(data[0].url);
 			} catch (error) {
 				console.error(error);
-				message.reply('Oops! Something went wrong while fetching the cat image.');
+				message.channel.send(`Did you mention me, Commander ${message.author}?`);
 			}
 		}
 
