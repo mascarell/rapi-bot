@@ -16,6 +16,7 @@
     "discord.js": "*",
     "dotenv": "^16.0.3",
     "express": "*",
+    "node-fetch": "^2.6.9",
     "node-telegram-bot-api": "*",
     "pm2": "*"
   },
