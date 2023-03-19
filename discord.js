@@ -3,6 +3,7 @@ const Discord = require('discord.js')
 const { getFiles } = require('./utils')
 const axios = require('axios')
 const CronJobb = require('cron').CronJob
+const fetch = require("node-fetch")
 
 const TOKEN = process.env.WAIFUTOKEN
 const pre = '/' // what we use for the bot commands (nor for all of them tho)
