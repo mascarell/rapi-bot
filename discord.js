@@ -224,6 +224,7 @@ const botCommands = {
 ➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
 ➜ **/compositions** : get help with your team compositions  
 ➜ **dammit Rapi** : 😭  
+➜ **mold rates are not that bad** : 61% is enough  
 `)
 		}
 	},
@@ -262,6 +263,18 @@ const botCommands = {
 					attachment: 'https://i.imgur.com/lF7i8gC.jpg',
 				}],
 				content: `Commander, I don't like bears.`,
+			})
+		}
+	},
+	moldRates: {
+		name: 'mold rates are not that bad',
+		description: `Commander, what are you talking about?`,
+		execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/memes/copium-cn.jpg',
+				}],
+				content: `Commander, what are you talking about?`,
 			})
 		}
 	},
