@@ -350,16 +350,64 @@ function initDiscordBot() {
 
 	// Send random messages in #nikke channel to increase engagement every 6 hours
 	let nikkeMessage = new CronJobb(
-		// '* * * * *',
-		'0 */7 * * *',
+		'0 */8 * * *',
 		function () {
 			let guild = bot.guilds.cache.get('1054761356416528475')
 			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
 			if (!channel) return
 			channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)])
-		}
-	)
+		}, {
+		timezone: 'Europe/Madrid'
+	})
 	nikkeMessage.start()
+
+	// Daily message on reset time telling people what the current special interception is
+	let interceptionMessage = new CronJobb(
+		'0 21 * * *', () => {
+			let guild = bot.guilds.cache.get('1054761356416528475')
+			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
+			if (!channel) return
+
+			// Special interception bosses
+			let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
+
+			const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+			let currentDay = dayOfYear(new Date())
+			let fileName = '';
+
+			switch ((currentDay - 1) % 5) {
+				case 0:
+					fileName = 'chatterbox.webp'
+					break;
+				case 1:
+					fileName = 'modernia.webp'
+					break;
+				case 2:
+					fileName = 'train.webp'
+					break;
+				case 3:
+					fileName = 'gravedigger.webp'
+					break;
+				case 4:
+					fileName = 'blacksmith.webp'
+					break;
+				default:
+					fileName = 'chatterbox.webp'
+					break;
+			}
+
+			// const message = `<@&1056961142150402140> Commanders, today we have to fight`
+			// const message = `Commanders, today we have to fight ${bosses[(currentDay - 1) % 5]}`
+			let message = ({
+				files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
+				content: `<@&1054788720647225444> Commanders, today we have to fight ${bosses[(currentDay - 1) % 5]}`,
+			})
+			// Send the message to a channel
+			channel.send(message)
+		}, {
+		timezone: 'Europe/Madrid'
+	})
+	interceptionMessage.start()
 
 	// On message, find command and execute
 	bot.on('message', async message => {
