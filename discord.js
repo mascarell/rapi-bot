@@ -364,7 +364,8 @@ function initDiscordBot() {
 
 	// Daily message on reset time telling people what the current special interception is
 	let interceptionMessage = new CronJobb(
-		'0 21 * * *', () => {
+		// '0 21 * * *', () => {
+		'0/10 * * * * *', () => {
 			let guild = bot.guilds.cache.get('1054761356416528475')
 			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
 			if (!channel) return
@@ -376,7 +377,7 @@ function initDiscordBot() {
 			let currentDay = dayOfYear(new Date())
 			let fileName = '';
 
-			switch ((currentDay - 1) % 5) {
+			switch ((currentDay) % 5) {
 				case 0:
 					fileName = 'chatterbox.webp'
 					break;
@@ -397,11 +398,9 @@ function initDiscordBot() {
 					break;
 			}
 
-			// const message = `<@&1056961142150402140> Commanders, today we have to fight`
-			// const message = `Commanders, today we have to fight ${bosses[(currentDay - 1) % 5]}`
 			let message = ({
 				files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
-				content: `<@&1054788720647225444> Commanders, today we have to fight ${bosses[(currentDay - 1) % 5]}`,
+				content: `<@&1054788720647225444> Commanders, today we have to fight ${bosses[(currentDay) % 5]}`,
 			})
 			// Send the message to a channel
 			channel.send(message)
