@@ -364,8 +364,7 @@ function initDiscordBot() {
 
 	// Daily message on reset time telling people what the current special interception is
 	let interceptionMessage = new CronJobb(
-		// '0 21 * * *', () => {
-		'0/10 * * * * *', () => {
+		'0 21 * * *', () => {
 			let guild = bot.guilds.cache.get('1054761356416528475')
 			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
 			if (!channel) return
