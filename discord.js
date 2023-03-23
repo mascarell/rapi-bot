@@ -42,7 +42,7 @@ const botCommands = {
 
 			previousMemes.push(randomMeme.path)
 			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 20)
+				previousMemes.splice(0, 200)
 			}
 		
 			msg.reply({
@@ -67,7 +67,7 @@ const botCommands = {
 
 			previousMemes.push(randomMeme.path)
 			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 20)
+				previousMemes.splice(0, 200)
 			}
 		
 			msg.reply({
