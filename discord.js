@@ -21,7 +21,7 @@ const randomRapiMessages = [
 	`Commander, I'll protect you.`,
 	`Lap of discipline.`,
 	`Is it time to break Syuen ribs again, Commander?`,
-	`I found a sock under your bed Commander, care to explain?`,
+	`I found a wet sock with a weird smell under your bed Commander, care to explain?`,
 	`Marian please stop wearing your underwear inside out...`,
 ]
 
@@ -153,6 +153,17 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/ade.png',
+				}],
+				content: `Commander, let's take her out of NPC jail.`,
+			})
+		}
+	},
+	justicenero: {
+		name: 'justice for nero',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/nero.png',
 				}],
 				content: `Commander, let's take her out of NPC jail.`,
 			})
