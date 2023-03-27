@@ -103,6 +103,31 @@ const botCommands = {
 			})
 		}
 	},
+	booty: {
+		name: 'booty?',
+		async execute(msg, args) {
+			// Pick image from folder
+			let files = await getFiles('./public/images/booty/')
+			// Get Random
+			let randomMeme = files[Math.floor(Math.random() * files.length)]
+
+			while (previousMemes.includes(randomMeme.path) === true){
+				randomMeme = files[Math.floor(Math.random() * files.length)]
+			}
+
+			previousMemes.push(randomMeme.path)
+			if (previousMemes.length > files.length / 2) {
+				previousMemes.splice(0, 5)
+			}
+		
+			msg.reply({
+				files: [{
+					attachment: randomMeme.path,
+				}],
+				content: `- ${randomMeme.name}`,
+			})
+		}
+	},
 	skillissue: {
 		name: 'sounds like...',
 		async execute(msg, args) {
@@ -230,7 +255,8 @@ const botCommands = {
 ➜ **i swear she is actually 3000 years old** : what?  
 ➜ **ready rapi?** : 100% ready  
 ➜ **12+ game** : kid safe game  
-➜ **booba?** : not dragon moomy but still good  
+➜ **booba?** : robot girl personalities  
+➜ **booty?** : robot girl cakes  
 ➜ **kinda weird...** : tf commander...  
 ➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
 ➜ **JUSTICE FOR NERO** : she doesn't belong in jail  
