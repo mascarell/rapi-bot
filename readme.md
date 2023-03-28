@@ -22,3 +22,5 @@ npm install
 # Para ejecutar el bot mientras desarrollas
 npm run dev
 ```
+
+To run the bot on a server, you can use whatever method you prefer. I personally use PM2 on my server as I think it's probably one of the easiest ways.
