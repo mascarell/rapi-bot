@@ -194,6 +194,17 @@ const botCommands = {
 			})
 		}
 	},
+	justiceshifty: {
+		name: 'justice for shifty',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/shifty.png',
+				}],
+				content: `Commander, let's take her out of NPC jail.`,
+			})
+		}
+	},
 	whale: {
 		name: 'whale levels',
 		async execute(msg, args) {
@@ -260,6 +271,7 @@ const botCommands = {
 ➜ **kinda weird...** : tf commander...  
 ➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
 ➜ **JUSTICE FOR NERO** : she doesn't belong in jail  
+➜ **JUSTICE FOR SHIFTY** : -9547 hit rate  
 ➜ **/compositions** : get help with your team compositions  
 ➜ **dammit Rapi** : 😭  
 ➜ **mold rates are not that bad** : 61% is enough  
