@@ -23,6 +23,11 @@ const randomRapiMessages = [
 	`Is it time to break Syuen ribs again, Commander?`,
 	`I found a wet sock with a weird smell under your bed Commander, care to explain?`,
 	`Marian please stop wearing your underwear inside out...`,
+	`Commander, why do you bark every time you see Makima?`,
+	`Scarlet or Modernia? What kind of question is that Commander? The answer is obvious...`,
+	`I can't go out with you today Commander, there's a lot of paperwork to do.`,
+	`Commander... did you really marry Sakura?`,
+	`Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
 ]
 
 // Bot commands object
