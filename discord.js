@@ -28,6 +28,7 @@ const randomRapiMessages = [
 	`I can't go out with you today Commander, there's a lot of paperwork to do.`,
 	`Commander... did you really marry Sakura?`,
 	`Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
+	`Commander, why do you have a picture of Andersen on your wallet?`,
 ]
 
 // Bot commands object
@@ -414,6 +415,7 @@ function initDiscordBot() {
 
 			// Special interception bosses
 			let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
+			let tower = [ 'all manufacturers', 'Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis' ]
 
 			const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
 			let currentDay = dayOfYear(new Date())
@@ -440,9 +442,17 @@ function initDiscordBot() {
 					break;
 			}
 
+			const currentDate = new Date();
+			const currentDayOfTheWeek = currentDate.getDay();
+
 			let message = ({
 				files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
-				content: `<@&1054788720647225444> Commanders, today we have to fight ${bosses[(currentDay) % 5]}`,
+				content: `
+<@&1054788720647225444> Commanders, here's today schedule:  
+
+- We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
+- Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
+`,
 			})
 			// Send the message to a channel
 			channel.send(message)
