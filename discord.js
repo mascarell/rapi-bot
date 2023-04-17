@@ -145,6 +145,17 @@ const botCommands = {
 			})
 		}
 	},
+	seggs: {
+		name: 'seggs?',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/seggs.mp4',
+				}],
+				content: `Wait, Shifty, what are you talking about?`,
+			})
+		}
+	},
 	kindaweird: {
 		name: 'kinda weird...',
 		async execute(msg, args) {
@@ -281,6 +292,7 @@ const botCommands = {
 ➜ **/compositions** : get help with your team compositions  
 ➜ **dammit Rapi** : 😭  
 ➜ **mold rates are not that bad** : 61% is enough  
+➜ **seggs?** : shifty?  
 `)
 		}
 	},
