@@ -1,0 +1,22 @@
+module.exports = [
+  "What's a good way to ring in the New Year?\nAnswer : Going on a date with your loved one.",
+  "One, two...\nAnswer : Nikke!",
+  "I'll hand it over to Sweetie to explain the rest.\nAnswer : Talk about the importance of Nikkes and their mental health.",
+  "Sometimes I think about how nice it'd be if I were like that.\nAnswer : You're fine just the way you are.",
+  "Is there any way we can promote them better?\nAnswer : Wear them in your next video.",
+  "How about we go shopping when we're done talking?\nAnswer : Sure, we can buy some winter clothes.",
+  "but I already bought so many. There's barely enough room left on the tree.\nAnswer : Then let's buy another tree.",
+  "I always end up thinking of a special someone.\nAnswer : I'm the same way.",
+  "I'm in a good mood today.\nAnswer : I'm enjoying spending time with you too.",
+  "White or black?\nAnswer : White, obviously.",
+  "How old were you when you stopped believing in Santa Claus?\nAnswer : I never stopped believing in Santa.",
+  "Do you have any vacation plans?\nAnswer : None. Help me plan something.",
+  "I'm fine with it, but what about you? Aren't you freezing?\nAnswer : It's okay. You can hold my hand.",
+  "I'm sure we'll be able to find something in the Ark.\nAnswer : I think a place just opened up that sells truffle soup.",
+  "*Yawn*\nAnswer : How can shopping make you tired?",
+  "When do you find me most appealing?\nAnswer : When you're out on a date.",
+  "A wedding on a snowy day... Isn't it romantic?\nAnswer : Would you like to rehearse?",
+  "but I'm not sure what kind of party it should be.\nAnswer : A casual get-together with your fans and other livestreamers.",
+  "It's been days since my last livestream...\nAnswer : I know it's hard. Let me give you a massage.",
+  "What catchphrase should we use to hook people in?\nAnswer : Get the latest holiday fashions for you and your loved ones."
+];

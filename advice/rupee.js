@@ -1,0 +1,22 @@
+module.exports = [
+  "but you already had one at home, what would you do?\nAnswer : It doesn't matter. I buy everything I want.",
+  "I make billions every month... But when I actually look at my bank account, it's always empty...\nAnswer : That is such a scary story.",
+  "Do you have some time this weekend?\nAnswer : Of course.",
+  "Hey, Sweetie. Notice anything different about me today?\nAnswer : Are those new heels?",
+  "Is there any way to make money without working?\nAnswer : Invest in real estate or stocks...",
+  "They say I should be investing my earnings, not spending it all...\nAnswer : Money exists to be spent!",
+  "What should I put on the main banner this week?\nAnswer : A product with unrealized potential.",
+  "Do you know what it is?\nAnswer : That I don't spend mindlessly?",
+  "What type of pattern do you think is the most beautiful in the world?\nAnswer : Leopard print.",
+  "But, I figure someone like you would have a very different bucket list than I do.\nAnswer : Ensuring the safety of innocent people.",
+  "...\nAnswer : Trying to get your hands on a limited edition item?",
+  "I don't think I've ever seen you spend a single credit.\nAnswer : I do a bit of spending here and there whenever I need something.",
+  "Isn't that crazy?!\nAnswer : You're kidding! I'm totally obsessed with Ashe.",
+  "They'll feel bad if I stand them up... Which one should I attend?\nAnswer : You should hold your own event.",
+  "I need to invite a guest that'll create some attention. Who do you think would be good?\nAnswer : Invite Mustang.",
+  "Sweetie, how do you feel when you watch rich people go on a spending spree?\nAnswer : I find it therapeutic.",
+  "Sweetie!\nAnswer : I'm sure you'll get the next limited edition... whatever it was.",
+  "Do you remember the name of my clothing brand?\nAnswer : Rusae.",
+  "Why would someone do such a thing?\nAnswer : They just hate us, 'cause they aint us.",
+  "Catch ya on the flip side!\nAnswer : What on earth is going on?"
+];

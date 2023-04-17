@@ -1,0 +1,22 @@
+module.exports = [
+  "which seats do you prefer?\nAnswer : The ones closest to the stage.",
+  "If you had some time off, what would you do?\nAnswer : Travel far away to somewhere exotic.",
+  "which one will you pick?\nAnswer : I don't need either of them.",
+  "Did something happen there?\nAnswer : It's home to a poor soul who has forgotten how to sing.",
+  "or the ending of a song is more important?\nAnswer : The beginning.",
+  "if we ever reclaim the surface, what's the first thing you'll do?\nAnswer : Find higher ground and shout to the heavens that we have retaken the surface.",
+  "Maestro, are you a fan of hard-hitting music?\nAnswer : I am. It helps me identify with Volume.",
+  "If she was feeling down when you saw her, what would you do?\nAnswer : I wouldn't do anything. It's the path she chose.",
+  "I want to do something exciting. Something spontaneous.\nAnswer : Try to practice singing outdoors.",
+  "The unfolding stories, the expectation of the audience, and the arrangement made with everyone. All of this is up on me.\nAnswer : You'll always have your music, Aria.",
+  "What do you think its secret is?\nAnswer : Opera is eternal.",
+  "If it were you, what would you do?\nAnswer : I'd try to convince him that I was right.",
+  "What can I do to improve?\nAnswer : Just focus on the music.",
+  "What should I do to help him?\nAnswer : Let him handle it on his own.",
+  "comedies or tragedies?\nAnswer : Tragedy.",
+  "Have you ever considered what the perfect death would be?\nAnswer : Sacrificing yourself for a noble cause.",
+  "Are any of them your type?\nAnswer : You are, Aria.",
+  "What are some recreational activities I could have fun with?\nAnswer : Go sing some karaoke.",
+  "Maestro, have you ever hit a snag before?\nAnswer : Of course, it's common.",
+  "In the end, who would you compose for?\nAnswer : For myself"
+];

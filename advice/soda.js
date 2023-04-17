@@ -1,0 +1,22 @@
+module.exports = [
+  "I screwed up again today.\nAnswer : It's okay. Everyone makes mistakes.",
+  "Clean clean, squeaky clean!\nAnswer : Want to clean together?",
+  "Do you prefer sunny or rainy days?\nAnswer : I like sunny days.",
+  "I broke a glass while I was cleaning today.\nAnswer : Were you hurt?",
+  "Maybe even more than cleaning.\nAnswer : I prefer you over cleaning as well, Soda.",
+  "Do you think we should start with the kitchen or the lobby?\nAnswer : The kitchen.",
+  "What's your favorite food? Tell me and I'll make it for you.\nAnswer : Anything you make is my favorite.",
+  "Would you like a massage?\nAnswer : If it's not too much trouble...",
+  "What should I draw?\nAnswer : Your face.",
+  "Soda is cleaning every nook and cranny of the Commander's Room.\nAnswer : Is something on your mind?",
+  "Do you have any suggestions?\nAnswer : Try and make your eyes twinkle.",
+  "Guess what the lyrics are after that!\nAnswer : Meet your special maid!♪",
+  "Guess what she said.\nAnswer : That you were the best cook around.",
+  "Is there anything you'd like to see me in other than a maid outfit?\nAnswer : It'd be interesting to see you in some casual clothes.",
+  "But all I ever seem to do is make mistakes. I'm so sad...\nAnswer : That's what makes you so endearing, Soda.",
+  "Nice to have you back, Master!\nAnswer : ... Hello.",
+  "But I've already bought a lot of cleaning tools... What should I do?\nAnswer : Consider it an investment towards your own happiness. Go for it.",
+  "By the magic invested in me, I command you to be delicious! Moe moe kyun!\nAnswer : Alakazam!",
+  "You can choose your own theme.\nAnswer : The climactic scene of a romantic-comedy.",
+  "Did you see what it was?\nAnswer : A heart."
+];

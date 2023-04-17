@@ -1,0 +1,22 @@
+module.exports = [
+  "What should I do when I run into this kind of person?\nAnswer : Show them who's boss.",
+  "What can I do to make her stop doing that?\nAnswer : It's better to just give up.",
+  "It's been getting pretty popular recently.\nAnswer : Yeah, I like it.",
+  "If I didn't become a police officer, what do you think I would have been?\nAnswer : Nothing suits you like being a police officer.",
+  "I just wanna lie down on the ground.\nAnswer : Do you want me to pet you?",
+  "My body's so drained. I'm turning into a literal couch potato.\nAnswer : Do you want me to pet you?",
+  "Grr... I'm furious. Why in the world would he say that?\nAnswer : Because of your chipmunk cheeks?",
+  "Are you a dog person or a cat person?\nAnswer : Of course, a dog person.",
+  "How can I calm down?\nAnswer : Come here. Let me pet you.",
+  "Should I believe her?\nAnswer : It sounds like the cowardly excuse of a criminal.",
+  "It was so obvious who they were too!\nAnswer : You're a veteran police officer, so spotting criminals is practically second nature for you.",
+  "What kind of style should I change it to?\nAnswer : I think what you've got going on now suits you perfectly.",
+  "or going out with a group of people?\nAnswer : I enjoy being around you.",
+  "what type of toy do you think I would be?\nAnswer : A bad-to-the-bone police figurine.",
+  "Commander, is there any other career you'd like to try out other than what you're doing now?\nAnswer : I'd like to give being a police officer a shot, like you.",
+  "*Grrrr*\nAnswer : What's going on?",
+  "I have so much to do though...\nAnswer : Forget all that, let's hang out.",
+  "I had a good streak of no injuries going too... at least I didn't take too hard a spill.\nAnswer : Change the bandage.",
+  "What do you think she meant?\nAnswer : She thinks that you're cool.",
+  "Think I can do it?\nAnswer : In your case Poli, I think it's possible."
+];

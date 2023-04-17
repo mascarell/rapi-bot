@@ -1,0 +1,22 @@
+module.exports = [
+  "should I turn it up or down?\nAnswer : Up.",
+  "Do You Love Me?\nAnswer : Is this the title of your new song?",
+  "When I look up, all I see is a ceiling instead of the actual sky.\nAnswer : Let's use music to blast a hole through it!",
+  "I'm famished.\nAnswer : Bring her some water.",
+  "But there's a saying that stars should always be ready to be photographed.\nAnswer : You mean you have to be ready at all times?",
+  "My body is in bad shape, too.\nAnswer : Why don't you take the day off?",
+  "I'm not in the mood to talk. Please leave.\nAnswer : Play some peaceful music.",
+  "what do you think it would be like?\nAnswer : A raging hip-hop party under the heavy rain.",
+  "Is there anything you want? Name it, and it's yours.\nAnswer : A Romdady S supercar.",
+  "Aria and I are radically different in style, so she's out of the equation.\nAnswer : You, of course.",
+  "Do you have anyone in mind?\nAnswer : I could do it.",
+  "I ask myself that question sometimes.\nAnswer : I can't imagine you doing anything but rapping.",
+  "What do you think is the most important thing for a rapper to have?\nAnswer : Swag",
+  "That guy getting the boot.\nAnswer : Everyone makes mistakes.",
+  "hip-hop or pop music?\nAnswer : Hip-hop.",
+  "what should I do?\nAnswer : Take 'em to school so they know not to mess with you again.",
+  "What do you think of people who make their love life public?\nAnswer : I think it'll be good.",
+  "I am planning to make a custom mic. Which color should I pick?\nAnswer : Black.",
+  "Her operas are so crushingly dull, how can she play them so well without being bored to tears?\nAnswer : I think you could pull it off as well.",
+  "What would you recommend?\nAnswer : Film some ads."
+];

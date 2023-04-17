@@ -1,0 +1,22 @@
+module.exports = [
+  "so incompetent?\nAnswer : It seems that way because you're in a different league entirely.",
+  "I need a way to bring Vesti to her senses. To humble her.\nAnswer : Read Vesti's personal diary out loud in a meeting.",
+  "I don't know how to refuse.\nAnswer : Use work as an excuse.",
+  "the surface world?\nAnswer : Within my lifetime.",
+  "I... I'm not quite sure how to process it.\nAnswer : Enjoy it while you can.",
+  "I don't feel like talking to a fool like you!\nAnswer : What's gotten into you?",
+  "Everyone's been talking about it. Tell me, what are your thoughts?\nAnswer : Absolute, of course.",
+  "I find this somewhat depressing.\nAnswer : We'll enjoy all four seasons once we reclaim the surface.",
+  "who aren't pulling their weight?\nAnswer : Discover their talents and play to their strengths.",
+  "Tell me. How do you define comradery?\nAnswer : It's a sense of loyalty that lasts forever.",
+  "I'd prefer to rest.\nAnswer : ...",
+  "What's your stance on mistakes?\nAnswer : Even the smallest mistake could spell disaster.",
+  "Eat it.\nAnswer : ...　Did Emma make this?",
+  "What's the one location here you couldn't do without?\nAnswer : The armory.",
+  "what would you do?\nAnswer : I'd pull back before they noticed me, and report it to my superiors.",
+  "Please don't tell me you feel that way about anything.\nAnswer : My identification badge.",
+  "I need to find a way to clear my head.\nAnswer : Distract yourself by doing various tasks.",
+  "You don't have anything else to eat by any chance, do you?\nAnswer : Hand over the apple from the surface that you have been saving.",
+  "but does anybody pay attention to your state of mind?\nAnswer : Commanders are on their own in that regard.",
+  "is there any worth a damn?\nAnswer : Three or four of them caught my eye."
+];

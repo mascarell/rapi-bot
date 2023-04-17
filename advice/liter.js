@@ -1,0 +1,22 @@
+module.exports = [
+  "Hey, Greenhorn. Do you think my advice is useless, too?\nAnswer : Don't you remember what it's like to be young?",
+  "Would you clean it up, or just leave it?\nAnswer : I would still clean it up.",
+  "But what do you think, Greenhorn?\nAnswer : It's about their safety, not their freedom.",
+  "Should I change my ways?\nAnswer : Being strict is a matter of safety.",
+  "But, I'm worried that she might become too dependent.\nAnswer : Centi is not a kid.",
+  "But every time I think about life without work, I get frustrated.\nAnswer : When that day comes, you'll find something else to do.",
+  "... Could she be lying about her age?\nAnswer : Maybe it's because of her high quality of life.",
+  "I can only clean up after her for so long!\nAnswer : It's a bit of a secret, but Anis actually has a medical condition with her feet...",
+  "Maybe I'm getting old... Or maybe I'm just tired...\nAnswer : Maybe it's because you don't find the work interesting anymore?",
+  "No one lives as comfortably as she does.\nAnswer : Bolt also has her own troubles.",
+  "I'm at a loss. What do I do?\nAnswer : Give him a piece of your mind.",
+  "But, aren't I a bit too old for that sort of thing?\nAnswer : Age doesn't matter when it comes to hobbies.",
+  "If I get him a little brother to play with, he might not be as lonely.\nAnswer : Then you'll just end up with two lonely dogs instead of one.",
+  "If you had to choose, who would you side with?\nAnswer : I can't choose. I see both sides.",
+  "So, how old would you like to be?\nAnswer : I wanna become an old geezer.",
+  "What can I do to change things up?\nAnswer : I'll pack your lunch.",
+  "What about you, Greenhorn? Is there any way you'd prefer to leave this world?\nAnswer : Surrounded by beautiful women.",
+  "And for Anis...\nAnswer : Socks all strewn about?",
+  "Try guessing what food I like.\nAnswer : ... Porridge?",
+  "So I just...\nAnswer : Did you sell it for a premium?"
+];

@@ -1,0 +1,22 @@
+module.exports = [
+  "Don't they understand I am a far superior being?\nAnswer : If you salute first, they will salute back.",
+  "Ha! Hahaha!\nAnswer : Hahahaha!",
+  "Haha! I'm pretty awesome, right?\nAnswer : ... Do you want me to order it for you?",
+  "I picked him right up!\nAnswer : How admirable of you.",
+  "They're doomed for sure!\nAnswer : You have to save them, Drake.",
+  "There's no way she can win battles by relying so much on equipment!\nAnswer : Since Maxwell made them, they must be very effective, right?",
+  "They're so annoying.\nAnswer : How many did you give them?",
+  "Right! Now!\nAnswer : Not before you finish your vegetables.",
+  "Do you know what I'm afraid of?\nAnswer : Becoming too powerful.",
+  "But meat is limited, so we can't waste it on experimentation.\nAnswer : How about eating and cooking at the same time?",
+  "Can you handle watching horror movies on your own?\nAnswer : Horror movies are child's plays to me.",
+  "I hope we reclaim the surface soon so I can immerse myself in nature once again.\nAnswer : Summer is a perfect fit for you.",
+  "In order to accomplish that, I'll go to the police station and...\nAnswer : have them put you behind bars.",
+  "Can you believe that?! Me! An angel!\nAnswer : Tell them that you're no angel, but instead the ultimate villain.",
+  "Do you know what a villain should do on a roller coaster?\nAnswer : Never close their eyes?",
+  "One of the employees must have screwed up.\nAnswer : Fried chicken is great even with the sauce.",
+  "but I can't decide what I'd like to do.\nAnswer : Take up a high-energy sport.",
+  "If you could turn invisible, what's the first thing you would do?\nAnswer : Annihilate every last Rapture.",
+  "When my time is up, what do you think I should have written on my headstone?\nAnswer : What?! You'll never die!",
+  "but she wants it super spicy!\nAnswer : Spicy fried chicken can be good, as long as it's mild."
+];

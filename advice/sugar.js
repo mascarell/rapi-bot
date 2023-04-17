@@ -1,0 +1,22 @@
+module.exports = [
+  "What do you think I should do?\nAnswer : Give them a swift kick in the rear.",
+  "What can you even say to such a flagrant insult?\nAnswer : Give her some bleach.",
+  "Any ideas?\nAnswer : Do you feel that the fuel you put into Black Typhoon is a waste?",
+  "How many scoops of sugar do you think is best?\nAnswer : 11 spoonfuls.",
+  "They're a real pain in my neck. All they do is stand around.\nAnswer : Why don't you just stand around, then? Someone else will do the work eventually.",
+  "What kind of music do you think suits my vibe?\nAnswer : Graceful classical music.",
+  "But I've got to maintain my reputation as a problem-solver, so I can't turn anybody down. What should I do?\nAnswer : Keep taking every job, no matter how shady.",
+  "Vroom! Vroom, vroom!\nAnswer : Vroooooom!!",
+  "I'm a little worried that one day I might get myself into trouble.\nAnswer : Cut loose if you want, just be sure to trust me and your other teammates.",
+  "I want to redline it! How can I do that?\nAnswer : How about adding another 0 to the speedometer?",
+  "I wonder what's wrong...\nAnswer : Let's inspect the engine.",
+  "I feel this irresistible urge to go for a spin on my bike.\nAnswer : Let's do it when we reclaim the surface.",
+  "Someone had put milk and cream into a Sugar Coffee.\nAnswer : It certainly sounds horrible.",
+  "Do you think she has what it takes to be a leader?\nAnswer : She's the de facto leader of Cafe Sweety.",
+  "Try and ask me a few questions.\nAnswer : Would you rather only have Sugar Coffee, or me?",
+  "*Vroom-m-m!!*\nAnswer : When I'm alone I mimic Frima's voice.",
+  "Which one would you like?\nAnswer : They're both Sugar Coffees... just give me whichever.",
+  "You wear a helmet whenever you ride a motorcycle, don't you?\nAnswer : Of course.",
+  "I'd crush it, I just know it.\nAnswer : You should start one of your own.",
+  "Do you know the reason?\nAnswer : That's because the population in the Outpost has increased."
+];

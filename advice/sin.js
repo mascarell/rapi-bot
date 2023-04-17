@@ -1,0 +1,22 @@
+module.exports = [
+  "Why do you▣▣ insist on putting▣▣ this convertor on me?\nAnswer : Because I'm not confident that I can restrain you if I have to.",
+  "▣I had so much fun cutting□□ it up with the Nikkes here yesterday, I had※▣tears coming down my face.\nAnswer : I'm glad to hear that you've managed to adjust.",
+  "If you rescued a ※※kid who was about to drown ▣▣※and they said afterwards that they wanted some Nutrium□, what would you do?\nAnswer : I'd probably buy them some.",
+  "□※S is standing pretty at 30 points, R is at minus 6□▣points, E is....\nAnswer : Are you calculating points?",
+  "Everyone▣can't stop□□complimenting you.※▣※\nAnswer : How does that make you feel?",
+  "Ever since I was released□※from the rehabilitation center ▣※, I've been wanting to do something that has meaning.\nAnswer : Okay, let's go together during the weekend.",
+  "□※Every time I think back on ▣※□what you did, I bust out※□laughing.\nAnswer : Last week? Wait, you mean when I...?!",
+  "※※I don't mind□it, but security▣here is□ so lax.\nAnswer : Quency never was one to follow the rules.",
+  "I've already been□□rehabilitated.\nAnswer : Should we do something else then?",
+  "□▣If you could commit one sin,▣※what would it be?\nAnswer : Offer a live sacrifice to appease the gods.",
+  "※▣Would you prefer to be given a ▣※ bar of Splendamin, or a ▣※□light croquette?\nAnswer : Splendamin.",
+  "※I'm▣□▣bored out of my gourd.\nAnswer : Should I give you a piggyback ride?",
+  "※Do you※▣think▣※□that's true?\nAnswer : I agree somewhat.",
+  "※▣From what I□hear※▣you're close to□everyone.\nAnswer : ... You?",
+  "□▣Then▣※I wouldn't feel□misunderstood▣※※.\nAnswer : I like it when I can see your face.",
+  "Or a wide circle※□of acquaintances▣▣?\nAnswer : A wide circle of acquaintances.",
+  "▣□▣but it feels like everyone※□is always▣judging me▣.\nAnswer : Butter them up first with a bar of Splendamin.",
+  "How▣▣can I□※get her□▣※to not be mad at me anymore?\nAnswer : Nothing you can do. Just have to wait until she cools off.",
+  "※□Quency▣is too busy, □※※so I don't want to bother her, and Guilty※could crush me like a bug▣if I rub her the wrong way.\nAnswer : I'll blend your food up for you.",
+  "Gu▣ilty says※there's nothing she despises more than▣※falsehoods.\nAnswer : Lying is also a skill."
+];

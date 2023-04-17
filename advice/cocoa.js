@@ -1,0 +1,22 @@
+module.exports = [
+  "Cocoa sets a plate of omurice in front of me and holds up the ketchup.\nAnswer : As much ketchup as you can muster.",
+  "or sunny days?\nAnswer : I like rainy days.",
+  "What can I do to keep her at bay?\nAnswer : Fire some ketchup at her.",
+  "Do you prefer eating inside, or going al fresco?\nAnswer : I prefer eating in the restaurant.",
+  "Cocoa holds out her thumb.\nAnswer : Also give a thumbs up.",
+  "I want to return the favor, but how?\nAnswer : Give her two thumbs up.",
+  "What's your stance on that?\nAnswer : If you're a maid, you can open your umbrella wherever you want.",
+  "Why do you think that was?\nAnswer : She felt inferior standing next to someone as cool as you.",
+  "Master, is there anything you don't go anywhere without?\nAnswer : Credits that I can use at the Maid Cafe.",
+  "I want a real challenge. Give me something to make.\nAnswer : I want an opulent super-duper mega ultra omurice.",
+  "I'm crafting a new menu, and can't decide which sauce to use.\nAnswer : Ketchup.",
+  "What would you like me to draw using ketchup?\nAnswer : Draw me.",
+  "I'll make it for you right now.\nAnswer : Savory omurice.",
+  "What kind of service should I include?\nAnswer : Why don't you ask the customers what they'd like to see?",
+  "How good of a maid do you think I am?\nAnswer : You're a professional.",
+  "Which do you prefer, Master?\nAnswer : Warm cocoa, all day every day.",
+  "What should we do?\nAnswer : Do you want to go somewhere?",
+  "How should I deal with them?\nAnswer : Teach them a lesson about manners.",
+  "I can.\nAnswer : Can you teach me?",
+  "I like you, Ade and Soda equally.\nAnswer : I like you as well, Cocoa."
+];

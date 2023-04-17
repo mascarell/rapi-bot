@@ -1,0 +1,22 @@
+module.exports = [
+  "but my detective senses just aren't coming to me.\nAnswer : Try going to the scene of the crime.",
+  "Should I have pizza-flavored Splendamin or the chicken-flavored Splendamin?\nAnswer : If you are a citizen of the Ark, chicken is best.",
+  "So, why isn't that the case?\nAnswer : Because your squad's talents aren't all about firepower.",
+  "Can you help me, as my assistant?\nAnswer : Of course.",
+  "But, I just can't seem to get it right! What should I do?\nAnswer : I'll send it for you.",
+  "But, due to tight security, it's difficult to get my hands on even just one.\nAnswer : Let's ask Exia for help.",
+  "If this keeps up, the unemployment rate for detectives will reach 100%.\nAnswer : There are cases everywhere. You just have to go and look for them.",
+  "which would you choose, Watson?\nAnswer : A closed-room murder case.",
+  "Just like how Sherlock Holmes had Professor Moriarty and Arsene Lupin.\nAnswer : Why not ask Exotic to be your archenemy?",
+  "Why are you not wearing your usual clothes?\nAnswer : Because today is the day I consult with you.",
+  "I can't wrap my brain around it.\nAnswer : Because of a desire to be special.",
+  "In my dreams, that is...\nAnswer : You're a super sleuth even when you're dreaming!",
+  "If this keeps up, I'm concerned I'll even start forgetting about key evidence.\nAnswer : I'll come with you.",
+  "but I'm not sure what it should be.\nAnswer : You don't need a catchphrase, you're already cool as is.",
+  "even if you become a millionaire?\nAnswer : Having discussions with you.",
+  "Do you have any ideas?\nAnswer : Super Sleuth.",
+  "If there are, I'm curious who it is.\nAnswer : Well, you, for one.",
+  "I get really stressed out.\nAnswer : You can try having a go at a logic puzzle.",
+  "I feel down in the dumps. I'd prefer to be alone.\nAnswer : Sit down beside her.",
+  "with your future girlfriend, what would you like to do?\nAnswer : Do an escape room."
+];

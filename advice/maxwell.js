@@ -1,0 +1,22 @@
+module.exports = [
+  "Which do you like better: hot or cold?\nAnswer : If you are going to do an experiment, tell me in advance. I hate both.",
+  "What do you think, Cutey? Is My Cutey missing anything?\nAnswer : It doesn't have any charm to it.",
+  "What should I do?\nAnswer : You can't lose. You've got to find some way to best this Nikke.",
+  "Do you think it has something to do with you?\nAnswer : I think so.",
+  "How do you put up with her, Cutey?\nAnswer : She admits her faults, so I'm willing to cut her some slack.",
+  "Matis or Absolute?\nAnswer : Matis.",
+  "Do you like hot or cold food better?\nAnswer : I'll eat whatever you give me.",
+  "What do you think, Cutey? Would I be a researcher working for the villains, or for the heroes?\nAnswer : You'd be working for the heroes.",
+  "hitting the walls and floor, that kind of thing?\nAnswer : No.",
+  "Mustang, or Syuen?\nAnswer : Syuen.",
+  "would you press it?\nAnswer : No.",
+  "Hey Cutey, do you have a moment?\nAnswer : For you, all the time in the world.",
+  "Cutey, if something important came up and you couldn't get a hold of the other person, what would you do?\nAnswer : I would go find them.",
+  "what do you think will happen to all the Nikkes?\nAnswer : We'll all live a peaceful coexistence on the surface.",
+  "What do you do to clear your head?\nAnswer : Do something that I enjoy.",
+  "We could have constructed an entire building with all the money spent repairing broken windows.\nAnswer : It's a bad habit she needs to fix.",
+  "But the details are fuzzy.\nAnswer : Does it really matter if you can't remember?",
+  "Wouldn't you say?\nAnswer : I admire your confidence.",
+  "Today's perfect for running some tests, don't you think?\nAnswer : ...Sure.",
+  "What do you imagine life will be like then?\nAnswer : Probably still fighting with the Raptures, what else?"
+];
