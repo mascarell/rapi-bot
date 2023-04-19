@@ -153,33 +153,16 @@ const botCommands = {
 		}
 	},
 	justice: {
-		name: 'justice for ade',
+		name: 'justice for...',
 		async execute(msg, args) {
+			// Pick image from folder
+			let files = await getFiles('./public/images/justice/')
+			// Get Random
+			let randomMeme = files[Math.floor(Math.random() * files.length)]
+
 			msg.reply({
 				files: [{
-					attachment: './public/images/nikke/ade.png',
-				}],
-				content: `Commander, let's take her out of NPC jail.`,
-			})
-		}
-	},
-	justicenero: {
-		name: 'justice for nero',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/nero.png',
-				}],
-				content: `Commander, let's take her out of NPC jail.`,
-			})
-		}
-	},
-	justiceshifty: {
-		name: 'justice for shifty',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/shifty.png',
+					attachment: randomMeme.path,
 				}],
 				content: `Commander, let's take her out of NPC jail.`,
 			})
@@ -202,12 +185,6 @@ const botCommands = {
 			msg.channel.send('https://www.youtube.com/@lootandwaifus')
 		}
 	},
-	// cat: {
-	// 	name: pre + 'cat',
-	// 	execute(msg, args) {
-	// 		msg.channel.send(`https://cataas.com/cat?width=600&seed=${Math.floor(Math.random() * 1000) }`)
-	// 	}
-	// },
 	compositions: {
 		name: pre + 'compositions',
 		execute(msg, args) {
@@ -249,9 +226,7 @@ const botCommands = {
 ➜ **booba?** : robot girl personalities  
 ➜ **booty?** : robot girl cakes  
 ➜ **kinda weird...** : tf commander...  
-➜ **JUSTICE FOR ADE** : she doesn't belong in jail  
-➜ **JUSTICE FOR NERO** : she doesn't belong in jail  
-➜ **JUSTICE FOR SHIFTY** : -9547 hit rate  
+➜ **JUSTICE FOR...** : she doesn't belong in jail  
 ➜ **/compositions** : get help with your team compositions  
 ➜ **dammit Rapi** : 😭  
 ➜ **mold rates are not that bad** : 61% is enough  
