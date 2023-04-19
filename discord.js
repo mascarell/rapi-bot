@@ -501,8 +501,8 @@ function initDiscordBot() {
 	// Greet new users when they join the server
 	bot.on('guildMemberAdd', member => {
 		let guild = bot.guilds.cache.get('1054761356416528475')
-		const channel = guild.channels.cache.find(ch => ch.name === 'welcome')
-		channel.send(`Welcome commande ${member}, please take care when going to the surface.`)
+		const channel = guild.channels.cache.find(ch => ch.name === 'general')
+		channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
 	})
 
 	// Send random messages in #nikke channel to increase engagement every 6 hours
