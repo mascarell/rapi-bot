@@ -9,7 +9,6 @@ const TOKEN = process.env.WAIFUTOKEN
 const pre = '/' // what we use for the bot commands (nor for all of them tho)
 
 let bot = new Discord.Client() // the bot itself
-let previousMemes = [] // tmp variable so we don't repeat memes two times in a row
 
 const randomRapiMessages = [
 	`You’re too quiet, Commander, is everything alright?`,
@@ -41,15 +40,6 @@ const botCommands = {
 			let files = await getFiles('./public/images/nikke/')
 			// Get Random
 			let randomMeme = files[Math.floor(Math.random() * files.length)]
-
-			while (previousMemes.includes(randomMeme.path) === true){
-				randomMeme = files[Math.floor(Math.random() * files.length)]
-			}
-
-			previousMemes.push(randomMeme.path)
-			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 200)
-			}
 		
 			msg.reply({
 				files: [{
@@ -66,15 +56,6 @@ const botCommands = {
 			let files = await getFiles('./public/images/memes/')
 			// Get Random
 			let randomMeme = files[Math.floor(Math.random() * files.length)]
-
-			while (previousMemes.includes(randomMeme.path) === true){
-				randomMeme = files[Math.floor(Math.random() * files.length)]
-			}
-
-			previousMemes.push(randomMeme.path)
-			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 200)
-			}
 		
 			msg.reply({
 				files: [{
@@ -91,15 +72,6 @@ const botCommands = {
 			let files = await getFiles('./public/images/booba/')
 			// Get Random
 			let randomMeme = files[Math.floor(Math.random() * files.length)]
-
-			while (previousMemes.includes(randomMeme.path) === true){
-				randomMeme = files[Math.floor(Math.random() * files.length)]
-			}
-
-			previousMemes.push(randomMeme.path)
-			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 5)
-			}
 		
 			msg.reply({
 				files: [{
@@ -116,15 +88,6 @@ const botCommands = {
 			let files = await getFiles('./public/images/booty/')
 			// Get Random
 			let randomMeme = files[Math.floor(Math.random() * files.length)]
-
-			while (previousMemes.includes(randomMeme.path) === true){
-				randomMeme = files[Math.floor(Math.random() * files.length)]
-			}
-
-			previousMemes.push(randomMeme.path)
-			if (previousMemes.length > files.length / 2) {
-				previousMemes.splice(0, 5)
-			}
 		
 			msg.reply({
 				files: [{
