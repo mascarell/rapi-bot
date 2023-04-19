@@ -16,10 +16,10 @@ CATAPI=thecatapi.com token
 To run the bot in dev mode, you only need to install and run
 
 ```bash
-# Si no tienes node instalado, instalalo paquete xd
+# Install npm packages
 npm install
 
-# Para ejecutar el bot mientras desarrollas
+# Test in dev ennvironment, you need the bot on your server
 npm run dev
 ```
 
