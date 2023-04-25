@@ -465,6 +465,7 @@ function initDiscordBot() {
 
 			// Special interception bosses
 			let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
+			let bossesLinks = ['https://lootandwaifus.com/guides/special-individual-interception-chatterbox/', 'https://lootandwaifus.com/guides/special-individual-interception-modernia/', 'https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/', 'https://lootandwaifus.com/guides/special-individual-interception-grave-digger/', 'https://lootandwaifus.com/guides/special-individual-interception-blacksmith/' ]
 			let tower = [ 'Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis', 'all manufacturers' ]
 
 			const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
@@ -502,6 +503,9 @@ function initDiscordBot() {
 
 - We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
 - Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
+- I also attach a file with tips on how to fight this Rapture if you are having issues
+
+${bossesLinks[(currentDay) % 5]}
 `,
 			})
 			// Send the message to a channel
