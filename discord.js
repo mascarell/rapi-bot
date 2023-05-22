@@ -254,7 +254,7 @@ const botCommands = {
 		execute(msg, args) {
 			msg.reply({
 				files: [{
-					attachment: 'https://i.imgur.com/rQPg8Ja.png',
+					attachment: './public/images/nikke/anis.png',
 				}],
 				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
 			})
@@ -266,7 +266,7 @@ const botCommands = {
 		execute(msg, args) {
 			msg.reply({
 				files: [{
-					attachment: 'https://i.imgur.com/lF7i8gC.jpg',
+					attachment: './public/images/nikke/bear.webp',
 				}],
 				content: `Commander, I don't like bears.`,
 			})
@@ -301,7 +301,7 @@ const botCommands = {
 		execute(msg, args) {
 			msg.reply({
 				files: [{
-					attachment: 'https://i.imgur.com/6htltYd.gif',
+					attachment: './public/images/nikke/wrong.gif',
 				}],
 			})
 		}
@@ -312,7 +312,7 @@ const botCommands = {
 		execute(msg, args) {
 			msg.reply({
 				files: [{
-					attachment: 'https://i.imgur.com/sWUuYyb.jpg',
+					attachment: './public/images/nikke/reward.jpg',
 				}],
 			})
 		}
