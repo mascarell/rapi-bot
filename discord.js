@@ -28,6 +28,8 @@ const randomRapiMessages = [
 	`Commander... did you really marry Sakura?`,
 	`Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
 	`Commander, why do you have a picture of Andersen on your wallet?`,
+	`Commander, did you spend the night at Coin Rush again?`,
+	`Commander, people are saying you kissed Blanc and Noir... is that true?`,
 ]
 
 // Bot commands object
