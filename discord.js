@@ -30,6 +30,8 @@ const randomRapiMessages = [
 	`Commander, why do you have a picture of Andersen on your wallet?`,
 	`Commander, did you spend the night at Coin Rush again?`,
 	`Commander, people are saying you kissed Blanc and Noir... is that true?`,
+	`Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`,
+	`I guess Rosanna was right about idiots living longer.`,
 ]
 
 // Bot commands object
