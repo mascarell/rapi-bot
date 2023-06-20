@@ -32,6 +32,7 @@ const randomRapiMessages = [
 	`Commander, people are saying you kissed Blanc and Noir... is that true?`,
 	`Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`,
 	`I guess Rosanna was right about idiots living longer.`,
+	`Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
 ]
 
 // Bot commands object
