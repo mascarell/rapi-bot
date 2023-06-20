@@ -205,7 +205,7 @@ const botCommands = {
 	rules: {
 		name: pre + 'rules',
 		execute(msg, args) {
-			msg.channel.send(`SERVER RULES  
+			msg.channel.send(`<:sure:1056601190726651985> SERVER RULES <:sure:1056601190726651985>
 
 ➜ Try to follow the rules or you'll get banned by Rapi
 ➜ Don't be racist
@@ -218,7 +218,7 @@ const botCommands = {
 	help: {
 		name: pre + 'help',
 		execute(msg, args) {
-			msg.channel.send(`CUSTOM COMMANDS \n
+			msg.channel.send(`<:vegesmug:1056608088037265539> CUSTOM COMMANDS <:vegesmug:1056608088037265539> \n
 ➜ **/rules** : follow them or you'll get banned by Rapi  
 ➜ **/help** : list of commands for all Commanders 
 ➜ **/meme** : random general memes from the community 
@@ -242,7 +242,7 @@ const botCommands = {
 ➜ **dammit Rapi** : 😭  
 ➜ **mold rates are not that bad** : 61% is enough  
 ➜ **seggs?** : shifty?  
-➜ **Lap of discipline.** : Lap of discipline.   
+➜ **Lap of discipline.** : Lap of discipline. 
 `)
 		}
 	},
