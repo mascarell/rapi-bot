@@ -196,6 +196,12 @@ const botCommands = {
 			msg.channel.send('Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/')
 		}
 	},
+	discipline: {
+		name: 'lap of discipline.',
+		execute(msg, args) {
+			msg.channel.send('Lap of discipline')
+		}
+	},
 	rules: {
 		name: pre + 'rules',
 		execute(msg, args) {
