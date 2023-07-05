@@ -34,6 +34,7 @@ const randomRapiMessages = [
 	`I guess Rosanna was right about idiots living longer.`,
 	`Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
 	`Waterpower? I don't know what that is Commander, but it sounds kinda weak.`,
+	`Commander! Is it Volt or Bolt?`,
 ]
 
 // Bot commands object
@@ -209,10 +210,10 @@ const botCommands = {
 			msg.channel.send(`<:sure:1056601190726651985> SERVER RULES <:sure:1056601190726651985>
 
 ➜ Try to follow the rules or you'll get banned by Rapi
-➜ Don't be racist
-➜ Don't be a dick in general 
+➜ Don't be a dick in general, just be chill and nice to other people
+➜ Don't be racist, this includes memes with racial slurs
+➜ Any degenerate content go to NSFW channel, that includes down bad conversations, keep the game channels related to game discussions
 ➜ Feel free to share your content on <#1054761687779123270>
-➜ Suggest new memes, videos or anything in <#1055127265656193044>
 `)
 		}
 	},
@@ -331,106 +332,6 @@ const botCommands = {
 		}
 	},
 }
-
-// advice units
-const characters = {
-	admi: require('./advice/admi.js'),
-	alice: require('./advice/alice.js'),
-	anis: require('./advice/anis.js'),
-	anne: require('./advice/anne.js'),
-	aria: require('./advice/aria.js'),
-	biscuit: require('./advice/biscuit.js'),
-	brid: require('./advice/brid.js'),
-	centi: require('./advice/centi.js'),
-	cocoa: require('./advice/cocoa.js'),
-	crow: require('./advice/crow.js'),
-	d: require('./advice/d.js'),
-	diesel: require('./advice/diesel.js'),
-	dolla: require('./advice/dolla.js'),
-	drake: require('./advice/drake.js'),
-	emma: require('./advice/emma.js'),
-	epinel: require('./advice/epinel.js'),
-	eunhwa: require('./advice/eunhwa.js'),
-	exia: require('./advice/exia.js'),
-	folkwang: require('./advice/folkwang.js'),
-	frima: require('./advice/frima.js'),
-	guillotine: require('./advice/guillotine.js'),
-	guilty: require('./advice/guilty.js'),
-	harran: require('./advice/harran.js'),
-	helm: require('./advice/helm.js'),
-	isabel: require('./advice/isabel.js'),
-	jackal: require('./advice/jackal.js'),
-	julia: require('./advice/julia.js'),
-	laplace: require('./advice/laplace.js'),
-	liter: require('./advice/liter.js'),
-	ludmilla: require('./advice/ludmilla.js'),
-	maiden: require('./advice/maiden.js'),
-	mary: require('./advice/mary.js'),
-	maxwell: require('./advice/maxwell.js'),
-	milk: require('./advice/milk.js'),
-	miranda: require('./advice/miranda.js'),
-	modernia: require('./advice/modernia.js'),
-	nihilister: require('./advice/nihilister.js'),
-	noah: require('./advice/noah.js'),
-	noise: require('./advice/noise.js'),
-	novel: require('./advice/novel.js'),
-	pepper: require('./advice/pepper.js'),
-	poli: require('./advice/poli.js'),
-	privaty: require('./advice/privaty.js'),
-	quency: require('./advice/quency.js'),
-	rapunzel: require('./advice/rapunzel.js'),
-	rupee: require('./advice/rupee.js'),
-	rupeewinter: require('./advice/rupeewinter.js'),
-	sakura: require('./advice/sakura.js'),
-	scarlet: require('./advice/scarlet.js'),
-	signal: require('./advice/signal.js'),
-	sin: require('./advice/sin.js'),
-	snowwhite: require('./advice/snowwhite.js'),
-	soda: require('./advice/soda.js'),
-	soline: require('./advice/soline.js'),
-	sugar: require('./advice/sugar.js'),
-	vesti: require('./advice/vesti.js'),
-	viper: require('./advice/viper.js'),
-	volume: require('./advice/volume.js'),
-	yan: require('./advice/yan.js'),
-	yulha: require('./advice/yulha.js'),
-	yuni: require('./advice/yuni.js')
-};
-
-// advice command
-bot.on('message', msg => {
-	const prefix = '!';
-	if (!msg.content.toLowerCase().startsWith(prefix)) return;
-
-	const args = msg.content.slice(prefix.length).split(' ');
-	const character = args[0].toLowerCase();
-	const searchQuery = args.slice(1).join(' ').toLowerCase();
-
-	if (!characters[character]) return;
-
-	if (searchQuery === 'list') {
-		const fullList = characters[character].join('\n\n');
-		// const color = Math.floor(Math.random() * 16777215).toString(16);
-		const embed = new Discord.MessageEmbed()
-			.setColor('#fd5355')
-			.setTitle(`List of advice for Nikke ${character.charAt(0).toUpperCase()}${character.slice(1)}`)
-			.setDescription(fullList);
-		msg.channel.send(embed);
-	} else {
-		const matchingText = characters[character].find(text => text.toLowerCase().includes(searchQuery.toLowerCase()));
-
-		if (matchingText) {
-			// const color = Math.floor(Math.random() * 16777215).toString(16);
-			const embed = new Discord.MessageEmbed()
-				.setColor('#fd5355')
-				.setTitle(`${character.charAt(0).toUpperCase()}${character.slice(1)}`)
-				.setDescription(matchingText);
-			msg.channel.send(`${msg.author}`, embed);
-		} else {
-			msg.channel.send(`The text "${searchQuery}" was not found Commander.`);
-		}
-	}
-});
 
 function initDiscordBot() {	
 	if (bot) new Error('Bot is already initialized, use getBot()')
