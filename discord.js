@@ -13,7 +13,7 @@ let bot = new Discord.Client() // the bot itself
 const randomRapiMessages = [
 	`You’re too quiet, Commander, is everything alright?`,
 	`Commander, Anis was just joking with the Christmas present…`,
-	`Commander! When it's the next mission?`,
+	`Commander! When is the next mission?`,
 	`Please take care next time you go to the surface Commander.`,
 	`Don't push yourself too hard Commander!`,
 	`No matter what you think of us, we'll always be by your side.`,
@@ -35,6 +35,10 @@ const randomRapiMessages = [
 	`Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
 	`Waterpower? I don't know what that is Commander, but it sounds kinda weak.`,
 	`Commander! Is it Volt or Bolt?`,
+	`Commander, Admi was asking about Ruru, do you know where she is?`,
+	`The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
+	`Mast? Who's that? Doesn't ring a bell.`,
+	`Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://i.imgur.com/BJKnXW0.jpg`,
 ]
 
 // Bot commands object
