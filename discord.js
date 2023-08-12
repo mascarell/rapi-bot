@@ -39,6 +39,7 @@ const randomRapiMessages = [
 	`The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
 	`Mast? Who's that? Doesn't ring a bell.`,
 	`Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://i.imgur.com/BJKnXW0.jpg`,
+	`Commander, did you really tackle Crow? How did you do it?`,
 ]
 
 // Bot commands object
