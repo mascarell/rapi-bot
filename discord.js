@@ -38,7 +38,7 @@ const randomRapiMessages = [
 	`Commander, Admi was asking about Ruru, do you know where she is?`,
 	`The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
 	`Mast? Who's that? Doesn't ring a bell.`,
-	`Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://i.imgur.com/BJKnXW0.jpg`,
+	`Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://media.discordapp.net/attachments/1054761762395799552/1142732669617184898/image.png?width=445&height=595`,
 	`Commander, did you really tackle Crow? How did you do it?`,
 ]
 
