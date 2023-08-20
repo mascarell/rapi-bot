@@ -40,6 +40,7 @@ const randomRapiMessages = [
 	`Mast? Who's that? Doesn't ring a bell.`,
 	`Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://media.discordapp.net/attachments/1054761762395799552/1142732669617184898/image.png?width=445&height=595`,
 	`Commander, did you really tackle Crow? How did you do it?`,
+	`What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`,
 ]
 
 // Bot commands object
