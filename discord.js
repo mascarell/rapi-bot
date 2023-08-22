@@ -205,6 +205,12 @@ const botCommands = {
 			msg.channel.send('Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/')
 		}
 	},
+	relics: {
+		name: pre + 'relics',
+		execute(msg, args) {
+			msg.channel.send('Commander, if you need help finding Lost Relics this can help you ➜ https://nikke-map.onrender.com/')
+		}
+	},
 	discipline: {
 		name: 'lap of discipline.',
 		execute(msg, args) {
@@ -233,6 +239,7 @@ const botCommands = {
 ➜ **/meme** : random general memes from the community 
 ➜ **/nikke** : random Nikke memes from the community 
 ➜ **/youtube** : subscribe to the best YouTube channel 
+➜ **/relics** : get help with all lost relics in NIKKE 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
