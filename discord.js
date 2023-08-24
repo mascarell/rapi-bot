@@ -223,8 +223,10 @@ const botCommands = {
 			msg.channel.send(`<:sure:1056601190726651985> SERVER RULES <:sure:1056601190726651985>
 
 ➜ Try to follow the rules or you'll get banned by Rapi
+➜ This is a place to chill and enjoy a community of people who share a love for the games we cover, if you can't keep conversations civil, you'll get banned
 ➜ Don't be a dick in general, just be chill and nice to other people
 ➜ Don't be racist, this includes memes with racial slurs
+➜ If you want to argue with someone, go to DMs, this server / our streams are not the place
 ➜ Any degenerate content go to NSFW channel, that includes down bad conversations, keep the game channels related to game discussions
 ➜ Feel free to share your content on <#1054761687779123270>
 `)
