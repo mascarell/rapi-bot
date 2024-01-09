@@ -465,10 +465,8 @@ ${bossesLinks[(currentDay) % 5]}
     // Establish arguments
     let args = [];
     if (message.content[0] === pre) {
-      // if command contains prefix, get arguments
       args = message.content.split(/ +/);
     } else {
-      // else, the first argument is the entire message
       args = [message.content];
     }
 
@@ -481,12 +479,12 @@ ${bossesLinks[(currentDay) % 5]}
       const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
 
       if (command == "/content") {
-        if (message.member.roles.cache.has(contentCreatorRole?.id))
+        if (message.member.roles.cache.has(contentCreatorRole.id))
           bot.commands.get(command).execute(message, args);
         return;
       }
 
-      if (message.member.roles.cache.has(ignoredRole?.id))
+      if (message.member.roles.cache.has(ignoredRole.id))
         return;
 
       bot.commands.get(command).execute(message, args);
