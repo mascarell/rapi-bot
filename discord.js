@@ -507,7 +507,7 @@ ${bossesLinks[(currentDay) % 5]}
       }
 		} catch (error) {
 			console.error(error)
-			msg.reply('RIP BOT BRO 💩')
+			msg.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)')
 		}
 	})
 }
