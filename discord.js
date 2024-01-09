@@ -375,20 +375,20 @@ function initDiscordBot() {
 	bot.login(TOKEN)
 
 	// Greet new users when they join the server
-	bot.on('guildMemberAdd', member => {
-		let guild = bot.guilds.cache.get('1054761356416528475')
-		const channel = guild.channels.cache.find(ch => ch.name === 'welcome')
-		channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
-	})
+  bot.on('guildMemberAdd', member => {
+    const guild = member.guild; // Get the guild from the member object
+    const channel = guild.channels.cache.find(ch => ch.name === 'welcome');
+    channel.send(`Welcome Commander ${member}, please take care when going to the surface.`);
+  });
 
 	// Send random messages in #nikke channel to increase engagement every 6 hours
 	let nikkeMessage = new CronJobb(
 		'0 */8 * * *',
 		function () {
-			let guild = bot.guilds.cache.get('1054761356416528475')
-			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
-			if (!channel) return
-			channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)])
+      const guild = bot.guilds.cache.first(); // Get the first available guild
+      const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
+      if (!channel) return;
+      channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)]);
 		}, {
 		timezone: 'Europe/Madrid'
 	})
@@ -397,9 +397,9 @@ function initDiscordBot() {
 	// Daily message on reset time telling people what the current special interception is
 	let interceptionMessage = new CronJobb(
 		'0 21 * * *', () => {
-			let guild = bot.guilds.cache.get('1054761356416528475')
-			const channel = guild.channels.cache.find(ch => ch.name === 'nikke')
-			if (!channel) return
+      const guild = bot.guilds.cache.first(); // Get the first available guild
+      const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
+      if (!channel) return;
 
 			// Special interception bosses
 			let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
@@ -437,7 +437,7 @@ function initDiscordBot() {
 			let message = ({
 				files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
 				content: `
-<@&1054788720647225444> Commanders, here's today schedule:  
+Commanders, here's today schedule:  
 
 - We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
 - Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
@@ -457,8 +457,8 @@ ${bossesLinks[(currentDay) % 5]}
 	bot.on('message', async message => {
 		// Get message from param and turn lowercase
 		let msg = message
-		let guild = bot.guilds.cache.get('1054761356416528475')
-		let user = guild.member(msg.author.id)
+    const guild = message.guild; // Get the guild from the message object
+    const user = guild.member(message.author.id);
 
 		msg.content = message.content.toLowerCase()
 
@@ -476,39 +476,41 @@ ${bossesLinks[(currentDay) % 5]}
 			}
 		}
 
-		// Establish arguments
-		let args = []
-		if (msg[0] === pre) {
-			// if command contains prefix, get arguments
-			args = msg.content.split(/ +/)
-		} else {
-			// else, the first argument, is the entire message
-			args = [msg.content]
-		}
+    // Establish arguments
+    let args = [];
+    if (message.content[0] === pre) {
+      // if command contains prefix, get arguments
+      args = message.content.split(/ +/);
+    } else {
+      // else, the first argument is the entire message
+      args = [message.content];
+    }
 
-		const command = args.shift().toLowerCase()
+    const command = args.shift().toLowerCase();
 
-		if (!bot.commands.has(command)) return
+    if (!bot.commands.has(command)) return;
 
-		try {
-			const ignoredRole = message.guild.roles.cache.find(role => role.name === 'Grounded');
-      const contentCreatorRole = message.guild.roles.cache.find(role => role.name === 'Content Creator');
+    try {
+      const ignoredRole = guild.roles.cache.find(role => role.name === 'Grounded');
+      const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
 
       if (command == "/content") {
         if (message.member.roles.cache.has(contentCreatorRole.id))
-          bot.commands.get(command).execute(msg, args)
+          bot.commands.get(command).execute(message, args);
         return;
       }
-      
-      if (message.member.roles.cache.has(ignoredRole.id)) { // Ignore the message
-        return; 
-      } else { // do command
-        bot.commands.get(command).execute(msg, args)
+
+      if (message.member.roles.cache.has(ignoredRole.id)) {
+        // Ignore the message
+        return;
+      } else {
+        // do command
+        bot.commands.get(command).execute(message, args);
       }
-		} catch (error) {
-			console.error(error)
-			msg.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)')
-		}
+    } catch (error) {
+      console.error(error);
+      message.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)');
+    }
 	})
 }
 
