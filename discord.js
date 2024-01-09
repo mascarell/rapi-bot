@@ -326,6 +326,13 @@ const botCommands = {
 			})
 		}
 	},
+  contentSquad: {
+    name: pre + 'content',
+    description: 'content squad ping',
+    execute(msg, args) {
+      msg.channel.send(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
+		}
+	},
 	badgirl: {
 		name: 'bad girl',
 		description: 'bad girl',
@@ -485,12 +492,19 @@ ${bossesLinks[(currentDay) % 5]}
 
 		try {
 			const ignoredRole = message.guild.roles.cache.find(role => role.name === 'Grounded');
+      const contentCreatorRole = message.guild.roles.cache.find(role => role.name === 'Content Creator');
 
-			if (message.member.roles.cache.has(ignoredRole.id)) { // Ignore the message
-				return; 
-			} else { // do command
-				bot.commands.get(command).execute(msg, args)
-			}
+      if (command == "/content") {
+        if (message.member.roles.cache.has(contentCreatorRole.id))
+          bot.commands.get(command).execute(msg, args)
+        return;
+      }
+      
+      if (message.member.roles.cache.has(ignoredRole.id)) { // Ignore the message
+        return; 
+      } else { // do command
+        bot.commands.get(command).execute(msg, args)
+      }
 		} catch (error) {
 			console.error(error)
 			msg.reply('RIP BOT BRO 💩')
