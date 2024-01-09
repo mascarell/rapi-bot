@@ -218,30 +218,14 @@ const botCommands = {
 			msg.channel.send('Lap of discipline')
 		}
 	},
-	rules: {
-		name: pre + 'rules',
-		execute(msg, args) {
-			msg.channel.send(`<:sure:1056601190726651985> SERVER RULES <:sure:1056601190726651985>
-
-➜ Try to follow the rules or you'll get banned by Rapi
-➜ This is a place to chill and enjoy a community of people who share a love for the games we cover, if you can't keep conversations civil, you'll get banned
-➜ Don't be a dick in general, just be chill and nice to other people
-➜ Don't be racist, this includes memes with racial slurs
-➜ If you want to argue with someone, go to DMs, this server / our streams are not the place
-➜ Any degenerate content go to NSFW channel, that includes down bad conversations, keep the game channels related to game discussions
-➜ Feel free to share your content on <#1054761687779123270>
-`)
-		}
-	},
 	help: {
 		name: pre + 'help',
 		execute(msg, args) {
-			msg.channel.send(`<:vegesmug:1056608088037265539> CUSTOM COMMANDS <:vegesmug:1056608088037265539> \n
-➜ **/rules** : follow them or you'll get banned by Rapi  
+			msg.channel.send(`CUSTOM COMMANDS \n 
 ➜ **/help** : list of commands for all Commanders 
 ➜ **/meme** : random general memes from the community 
 ➜ **/nikke** : random Nikke memes from the community 
-➜ **/youtube** : subscribe to the best YouTube channel 
+➜ **/youtube** : subscribe to the best NIKKE YouTube channel 
 ➜ **/relics** : get help with all lost relics in NIKKE 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
