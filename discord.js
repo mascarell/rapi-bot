@@ -486,11 +486,10 @@ ${bossesLinks[(currentDay) % 5]}
         return;
       }
 
-      if (message.member.roles.cache.has(ignoredRole.id)) {
+      if (message.member.roles.cache.has(ignoredRole.id))
         return;
-      } else {
-        bot.commands.get(command).execute(message, args);
-      }
+
+      bot.commands.get(command).execute(message, args);
     } catch (error) {
       console.error(error);
       message.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)');
