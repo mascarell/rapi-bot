@@ -440,11 +440,13 @@ ${bossesLinks[(currentDay) % 5]}
 	// On message, find command and execute
 	bot.on('message', async message => {
 		// Get message from param and turn lowercase
-		let msg = message
-    const guild = message.guild; // Get the guild from the message object
-    const user = guild.member(message.author.id);
+    if (!message.guild || !message.member) {
+      // If guild or member is not defined, ignore the message
+      return;
+    }
 
-		msg.content = message.content.toLowerCase()
+    const guild = message.guild;
+    const user = guild.member(message.author.id);
 
 		// check if we're mentioning the bot
 		if (message.mentions.has(bot.user)) {
@@ -479,16 +481,14 @@ ${bossesLinks[(currentDay) % 5]}
       const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
 
       if (command == "/content") {
-        if (message.member.roles.cache.has(contentCreatorRole.id))
+        if (message.member.roles.cache.has(contentCreatorRole?.id))
           bot.commands.get(command).execute(message, args);
         return;
       }
 
-      if (message.member.roles.cache.has(ignoredRole.id)) {
-        // Ignore the message
+      if (message.member.roles.cache.has(ignoredRole?.id)) {
         return;
       } else {
-        // do command
         bot.commands.get(command).execute(message, args);
       }
     } catch (error) {
