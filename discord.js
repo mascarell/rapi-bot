@@ -481,12 +481,12 @@ ${bossesLinks[(currentDay) % 5]}
       const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
 
       if (command == "/content") {
-        if (message.member.roles.cache.has(contentCreatorRole?.id))
+        if (message.member.roles.cache.has(contentCreatorRole.id))
           bot.commands.get(command).execute(message, args);
         return;
       }
 
-      if (message.member.roles.cache.has(ignoredRole?.id)) {
+      if (message.member.roles.cache.has(ignoredRole.id)) {
         return;
       } else {
         bot.commands.get(command).execute(message, args);
