@@ -194,12 +194,6 @@ const botCommands = {
 			})
 		}
 	},
-	youtube: {
-		name: pre + 'youtube',
-		execute(msg, args) {
-			msg.channel.send('https://www.youtube.com/@lootandwaifus')
-		}
-	},
 	compositions: {
 		name: pre + 'compositions',
 		execute(msg, args) {
@@ -225,14 +219,12 @@ const botCommands = {
 ➜ **/help** : list of commands for all Commanders 
 ➜ **/meme** : random general memes from the community 
 ➜ **/nikke** : random Nikke memes from the community 
-➜ **/youtube** : subscribe to the best NIKKE YouTube channel 
 ➜ **/relics** : get help with all lost relics in NIKKE 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
 ➜ **reward?** : 10 gems!?  
 ➜ **sounds like...** : you are just bad, commander  
-➜ **fuck tencent** : no one likes this bear  
 ➜ **whale levels** : how much do you spend?  
 ➜ **i swear she is actually 3000 years old** : what?  
 ➜ **ready rapi?** : 100% ready  
@@ -272,18 +264,6 @@ const botCommands = {
 					attachment: './public/images/nikke/anis.png',
 				}],
 				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
-			})
-		}
-	},
-	fuckTencent: {
-		name: 'fuck tencent',
-		description: `Commander, I don't like bears`,
-		execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/bear.webp',
-				}],
-				content: `Commander, I don't like bears.`,
 			})
 		}
 	},
@@ -369,10 +349,14 @@ function initDiscordBot() {
 	let nikkeMessage = new CronJobb(
 		'0 */8 * * *',
 		function () {
-      const guild = bot.guilds.cache.first(); // Get the first available guild
-      const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
-      if (!channel) return;
-      channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)]);
+      try {
+        const guild = bot.guilds.cache.first(); // Get the first available guild
+        const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
+        if (!channel) return;
+        channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)]);
+      } catch (error) {
+        console.log(error)
+      }
 		}, {
 		timezone: 'Europe/Madrid'
 	})
@@ -381,57 +365,61 @@ function initDiscordBot() {
 	// Daily message on reset time telling people what the current special interception is
 	let interceptionMessage = new CronJobb(
 		'0 21 * * *', () => {
-      const guild = bot.guilds.cache.first(); // Get the first available guild
-      const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
-      if (!channel) return;
+      try {
+        const guild = bot.guilds.cache.first(); // Get the first available guild
+        const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
+        if (!channel) return;
 
-			// Special interception bosses
-			let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
-			let bossesLinks = ['https://lootandwaifus.com/guides/special-individual-interception-chatterbox/', 'https://lootandwaifus.com/guides/special-individual-interception-modernia/', 'https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/', 'https://lootandwaifus.com/guides/special-individual-interception-grave-digger/', 'https://lootandwaifus.com/guides/special-individual-interception-blacksmith/' ]
-			let tower = [ 'Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis', 'all manufacturers' ]
+        // Special interception bosses
+        let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
+        let bossesLinks = ['https://lootandwaifus.com/guides/special-individual-interception-chatterbox/', 'https://lootandwaifus.com/guides/special-individual-interception-modernia/', 'https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/', 'https://lootandwaifus.com/guides/special-individual-interception-grave-digger/', 'https://lootandwaifus.com/guides/special-individual-interception-blacksmith/' ]
+        let tower = [ 'Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis', 'all manufacturers' ]
 
-			const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-			let currentDay = dayOfYear(new Date())
-			let fileName = '';
+        const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+        let currentDay = dayOfYear(new Date())
+        let fileName = '';
 
-			switch ((currentDay) % 5) {
-				case 0:
-					fileName = 'chatterbox.webp'
-					break;
-				case 1:
-					fileName = 'modernia.webp'
-					break;
-				case 2:
-					fileName = 'train.webp'
-					break;
-				case 3:
-					fileName = 'gravedigger.webp'
-					break;
-				case 4:
-					fileName = 'blacksmith.webp'
-					break;
-				default:
-					fileName = 'chatterbox.webp'
-					break;
-			}
+        switch ((currentDay) % 5) {
+          case 0:
+            fileName = 'chatterbox.webp'
+            break;
+          case 1:
+            fileName = 'modernia.webp'
+            break;
+          case 2:
+            fileName = 'train.webp'
+            break;
+          case 3:
+            fileName = 'gravedigger.webp'
+            break;
+          case 4:
+            fileName = 'blacksmith.webp'
+            break;
+          default:
+            fileName = 'chatterbox.webp'
+            break;
+        }
 
-			const currentDate = new Date();
-			const currentDayOfTheWeek = currentDate.getDay();
+        const currentDate = new Date();
+        const currentDayOfTheWeek = currentDate.getDay();
 
-			let message = ({
-				files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
-				content: `
-Commanders, here's today schedule:  
+        let message = ({
+          files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
+          content: `
+  Commanders, here's today schedule:  
 
-- We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
-- Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
-- I also attach a file with tips on how to fight this Rapture if you are having issues
+  - We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
+  - Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
+  - I also attach a file with tips on how to fight this Rapture if you are having issues
 
-${bossesLinks[(currentDay) % 5]}
+  ${bossesLinks[(currentDay) % 5]}
 `,
 			})
 			// Send the message to a channel
 			channel.send(message)
+      } catch (error) {
+        console.log(error)
+      }
 		}, {
 		timezone: 'Europe/Madrid'
 	})
