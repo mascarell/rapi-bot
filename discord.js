@@ -358,13 +358,18 @@ function initDiscordBot() {
 
 	// Send random messages in #nikke channel to increase engagement every 6 hours
 	let nikkeMessage = new CronJobb(
-		'0 */8 * * *',
+		'0 */4 * * *',
 		function () {
       try {
-        const guild = bot.guilds.cache.first(); // Get the first available guild
-        const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
-        if (!channel) return;
-        channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)]);
+        bot.guilds.cache.forEach(guild => {
+          // Find the general chat (text channel named "nikke")
+          const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
+
+          // If a general chat is found, send a message
+          if (!channel) return
+
+          channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)]);
+        })
       } catch (error) {
         console.log(error)
       }
@@ -377,47 +382,49 @@ function initDiscordBot() {
 	let interceptionMessage = new CronJobb(
 		'0 21 * * *', () => {
       try {
-        const guild = bot.guilds.cache.first(); // Get the first available guild
-        const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
-        if (!channel) return;
+        bot.guilds.cache.forEach(guild => {
+          const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
+          const role = guild.roles.cache.find(role => role.name === 'Nikke');
 
-        // Special interception bosses
-        let bosses = [ 'Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith' ]
-        let bossesLinks = ['https://lootandwaifus.com/guides/special-individual-interception-chatterbox/', 'https://lootandwaifus.com/guides/special-individual-interception-modernia/', 'https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/', 'https://lootandwaifus.com/guides/special-individual-interception-grave-digger/', 'https://lootandwaifus.com/guides/special-individual-interception-blacksmith/' ]
-        let tower = [ 'Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis', 'all manufacturers' ]
+          if (!channel) return;
 
-        const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-        let currentDay = dayOfYear(new Date())
-        let fileName = '';
+          // Special interception bosses
+          let bosses = ['Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith']
+          let bossesLinks = ['https://lootandwaifus.com/guides/special-individual-interception-chatterbox/', 'https://lootandwaifus.com/guides/special-individual-interception-modernia/', 'https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/', 'https://lootandwaifus.com/guides/special-individual-interception-grave-digger/', 'https://lootandwaifus.com/guides/special-individual-interception-blacksmith/']
+          let tower = ['Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis', 'all manufacturers']
 
-        switch ((currentDay) % 5) {
-          case 0:
-            fileName = 'chatterbox.webp'
-            break;
-          case 1:
-            fileName = 'modernia.webp'
-            break;
-          case 2:
-            fileName = 'train.webp'
-            break;
-          case 3:
-            fileName = 'gravedigger.webp'
-            break;
-          case 4:
-            fileName = 'blacksmith.webp'
-            break;
-          default:
-            fileName = 'chatterbox.webp'
-            break;
-        }
+          const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+          let currentDay = dayOfYear(new Date())
+          let fileName = '';
 
-        const currentDate = new Date();
-        const currentDayOfTheWeek = currentDate.getDay();
+          switch ((currentDay) % 5) {
+            case 0:
+              fileName = 'chatterbox.webp'
+              break;
+            case 1:
+              fileName = 'modernia.webp'
+              break;
+            case 2:
+              fileName = 'train.webp'
+              break;
+            case 3:
+              fileName = 'gravedigger.webp'
+              break;
+            case 4:
+              fileName = 'blacksmith.webp'
+              break;
+            default:
+              fileName = 'chatterbox.webp'
+              break;
+          }
 
-        let message = ({
-          files: [{ attachment: `./public/images/bosses/${fileName}`, }], 
-          content: `
-  Commanders, here's today schedule:  
+          const currentDate = new Date();
+          const currentDayOfTheWeek = currentDate.getDay();
+
+          let message = ({
+            files: [{ attachment: `./public/images/bosses/${fileName}`, }],
+            content: `
+  ${role} Commanders, here's today schedule:  
 
   - We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
   - Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
@@ -425,9 +432,10 @@ function initDiscordBot() {
 
   ${bossesLinks[(currentDay) % 5]}
 `,
-			})
-			// Send the message to a channel
-			channel.send(message)
+          })
+          // Send the message to a channel
+          channel.send(message)
+        })
       } catch (error) {
         console.log(error)
       }
