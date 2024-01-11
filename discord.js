@@ -123,6 +123,17 @@ const botCommands = {
 			})
 		}
 	},
+	skillissueiphone: {
+    name: 'sounds like…',
+		async execute(msg, args) {
+			msg.reply({
+				files: [{
+					attachment: './public/images/nikke/skill.gif',
+				}],
+				content: `It sounds like you have some skill issues Commander.`,
+			})
+		}
+	},
 	seggs: {
 		name: 'seggs?',
 		async execute(msg, args) {
