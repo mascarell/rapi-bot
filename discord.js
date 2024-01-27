@@ -18,7 +18,7 @@ const randomRapiMessages = [
 	`Don't push yourself too hard Commander!`,
 	`No matter what you think of us, we'll always be by your side.`,
 	`Commander, I'll protect you.`,
-	`Lap of discipline.`,
+	`Lap of discipline`,
 	`Is it time to break Syuen ribs again, Commander?`,
 	`I found a wet sock with a weird smell under your bed Commander, care to explain?`,
 	`Marian please stop wearing your underwear inside out...`,
@@ -43,6 +43,8 @@ const randomRapiMessages = [
 	`Age is just a number? Commander, I'm calling ACPU`,
 	`What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`,
 	`https://media.discordapp.net/attachments/1075785251156144179/1142745671766638592/1691823770699829.png`,
+	`Commander, what did you want to ask about Biscuit?`,
+	`Commander, 61% is more than enough, stop complaining.`,
 ]
 
 // Bot commands object
@@ -358,7 +360,7 @@ function initDiscordBot() {
 
 	// Send random messages in #nikke channel to increase engagement every 6 hours
 	let nikkeMessage = new CronJobb(
-		'0 */4 * * *',
+		'0 */6 * * *',
 		function () {
       try {
         bot.guilds.cache.forEach(guild => {
