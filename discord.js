@@ -45,6 +45,7 @@ const randomRapiMessages = [
 	`https://media.discordapp.net/attachments/1075785251156144179/1142745671766638592/1691823770699829.png`,
 	`Commander, what did you want to ask about Biscuit?`,
 	`Commander, 61% is more than enough, stop complaining.`,
+	`Commander, Ade said that I need to try a maid outfit, what do you think?`,
 ]
 
 // Bot commands object
