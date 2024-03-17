@@ -1,0 +1,22 @@
+module.exports = [
+    "What do you think is the most important when it comes to being a hero?\nYour mind, and your physical strength.",
+    "Tah-dah! Here I am!\nYou're late.",
+    "What would you do?\nI'd call you immediately.",
+    ".........\nHave you not eaten?",
+    "Why do you think that is? We're heroes after all...\nShe doesn't want to be an ordinary hero.",
+    "a hero can't overcome?\nNothing whatsoever.",
+    "But if I don't yell, I can't unleash my full power...\nUse more body language and do all your yelling internally.",
+    "what would it be?\nWorld peace.",
+    "That's what Nikkes were made to do, and it's what heroes were meant to do.\nI'm with you all the way.",
+    "Hero power, charging...\nGO!!!!",
+    "What would you do?\nI'd get a drink of water to calm my nerves.",
+    "Don't hold back. I won't get offended.\nThe fact that you have no shortcomings is your shortcoming.",
+    "I can't help feeling regretful... What if I had more power then?\nWhat difference would that make?",
+    "for an entire hour.\nThat's a bit overkill.",
+    "What do you think that's all about?\nIt means someone is accusing you of being a killer.",
+    "Personally, I'm partial to beam-based weapons.\nNo contest. A beam weapon comes out on top.",
+    "If you were my enemy, what would you do?\nI'd want a fair fight. I'd wait until you had fully transformed before fighting.",
+    "Birdie! Tell me what you think!\nNo, they can't.",
+    "I need a unique entrance that's still a good fit for me.\nTransform as you walk slowly.",
+    "What do you think it means to be a hero?\nRunning towards what everyone else runs away from."
+];

@@ -1,0 +1,22 @@
+module.exports = [
+    "What do I need to do to sell products to people like you?\nUse your beauty.",
+    "You should remind Dolla of that.\nUnderstood.",
+    "Is there anything you want to eat right now?\nAnything is okay, if it's from you.",
+    "What should I do with her?\nDemand an appropriate share of the profit.",
+    "Do you want to be my secretary?\nWhat are the conditions?",
+    "Did you bring back anything, by any chance?\nSome Rapture parts.",
+    "Like an umbrella, or a raincoat.\nWhat's your asking price?",
+    "What do you think of Nikkes who talk with an accent?\nSounds cute.",
+    "What is it? Tell me.\nRed.",
+    "What do you think I'll be doing in 10 years?\nYou'll be expanding your business on the surface.",
+    "what is the most important factor in success?\nLuck.",
+    "Do you have a lot of dating experience?\nI've been single my entire life.",
+    "I want to make a note of it for when I release my next product.\nYou've caught my eye.",
+    "We just released a new flavor of soda, want to try it?\nI'm willing to try anything you offer me.",
+    "Some of them really cross the line.\nI'll take care of them for you.",
+    "When you look at me, what words pop in your head?\nA businesswoman who doesn't take crap from anyone.",
+    "or do you prefer having a sense of stability?\nI enjoy challenging myself",
+    "Is there anything you've seen recently that you want to get your hands on?\nYan's heart.",
+    "What's your definition of failure?\nFailure is just another opportunity to try again.",
+    "I'm on the hunt for investment opportunities.\nYou're the only thing I want to invest in."
+];

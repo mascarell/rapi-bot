@@ -1,0 +1,22 @@
+module.exports = [
+    "I promise I'll go easy on you.\nAn amateur going easy on a pro?",
+    "What's your milk-to-coffee ratio?\nMilk 5, coffee 5.",
+    "You know of any worthy opponents?\nMilk.",
+    "Can't I just get requests where I get to destroy things?\nBut you're a scavenger, not a destroyer.",
+    "That's why I want to hire an ad agency for it. Any recommendations?\nMustang.",
+    "She got really worked up about it. But, is it really my fault?\nIt's Frima's fault.",
+    "I can't stand that annoying *vroooooom* sound.\nLet's put a silencer on it!",
+    "Do you think I look... uh... violent?\nNot at all. I think you're cute.",
+    "I wanna learn how to do that...\nBut aren't guns much better?",
+    "I also need something as my mount.\nWhat about me?",
+    "What would you think of me wearing a dress?\nI just might fall in love with one glance.",
+    "what do you think I'd be doing?\nBoxing.",
+    "Okay?\nGo for it.",
+    "What do you think is causing this?\nIt's because of Frima.",
+    "Be as objective as possible.\nI think it's awesome.",
+    "If I punched someone, how many weeks do you think they would need to recover?\nI don't know... 12 weeks?",
+    "Do you think there's something wrong with how I talk to people?\nI get a big kick out of how you talk to me.",
+    "The loser has to take a sucker punch. How about it?\nAgreed.",
+    "One's being held near here soon.\nIf you do enter, you'll be the champion for sure.",
+    "Anything's good if it's got milk in it.\nI also like milk."
+];

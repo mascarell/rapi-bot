@@ -1,0 +1,22 @@
+module.exports = [
+    "Which do you prefer: dogs or cats?\n I'm more fond of cats.",
+    "Is there anything I can do to help her out?\n Just say 'Thank you.' She would appreciate that.",
+    "When will she ever grow up?\n It'd be better if you just gave up on that idea.",
+    "What's your favorite place in the Outpost, Commander?\n The courthouse, because it's where you are.",
+    "Commander, what kind of weather do you like?\n Rainy days.",
+    "Are there times when that makes you feel sad, or even hateful toward us?\n Never.",
+    "Commander, do you have an ideal type?\n Someone who is cute.",
+    "Do you agree with that?\n Eternal love does exist.",
+    "Commander, where do you go when you want to relax and unwind?\n A park without too many people.",
+    "But... I'm not quite sure what kind of hobby to choose.\n What about looking at cat pictures? Or taking cat pictures?",
+    "What are your thoughts, Commander?\n I can't give up, not until I know how it all ends.",
+    "Any ideas?\n Some alcohol.",
+    "What type of music do you typically listen to, Commander?\n Subdued and solemn music.",
+    "Do you dream often?\n No, not very often.",
+    "If we manage to reclaim the surface, how would you feel?\n I'd be elated.",
+    "I tried it several times but can't seem to grab anything.\n I'm the claw machine master.",
+    "I've never tasted anything so sweet.\n I've eaten a lot.",
+    "Commander, out of curiosity, is there anything you would like as a gift?\n Your time.",
+    "I may have gone a bit overboard.\n Not at all, as long as you finish reading all of them.",
+    "How do they make that sound, I wonder?\n Not as cute as your voice."
+];

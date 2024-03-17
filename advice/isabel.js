@@ -1,0 +1,22 @@
+module.exports = [
+    "...\nIs there something on my face?",
+    "Maybe it's that there are so many women around you all the time?\nMy relationship with them is strictly professional, nothing more.",
+    "Why would they do that to me?\nCould just be their personality.",
+    "have I done something to upset you?\nNo.",
+    "If only there was one more of you, I could hide the other you in a safe, secret place and love you forever.\nWho knows what the future holds?",
+    "I can't stand it when she's rude to you!\nIt doesn't bother me.",
+    "don't you feel stifled, living underground?\nSometimes I feel like I'm going to explode.",
+    "What... do you think about marriage?\nIt's two people intertwining into one.",
+    "Tell me something about you. Anything.\nThere's nothing I love more than a blue sky.",
+    "What do you think it would be like... to have a family?nYou'd feel like you have others to protect.",
+    "Come here and I'll give you a hug.\n...",
+    "With you, on a day like this...\nWant to go on a trip?",
+    "Have a little sip!\nTake a sip.",
+    "who would you want to be with?\nUm... You?",
+    "or something cozy with lots of woodwork?\nCozy and with lots of woodwork.",
+    "what do you look for in your significant other?\nYou check all the boxes.",
+    "Do you agree with that sentiment?\nI don't.",
+    "How was work?\nHoney, I'm home!",
+    "Do you think there will be a day when there are no more Raptures on the surface?\nThe day will surely come.",
+    "What do you like doing during your spare time?\nSleeping."
+];

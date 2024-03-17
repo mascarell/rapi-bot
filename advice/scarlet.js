@@ -1,0 +1,22 @@
+module.exports = [
+    "Bitter spirits, or sweet?\nBitter!",
+    "My Lord, do you fancy the Outpost?\nNo, I don't.",
+    "doth cleave through Raptures with such aplomb?\nThat's just what blades do.",
+    "What is my Lord's opinion on farming?\nIt would be a rewarding job.",
+    "and instead devote it to farming, so that she does not starve.\nShe doesn't need sympathy. This is the life she chose.",
+    "What has transpired between the two of you?\nShe and I are indulging in a pleasant fantasy.",
+    "are you positive you do not wish to spend your days on the surface?\nI've considered it, but I don't think I can.",
+    "Fancy a drop or two?\nSure, I'll have a drink.",
+    "Tell me, my Lord. What do you think goes best with spirits?\nMoonlight and the wind?",
+    "Do you have a lady in your life?\nYes, a drunkard who wanders the surface.",
+    "When ye have imbibed one's fair share of spirits, what typically proceeds?\nI end up crying my eyes out.",
+    "Tell me, my good fellow, why do you drink?\nI like the taste.",
+    "When ye takes to the bottle, what music doth thee prefer to listen to?\nFolk music that has a good feel to it.",
+    "What say ye to imbibing the spirits on a rainy day?\nI personally think it's better to drink on a sunny day.",
+    "If perchance one day we doth succeed in reclaiming the surface, what shall ye do with the days that remain?\nI'd be content living a quiet life on my own patch of land.",
+    "Or does it not have a place in the world as it is?\nAs soon as you start overanalyzing it, any romance ceases to exist.",
+    "drinking until one loses one's faculties?\nTo me, that's allowing alcohol to consume you.",
+    "What says ye about achieving something from the sacrifice of something else?\nThere must be another way.",
+    "hath ye ever felt as if thine and another were intertwined in some way?\nYes, I have.",
+    "Would ye perchance express any interest in gazing upon them?\nYou go on ahead. I'll follow you."
+];

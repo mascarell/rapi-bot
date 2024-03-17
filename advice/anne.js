@@ -1,0 +1,22 @@
+module.exports = [
+    "and every store has a Christmas tree in their front display.\nI'm thinking of putting one in the Commander's room.",
+    "The line is apparently really long though.\nLet's go together and wait in line.",
+    "Emma said it can be fun, but that you need to have decent drawing skills as well.\nHow the cookies taste is what's important, not how they look.",
+    "and Maiden does cosplay... although I'm not entirely sure what that's all about.\nIt's good to have hobbies.",
+    "There's a place on the surface where the snow is piled up as high as your head\nThe next time I go to the Northern Base, do you want to come along?",
+    "Do you have a family?\nYou all are my family.",
+    "Do you think I'll have that many friends one day?\nYou can achieve anything you put your mind to.",
+    "I've decided. I'm going to be a mail carrier.\nIs it just because you want to ride a motorcycle?",
+    "Is it really true that if you hang a sock on the wall during the holidays, it'll be stuffed with gifts the next morning?\nIt's true, but only for children who have been nice.",
+    "Neon says that if you scrunch up some snow and throw it, it makes a big explosion.\nIt only did that because Neon tampered with it.",
+    "You decide for me.\nA snowman.",
+    "Do you often sing Christmas carols?\nWhen it's going to be Christmas, sure.",
+    "What was the drink called again...?\nHot chocolate?",
+    "who would it be?\nYou, of course.",
+    "I feel so content.\nIf you're happy, then I'm happy.",
+    "I don't know anything since it's my first time.\nBring a snack or some kind of party favor.",
+    "Do you believe in miracles?\nYes. I believe in miracles.",
+    "Merry Christmas!\nMerry Christmas, Anne.",
+    "Apparently you can only ride them in the snow.\nWould you like to ride one now?",
+    "what would you wish for?\nFor you to be happy."
+];

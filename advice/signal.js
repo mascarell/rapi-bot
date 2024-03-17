@@ -1,0 +1,22 @@
+module.exports = [
+    "What about you, Commander? What do you think of her?\nI think she's a good person as well, and very friendly.",
+    "Would... would I get in trouble if I did?\nYou won't be in trouble.",
+    "C-commander, if you were in a relationship, what kind of relationship would you like to be in?\nI'd want it to be a relationship full of passion, like the ones on TV.",
+    "would you rather stay home or go out?\nI'd have a staycation at home and binge watch all my favorite shows.",
+    "Honestly!\nSomeone I can watch my favorite shows with.",
+    "Are you in any pain?\nIs the protagonist on your TV show terminally ill?",
+    "Do you think something happened to me last night?\nYou probably danced in your sleep.",
+    "Can I dress in office attire, starting tomorrow?\nAre you sure Delta will be okay with this?",
+    "What do you think about rain, Commander?\nI enjoy the rain. I find it very atmospheric.",
+    "Do you think that's true, Commander?\nI think it's true.",
+    "would you say hi?\nI'd just stare from a distance as they passed by.",
+    "What do you think?\nIt's adorable.",
+    "This new show I've been looking forward to premieres tonight.\nWhat's the show about?",
+    "If it were you, Commander, how would you handle it?\nI would try to hint at what my issues are.",
+    "Commander, what kind of music do you usually listen to?\nThe Waiting on Love OST, the first track.",
+    "... Never mind, it's nothing.\nThat show you've been watching is starting soon. You can leave early today.",
+    "It would be nice if I could meet that person who was in my dreams someday...\nI'm sure one day your dream will become a reality.",
+    "What should I do if I feel resentment towards one of my squadmates?\nYou should let them know. Don't keep it bottled up inside.",
+    "I'd love to visit one for real someday.\nActually, you could say I'm in a flower garden right now.",
+    "what's your opinion on white lies?\nI think it's needed in some situations."
+];

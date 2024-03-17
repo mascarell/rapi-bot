@@ -1,0 +1,22 @@
+module.exports = [
+    "How do I cut back on my spending and save money?\nKeep spending. When you go bankrupt, naturally you'll stop spending.",
+    "Would you splurge for good quality? Or do you always save money?\nI'm fine with anything, so long as it tastes good.",
+    "What's their problem?\nIt's because they like you.",
+    "If Rapi and I got into a fight, whose side would you take?\nYours.",
+    "I'm feeling a little upset about it.\nYulha isn't being fair to you.",
+    "I hope nothing's wrong with her.\nPuberty is often a very perplexing thing.",
+    "But... what's your type?\nSomeone who's aloof and chic, but not TOO well put together.",
+    "working for the Central Government?\nI'm perfectly happy being a Commander.",
+    "So, with that in mind, go on and try to say something that would upset me.\nPrivaty, I like you.",
+    "where would you want to go?\nThe stores on Royal Road.",
+    "Who else could I possibly go to the movies with?\nIs it okay if I go with you?",
+    "what kind of life do you want to live?\nI'd like to spend my days raising a family.",
+    "What are your thoughts, Commander?\nSounds like a fascinating plot.",
+    "What kind of hairstyle do you think would suit me?\nNothing could top the hairstyle you have now.",
+    "Your room smells nice today.\nI just came out of the shower.",
+    "If you were to make today as a special day, what would it be for?\nOur very first time.",
+    "How do you think this looks on me?\nIt's perfect.",
+    "Have you had any memorable dreams lately?\nYes... but it'd be a bit awkward telling you about it.",
+    "Did you not sleep well last night?\nHow did you know?",
+    "Anything that you would kill to have right now?\nMaybe some new clothes... or a pair of shoes..."
+];

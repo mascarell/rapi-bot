@@ -1,0 +1,22 @@
+module.exports = [
+    "If you had to choose between simple and fancy, what would it be?\nSimple.",
+    "No questions.\nB.",
+    "do you eat the cherry right away, or save it for last?\nI usually eat it first.",
+    "Do you prefer the Ark, or the surface?\nThe Ark.",
+    "Her toes move up towards the inside of my calf.\nGrab Viper by the ankle.",
+    "Do you prefer crows or snakes?\nSnakes.",
+    "should I tell you about a secret I've been hiding?\nIf you tell me, what will you want in return?",
+    "I want to go somewhere.\nWant to go on a date?",
+    "Do you think that's why Crow likes Jackal more than me?\nYou have plenty of your own positive qualities.",
+    "What's the best thing about living in the Outer Rim?\nI get to see you often.",
+    "What do you think I should do with them?\nJust don't kill them.",
+    "do you like eating it in one bite, or letting it melt slowly in your mouth?\nLetting it melt slowly in my mouth.",
+    "Someone who steals, or someone who gets stolen from?\nBeing stolen from.",
+    "what do you think would be the first thing I'd do?\n... Kill me?",
+    "Wanna guess why?\nBecause today is our scheduled counseling day?",
+    "are always reciprocated?\nWhat do you think?",
+    "I've got something to do.\nOkay.",
+    "how innocent you are?\n... Is that a compliment?",
+    "Honey, do you like alcohol?\nI do.",
+    "My makeup didn't come out right, and my hair is a mess.\nI didn't expect you to care about stuff like that."
+];

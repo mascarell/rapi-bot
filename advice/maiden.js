@@ -1,0 +1,22 @@
+module.exports = [
+    "But, sometimes, it's quite suffocating.\nEven so, it can be helpful at times.",
+    "I just don't know what to do with myself.\nGive a pat on the shoulder as a sign of support.",
+    "Can you tell Guillotine to stop it? I'm dying of embarrassment over here!\nI will talk to Guillotine.",
+    "I don't know what to do with these rumors.\nThat is difficult.",
+    "What do you think? How do I look?\nIt suits you.",
+    "Someone normal, you know? Not like Guillotine the weirdo.\nAm I not enough?",
+    "Do you notice anything different about me today?\nSomething different?",
+    "Well, even myself, I find her quite scary. But I just wanted to know what others think of her.\nI'm also afraid of Ingrid.",
+    "I know you always have a hectic schedule, but...\nI can take some time off in the evening.",
+    "Every time Guillotine uses her powers and shouts, 'Dragon of the Deep!', I feel so embarrassed.\nJust pretend you don't know her.",
+    "After we're done here, can I chill in your room for a bit?\nSure.",
+    "After all, I'm a Nikke who executes other Nikkes.\nSounds perfectly normal to me.",
+    "Commander, what kind of music do you usually listen to?\nSlow and serene music.",
+    "I mean like personality, appearance, etc.\nThe voice of a beautiful lady hidden under a face mask.",
+    "There has to be a better solution...\nTake your mask off when there is no one around, then eat.",
+    "We never have a moment's respite.\nAsk for a raise.",
+    "but I already spent too much money this month...what should I do?\nStart working part-time jobs.",
+    "Commander, what would you do in a situation like this?\nI would call my friends.",
+    "What am I supposed to do here?\nArrange a gathering them after midnight.",
+    "It really upsets me, but what can I do?\nI understand what you all do, and have nothing but respect for you."
+];

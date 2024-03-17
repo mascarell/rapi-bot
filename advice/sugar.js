@@ -1,0 +1,22 @@
+module.exports = [
+    "What do you think I should do?\nGive them a swift kick in the rear.",
+    "What can you even say to such a flagrant insult?\nGive her some bleach.",
+    "Any ideas?\nDo you feel that the fuel you put into Black Typhoon is a waste?",
+    "How many scoops of sugar do you think is best?\n11 spoonfuls.",
+    "They're a real pain in my neck. All they do is stand around.\nWhy don't you just stand around, then? Someone else will do the work eventually.",
+    "What kind of music do you think suits my vibe?\nGraceful classical music.",
+    "But I've got to maintain my reputation as a problem-solver, so I can't turn anybody down. What should I do?\nKeep taking every job, no matter how shady.",
+    "Vroom! Vroom, vroom!\nVroooooom!!",
+    "I'm a little worried that one day I might get myself into trouble.\nCut loose if you want, just be sure to trust me and your other teammates.",
+    "I want to redline it! How can I do that?\nHow about adding another 0 to the speedometer?",
+    "I wonder what's wrong...\nLet's inspect the engine.",
+    "I feel this irresistible urge to go for a spin on my bike.\nLet's do it when we reclaim the surface.",
+    "Someone had put milk and cream into a Sugar Coffee.\nIt certainly sounds horrible.",
+    "Do you think she has what it takes to be a leader?\nShe's the de facto leader of Cafe Sweety.",
+    "Try and ask me a few questions.\nWould you rather only have Sugar Coffee, or me?",
+    "*Vroom-m-m!!*\nWhen I'm alone I mimic Frima's voice.",
+    "Which one would you like?\nThey're both Sugar Coffees... just give me whichever.",
+    "You wear a helmet whenever you ride a motorcycle, don't you?\nOf course.",
+    "I'd crush it, I just know it.\nYou should start one of your own.",
+    "Do you know the reason?\nThat's because the population in the Outpost has increased."
+];

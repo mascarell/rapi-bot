@@ -1,0 +1,22 @@
+module.exports = [
+    "Tell me. What would you do if I blasted that crow out of the sky?\nI'd go pick up the pear.",
+    "Or does the thought of the sky caving in at any moment fill you with terror?\n...",
+    "What would you have me do?\nYou're an adult, so you should rise above all this and forgive her.",
+    "Tell me, what is it about you that has made her like this?\nMy charming personality?",
+    "How is it, working for them? Any fun?\nIt's a real drag.",
+    "Are you happy being here?\nI am not.",
+    "Do you agree that I am the most important thing in the world?\nI do.",
+    "What flavor do you think I would like?\nNothing could satisfy you.",
+    "can compare to mine?\nNo.",
+    "How did you feel?\nI was happy.",
+    "Wait, is there even such a thing as the weather in that dismal hole you call a city?\n...",
+    "and betray one another?\nNot everyone is that way.",
+    "who is the fairest of them all?\nYou.",
+    "Would you like me to make some witch's brew?\nYes, please.",
+    "Well, what do you think? Am I more captivating now?\nYou've always been endlessly alluring, Harran.",
+    "Don't you agree?\nI'm not sure.",
+    "Do you think we'll ever see the day where there are no Raptures on the surface?\nI believe we will.",
+    "Have you ever wanted to go back to the past?\nFor me, the past should remain in the past.",
+    "Do you prefer red or blue?\nRed.",
+    "who do you think makes a better follower?\nOf course it's me."
+];

@@ -1,0 +1,22 @@
+module.exports = [
+    "mugwort-flavored or garlic-flavored Splendamin, then you'll become an adult. Is that true?\nIt's true.",
+    "But... have you been there before?\nI haven't.",
+    "Do you think she is too mean to me?\nYes.",
+    "What should I do?\nBuy Diesel a new flavor of candy.",
+    "Which one would you date?\nThe mature one.",
+    "What do I have to do for them to stop seeing me as cute?\nChug a cup of bitter coffee in front of them.",
+    "I'm so angry. How should I take revenge on them?\nNext time you see them, report them as missing children as well.",
+    "Argh. I'm so angry! It's so annoying!\nThat person just hasn't seen your competence yet.",
+    "N-never mind.\nDo you want some candy?",
+    "Then I'll grow taller and look more like an adult!\nGood luck.",
+    "Preferably something sweet.\nYou're just going through a growth spurt.",
+    "Traveling on a train... something like that.\nSure we can. Let's start planning our itinerary.",
+    "How rude!\nWe'll go to a different café next time.",
+    "Or do you prefer someone smaller... like me?\nPersonally, I prefer shorter women.",
+    "First up is how I dress. What kind of clothing should I wear?\nSomething that's all business.",
+    "A... honeymoon, was it? Have you heard about this before?\nIt'd be nice for you and I to go on a honeymoon.",
+    "Do you think they feel the same way about me?\nI'm sure they do.",
+    "Strawberry candy is one thing, but strawberry toothpaste? No thanks.\nIt probably tastes nice and sweet.",
+    "So it made me curious.\nOf course, she's standing right in front of me.",
+    "I'd like to see Brid and Diesel try and do this on their own. Then they'd see how hard it is.\nI'll help you with the cleaning."
+];

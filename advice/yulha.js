@@ -1,0 +1,22 @@
+module.exports = [
+    "Ugh... Why are you staring at me?\nDo you have a bad hangover?",
+    "*Sigh* What should I do?\nStill, shouldn't you say what's on your mind?",
+    "But I don't think it's good for a kid to be so mature, anyway.\nGive her a vacation and send her to the Outpost.",
+    "So, what should I eat? Something sweet, or something spicy?\nSweet.",
+    "*Sigh*\nI'm sorry, but that is impossible.",
+    "Do you have somewhere you want to go on your vacation?\nI'll just rest in the Commander's room.",
+    "Instead of being a Commander, I mean.\nI did.",
+    "How can I get rid of her?\nBite her.",
+    "Triangle will execute you?\nI know.",
+    "Do any of the Nikkes suit you?\nSomeone like you.",
+    "Do you think there's any truth to that?\nI think it's complete nonsense.",
+    "What should I do in a situation like this?\nI'll sing you a lullaby.",
+    "Do... do you think ghosts really exist?\nOf course they don't.",
+    "Hmm...\nDon't do anything.",
+    "what kind of weather do you prefer?\nA sunny day.",
+    "is there anything you hope comes true this year?\nThat you take it easy for a while.",
+    "What do you usually think about when you're in the shower?\nI don't think about anything.",
+    "I want to drink something new. Is there anything you can recommend?\nAn energy drink.",
+    "what would you ask?\nWhen do you find time to rest?",
+    "Newbie, why am I so tired?\nBecause you've been working all day. "
+];

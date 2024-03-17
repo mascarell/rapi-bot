@@ -1,0 +1,22 @@
+module.exports = [
+    "Do you know any place that's worth spending my money on?\nDark Net?",
+    "Do you have the authority to get it taken off?\nI will make the request to Syuen.",
+    "I just can't figure out what it is.\nDo you have any guesses?",
+    "Any good tips for training a dog?\nI will ask a Nikke who owns a dog.",
+    "What's the difference between humans and Nikkes?\nThe possibility of duplication.",
+    "Or would you just burn it?\nI would wash it and reuse it.",
+    "You ever been to the Outer Rim?\nYes.",
+    "What do you think?\nNo, of course not.",
+    "Any ideas?\nI'll take you there.",
+    "Can you guess why?\nBecause you enjoy breaking their ideals.",
+    "how do you keep yourself from getting too anxious?\nTell them to hurry it up.",
+    "Is there anyone you could never be close to?\nWell... you, for one",
+    "How can I set them straight?\nTell them specifically what they're doing wrong.",
+    "What do you think of Syuen and Missilis?\n...",
+    "I'm technically the leader of Heavenly Ascension.\nIs that not correct?",
+    "Hey commander what do you admire most in a person?\nFirm beliefs.",
+    "would you do it?\nYes.",
+    "Any recommendations?\nA dog toy.",
+    "It's always bandied about like it's a given, but is it actually possible?\nI doubt it will happen in my lifetime.",
+    "Have you ever wanted something so badly, that you were willing to die for it?\nYes, the safety of the people."
+];

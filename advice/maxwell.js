@@ -1,0 +1,22 @@
+module.exports = [
+    "Which do you like better: hot or cold?\nIf you are going to do an experiment, tell me in advance. I hate both.",
+    "What do you think, Cutey? Is My Cutey missing anything?\nIt doesn't have any charm to it.",
+    "What should I do?\nYou can't lose. You've got to find some way to best this Nikke.",
+    "Do you think it has something to do with you?\nI think so.",
+    "How do you put up with her, Cutey?\nShe admits her faults, so I'm willing to cut her some slack.",
+    "Matis or Absolute?\nMatis.",
+    "Do you like hot or cold food better?\nI'll eat whatever you give me.",
+    "What do you think, Cutey? Would I be a researcher working for the villains, or for the heroes?\nYou'd be working for the heroes.",
+    "hitting the walls and floor, that kind of thing?\nNo.",
+    "Mustang, or Syuen?\nSyuen.",
+    "would you press it?\nNo.",
+    "Hey Cutey, do you have a moment?\nFor you, all the time in the world.",
+    "Cutey, if something important came up and you couldn't get a hold of the other person, what would you do?\nI would go find them.",
+    "what do you think will happen to all the Nikkes?\nWe'll all live a peaceful coexistence on the surface.",
+    "What do you do to clear your head?\nDo something that I enjoy.",
+    "We could have constructed an entire building with all the money spent repairing broken windows.\nIt's a bad habit she needs to fix.",
+    "But the details are fuzzy.\nDoes it really matter if you can't remember?",
+    "Wouldn't you say?\nI admire your confidence.",
+    "Today's perfect for running some tests, don't you think?\n...Sure.",
+    "What do you imagine life will be like then?\nProbably still fighting with the Raptures, what else?"
+];

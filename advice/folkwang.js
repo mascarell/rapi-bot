@@ -1,0 +1,22 @@
+module.exports = [
+    "Coach, how can I keep myself from getting too hot?\nWould hugging me help?",
+    "Do you have any idea why?\nShe just doesn't like ice supplements.",
+    "I don't think it makes our lives better at all.\nYour body sweats just to give you a hard time.",
+    "would you turn the air conditioner on or off?\nI think turning it on would be right.",
+    "Coach, what kind of weather do you like the most?\nCloudy days.",
+    "where will you go?\nThe swimming pool.",
+    "If they do, it'd really hurt my feelings.\nNo, of course not. They don't hate sweaty people...",
+    "But, I'm even older than she is!\nThen try to be more understanding of her, since you are older.",
+    "What do you think, Coach?\nRunning is the best.",
+    "Soda ice Splendamin is my favorite!\nWant me to get you some?",
+    "There's a word to describe this, what was it called again?\nRunner's high.",
+    "I'm going to quit being an athlete and become a doctor.\nIs that just because you'll have plenty of nurses around to wipe off your sweat?",
+    "Do you think it'd be all right if I said hi to her?\nSure, go for it.",
+    "If you took more than the recommended amount, wouldn't they be even more effective?\nI think you may be onto something.",
+    "is slap maxi pads all over my body!\nWon't that weigh you down?",
+    "it might make the people around me feel uncomfortable...\nIt's okay, because your sweat actually smells quite nice.",
+    "Do you know any methods to deal with this?\nLet's try finding a supplement that makes you enjoy combat.",
+    "It got me thinking... why exactly do I prefer it?\nWith running, you can gain momentum without any outside assistance.",
+    "I'll recommend you a good one.\nI'm already taking some.",
+    "Call it what you will, but I call it abuse.\nShe's just doing her best to help you."
+];

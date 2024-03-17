@@ -1,0 +1,22 @@
+module.exports = [
+    "Cocoa sets a plate of omurice in front of me and holds up the ketchup.\nAs much ketchup as you can muster.",
+    "or sunny days?\nI like rainy days.",
+    "What can I do to keep her at bay?\nFire some ketchup at her.",
+    "Do you prefer eating inside, or going al fresco?\nI prefer eating in the restaurant.",
+    "Cocoa holds out her thumb.\nAlso give a thumbs up.",
+    "I want to return the favor, but how?\nGive her two thumbs up.",
+    "What's your stance on that?\nIf you're a maid, you can open your umbrella wherever you want.",
+    "Why do you think that was?\nShe felt inferior standing next to someone as cool as you.",
+    "Master, is there anything you don't go anywhere without?\nCredits that I can use at the Maid Cafe.",
+    "I want a real challenge. Give me something to make.\nI want an opulent super-duper mega ultra omurice.",
+    "I'm crafting a new menu, and can't decide which sauce to use.\nKetchup.",
+    "What would you like me to draw using ketchup?\nDraw me.",
+    "I'll make it for you right now.\nSavory omurice.",
+    "What kind of service should I include?\nWhy don't you ask the customers what they'd like to see?",
+    "How good of a maid do you think I am?\nYou're a professional.",
+    "Which do you prefer, Master?\nWarm cocoa, all day every day.",
+    "What should we do?\nDo you want to go somewhere?",
+    "How should I deal with them?\nTeach them a lesson about manners.",
+    "I can.\nCan you teach me?",
+    "I like you, Ade and Soda equally.\nI like you as well, Cocoa."
+];

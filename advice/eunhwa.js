@@ -1,0 +1,22 @@
+module.exports = [
+    "so incompetent?\nIt seems that way because you're in a different league entirely.",
+    "I need a way to bring Vesti to her senses. To humble her.\nRead Vesti's personal diary out loud in a meeting.",
+    "I don't know how to refuse.\nUse work as an excuse.",
+    "the surface world?\nWithin my lifetime.",
+    "I... I'm not quite sure how to process it.\nEnjoy it while you can.",
+    "I don't feel like talking to a fool like you!\nWhat's gotten into you?",
+    "Everyone's been talking about it. Tell me, what are your thoughts?\nAbsolute, of course.",
+    "I find this somewhat depressing.\nWe'll enjoy all four seasons once we reclaim the surface.",
+    "who aren't pulling their weight?\nDiscover their talents and play to their strengths.",
+    "Tell me. How do you define comradery?\nIt's a sense of loyalty that lasts forever.",
+    "I'd prefer to rest.\n...",
+    "What's your stance on mistakes?\nEven the smallest mistake could spell disaster.",
+    "Eat it.\n...　Did Emma make this?",
+    "What's the one location here you couldn't do without?\nThe armory.",
+    "what would you do?\nI'd pull back before they noticed me, and report it to my superiors.",
+    "Please don't tell me you feel that way about anything.\nMy identification badge.",
+    "I need to find a way to clear my head.\nDistract yourself by doing various tasks.",
+    "You don't have anything else to eat by any chance, do you?\nHand over the apple from the surface that you have been saving.",
+    "but does anybody pay attention to your state of mind?\nCommanders are on their own in that regard.",
+    "is there any worth a damn?\nThree or four of them caught my eye."
+];

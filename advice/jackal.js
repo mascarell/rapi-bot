@@ -1,0 +1,22 @@
+module.exports = [
+    "I'm in the mood for meat.\nLet's have lamb-flavored Nutrium.",
+    "Everything shatters into a million pieces! It's the coolest.\nJust make sure you don't shoot at people.",
+    "This has never happened before, it's weird.\nYou didn't bite down on a stone by any chance, did you?",
+    "What's the big deal? I was so scared I ended up having to run away.\nThey just wanted to give you a hard time.",
+    "What did I ever do to them?\nIt's impossible to be liked by everyone.",
+    "Why's he so mad at me?\nImagine if Crow got beat up by someone.",
+    "That's why she commands respect from everyone, including me.\nWhat about me?",
+    "I came by this yesterday, and it's not half bad.\nSure, but I'll melt it down first.",
+    "Got any bright ideas on how I can get around it?\nLet's practice jumping over it.",
+    "Why doesn't she let me do what I want?\nThe hideout is much too small for you to run around in.",
+    "Cmndr?\nStill can't make out what you're saying, but... thanks?",
+    "10 times. No! 100 times!\nHow does 1,000 times sound?",
+    "Why would they name me after an animal?\nBecause you like meat?",
+    "Got any good prank ideas?\nJust lay low and keep quiet.",
+    "I want to try it too!\nHow about getting your teeth treated?",
+    "What should I do to make him fess up?\nMaybe he really doesn't know anything.",
+    "So I'm curious: is money really that important?\nIt's not that important.",
+    "I'm gonna take it off.\nDon't take it off. It looks good on you.",
+    "I don't know why everyone else is so down on it.\nThey're just jealous.",
+    "I don't get it. Books or movies don't fill your stomach, so what's the point?\nShe probably thinks it makes her look cool."
+];

@@ -1,0 +1,22 @@
+module.exports = [
+    "Oh! Oh my...!\nWe should go outside and get some fresh air.",
+    "What should I do?\nGrieve as much as you want, then move on when you're ready.",
+    "Do you know why that could be?\nMaybe you're too aware of your own immorality.",
+    "What kind of books do you like?\nErotic and romantic novels.",
+    "What is your fetis... I mean, what is your ideal type?\nA person who is true to their own desires.",
+    "Do you just ask politely? Or do you really go for what you want?\nI just ask politely.",
+    "How is life in the Ark?\nIt's unbearable.",
+    "Curious, I opened the shower door just a crack and peeked inside...\nStop! It's the A.C.P.U.!",
+    "Do you think we Nikkes have souls as well?\nI think Nikkes must have them.",
+    "Believer, do lead with the lips or the tongue?\n... What?",
+    "Gasp!\nWhat? What do you see?",
+    "... Can you pray with me for all of the sisters that we lost?\nPray without saying a word.",
+    "It's worlds apart from the rest of the surface.\nOne day the surface will be like this. I'll make it so.",
+    "How about we do the same?\nHoney.",
+    "Chef\nFond.",
+    "I don't want to forget a single second of it.\nLet's keep creating new memories.",
+    "I found this beautiful area where you can see flowers as far as the eye can see.\nI'd love to see it for myself.",
+    "Do you visit the library frequently?\nI've read most of their entire book collection at this point.",
+    "Believer, do you own anything that has sentimental value, but no practical usage?\nSure I do.",
+    "Are you any good at whistling?\nYes."
+];

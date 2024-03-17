@@ -1,0 +1,22 @@
+module.exports = [
+    "What should I do when I run into this kind of person?\nShow them who's boss.",
+    "What can I do to make her stop doing that?\nIt's better to just give up.",
+    "It's been getting pretty popular recently.\nYeah, I like it.",
+    "If I didn't become a police officer, what do you think I would have been?\nNothing suits you like being a police officer.",
+    "I just wanna lie down on the ground.\nDo you want me to pet you?",
+    "My body's so drained. I'm turning into a literal couch potato.\nDo you want me to pet you?",
+    "Grr... I'm furious. Why in the world would he say that?\nBecause of your chipmunk cheeks?",
+    "Are you a dog person or a cat person?\nOf course, a dog person.",
+    "How can I calm down?\nCome here. Let me pet you.",
+    "Should I believe her?\nIt sounds like the cowardly excuse of a criminal.",
+    "It was so obvious who they were too!\nYou're a veteran police officer, so spotting criminals is practically second nature for you.",
+    "What kind of style should I change it to?\nI think what you've got going on now suits you perfectly.",
+    "or going out with a group of people?\nI enjoy being around you.",
+    "what type of toy do you think I would be?\nA bad-to-the-bone police figurine.",
+    "Commander, is there any other career you'd like to try out other than what you're doing now?\nI'd like to give being a police officer a shot, like you.",
+    "*Grrrr*\nWhat's going on?",
+    "I have so much to do though...\nForget all that, let's hang out.",
+    "I had a good streak of no injuries going too... at least I didn't take too hard a spill.\nChange the bandage.",
+    "What do you think she meant?\nShe thinks that you're cool.",
+    "Think I can do it?\nIn your case Poli, I think it's possible."
+];

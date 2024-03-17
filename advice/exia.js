@@ -1,0 +1,22 @@
+module.exports = [
+    "I seek your advice on this.\nAre you talking about me?",
+    "But, what's wrong with stating simple facts?\nDon't back down, no matter what other people say.",
+    "Hey Noob, do you prefer 2D or 3D?\n2D, for sure.",
+    "How should I resolve the situation?\nGet noise canceling headphones.",
+    "However, I do not enjoy seeing people offline. Please propose a solution.\nI can go with you, if you like.",
+    "I think I may be becoming desensitized to games.\nYou'll feel better after a day or two.",
+    "What is the optimal course of action?\nTell them about it and say you're sorry for snooping.",
+    "You are the one who is in control here. I require your assistance. Please!\nYou can use the shower in my room.",
+    "I require a means of escape, of release.\nLet's run away together.",
+    "I would like to hack Enikk's mainframe.\nIf you want it that badly, just go for it.",
+    "Anyway, is there anything you wanted to ask me?\nWhat's the attack pattern for the raid boss in chapter 3?",
+    "Helloooooo? Anyone there?\nRequest a PVP with them.",
+    "She makes such a racket, I can't concentrate on my games!\nHave her go to a gym instead of the house.",
+    "What kind of concept do you think would suit me?\nA detective otaku who is crazy about mystery.",
+    "There's a bug in the game that prevented me from clearing this mission.\nTry and debug the game yourself.",
+    "during a team PVP match?\nCarry the team on your back.",
+    "If the world were going to end tomorrow, what would you do?\nI would complete more side missions in this game I'm playing.",
+    "What do you think I should do?\nI'd consider being more strategic.",
+    "Exia is focused on playing a game.\nTurn on the same game.",
+    "Just who exactly are you?\nI don't remember. You have to help me remember my identity."
+];

@@ -1,0 +1,22 @@
+module.exports = [
+    "Now that I'm out of the office, I have no idea what to do! Any ideas?\nAsk Poli to play with you.",
+    "Should I have told her she's more like a cat instead?\nYes.",
+    "I'm not sure how that works, though.\nIt's because rain is so inconvenient.",
+    "How could they have known?\nYou can tell by the way you act.",
+    "I do. I wonder if I'll ever become an accomplished police officer.\nI'm sure you will.",
+    "But, isn't working hard a good thing?\nYes! Nothing in the world is more important than hard work!",
+    "I don't see what's so funny about it!\nMaybe it was because you were talking too loud.",
+    "What do you think I should work on first?\nWork on your resilience.",
+    "How successful do you think I'll be?\nWhen they say successful, they're talking about becoming a better person.",
+    "So... exactly how much do you have to eat to be healthy?\nYou have to put everything you've got into eating!",
+    "I wondering what design I should draw with the ketchup.\nA traffic sign.",
+    "I'm just not sure if I can actually pull off the singing...\nI think it'd be wonderful if you sang it.",
+    "but I think it will be fun!\nI'm sure it'll be a new experience for you.",
+    "It was great seeing the looks of satisfaction on people's faces.\nReporting for duty even while on vacation! Very impressive!",
+    "... So peaceful that sometimes there's nothing to do!\nIt's all thanks to your hard work.",
+    "What do I have to do to get rid of this stigma?\nYou need to see things from a broader perspective.",
+    "but what do you think is a spy's strong suit?\nMaintaining total secrecy.",
+    "Why do you think I got in trouble?\nBecause Poli cares about you.",
+    "Can you help me spread the word?\nWhat exactly should I tell them?",
+    "I want to go with someone but I'm not sure how to ask them.\nPlay up the fact that they'll be going with you."
+];

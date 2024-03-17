@@ -1,0 +1,22 @@
+module.exports = [
+    "I wonder why...?\nBecause they want you to have more.",
+    "Commaaander! Are you free this weekend?\nOf course.",
+    "What's your favorite color, Commander?\nBlack.",
+    "Is there anything I can do to help them?\nThey'll have to figure it out for themselves.",
+    "But, I'm supposed to be the big sister!\nThat's just part of your charm.",
+    "You look terrible. What's wrong?\nI'm just overworked.",
+    "just like some abomination from the depths of the ocean...\nOpen your mouth.",
+    "I don't have time to go back and exchange it...\nI can help.",
+    "Why is that?\nIt's because you're so pretty.",
+    "How can I get her to loosen up?\nUse your special skills to help her calm down.",
+    "Hmm... What should I do?\nHow about mixing it with something else?",
+    "Bold, or understated?\nUnderstated, with hints of boldness.",
+    "Wait... could it be...\n... Maybe they're just feeling under the weather.",
+    "Take a guess!\nShe probably tries her best not to make a sound.",
+    "Nothing's been stressing me out... I'm not sure why I feel this way.\nSounds like it might be a physical issue.",
+    "what do you think is the most important part of cooking?\nYour mindset.",
+    "Did you not sleep well? You look like you can barely keep your eyes open.\nI stayed up all night thinking about you, Emma.",
+    "do you usually take the lead? Or do you let the other person take charge?\nI can do both. It all depends on who I'm with.",
+    "However, that means there are times I pick up on things I'd rather not know.\nThat's a good skill to have.",
+    "I'll see if I can make anything special for you.\nCake."
+];

@@ -1,0 +1,22 @@
+module.exports = [
+    "Do you know any tricks to keep your throat in good shape?\nDrink a lot of warm water.",
+    "What'd you think?\nSorry, I was out on a mission.",
+    "Whose songs do you usually listen to?\nYour songs.",
+    "Do you think I could pull it off?\nThere's a first time for everything. Just give it your best shot.",
+    "Noise plays a song that sounds eerily familiar to one of her own.\nDid someone rip off your song?",
+    "Do you think that'd be a good idea?\nYou three all have wildly different styles. You'd end up with a song that's full of twists and turns.",
+    "I just don't know what the title should be.\nHomecoming.",
+    "I don't know how many days I've been staying up late to practice.\nYou should take a nap.",
+    "How should I express my appreciation? What should I do to repay these fans?\nSend gifts back to them.",
+    "You can take a rest if you need to. Don't worry about me.\nI'm a little tired, but it's okay.",
+    "for you during a concert?\nI'd feel happy.",
+    "What am I supposed to do in that kind of situation?\nMake a funny face.",
+    "These are the top contenders, could you take a look?\nWhat if people can't recognize your new signature?",
+    "I nearly fainted when they told me that.\nYou've got to believe in yourself.",
+    "... Not entirely wholesome images at that.\nYou need to report them.",
+    "	I'm happy that someone likes me so much, but I hate to see their life being negatively impacted because of it.\nMake some exclusive merch just for him.",
+    "I don't want to say it was someone working for me, but...\nIt's unfortunate, but I think you're right.",
+    "What do you think, Producer?\nAre you not sexy already?",
+    "But I'm still a little hesitant.\nA little mystery can be a good thing.",
+    "I'm sure you'd have plenty of fans.\nI have more important things to do."
+];

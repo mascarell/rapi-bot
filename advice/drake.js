@@ -1,0 +1,22 @@
+module.exports = [
+    "Don't they understand I am a far superior being?\nIf you salute first, they will salute back.",
+    "Ha! Hahaha!\nHahahaha!",
+    "Haha! I'm pretty awesome, right?\n... Do you want me to order it for you?",
+    "I picked him right up!\nHow admirable of you.",
+    "They're doomed for sure!\nYou have to save them, Drake.",
+    "There's no way she can win battles by relying so much on equipment!\nSince Maxwell made them, they must be very effective, right?",
+    "They're so annoying.\nHow many did you give them?",
+    "Right! Now!\nNot before you finish your vegetables.",
+    "Do you know what I'm afraid of?\nBecoming too powerful.",
+    "But meat is limited, so we can't waste it on experimentation.\nHow about eating and cooking at the same time?",
+    "Can you handle watching horror movies on your own?\nHorror movies are child's plays to me.",
+    "I hope we reclaim the surface soon so I can immerse myself in nature once again.\nSummer is a perfect fit for you.",
+    "In order to accomplish that, I'll go to the police station and...\nhave them put you behind bars.",
+    "Can you believe that?! Me! An angel!\nTell them that you're no angel, but instead the ultimate villain.",
+    "Do you know what a villain should do on a roller coaster?\nNever close their eyes?",
+    "One of the employees must have screwed up.\nFried chicken is great even with the sauce.",
+    "but I can't decide what I'd like to do.\nTake up a high-energy sport.",
+    "If you could turn invisible, what's the first thing you would do?\nAnnihilate every last Rapture.",
+    "When my time is up, what do you think I should have written on my headstone?\nWhat?! You'll never die!",
+    "but she wants it super spicy!\nSpicy fried chicken can be good, as long as it's mild."
+];

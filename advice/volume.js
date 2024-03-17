@@ -1,0 +1,22 @@
+module.exports = [
+    "should I turn it up or down?\nUp.",
+    "Do You Love Me?\nIs this the title of your new song?",
+    "When I look up, all I see is a ceiling instead of the actual sky.\nLet's use music to blast a hole through it!",
+    "I'm famished.\nBring her some water.",
+    "But there's a saying that stars should always be ready to be photographed.\nYou mean you have to be ready at all times?",
+    "My body is in bad shape, too.\nWhy don't you take the day off?",
+    "I'm not in the mood to talk. Please leave.\nPlay some peaceful music.",
+    "what do you think it would be like?\nA raging hip-hop party under the heavy rain.",
+    "Is there anything you want? Name it, and it's yours.\nA Romdady S supercar.",
+    "Aria and I are radically different in style, so she's out of the equation.\nYou, of course.",
+    "Do you have anyone in mind?\nI could do it.",
+    "I ask myself that question sometimes.\nI can't imagine you doing anything but rapping.",
+    "What do you think is the most important thing for a rapper to have?\nSwag",
+    "That guy getting the boot.\nEveryone makes mistakes.",
+    "hip-hop or pop music?\nHip-hop.",
+    "what should I do?\nTake 'em to school so they know not to mess with you again.",
+    "What do you think of people who make their love life public?\nI think it'll be good.",
+    "I am planning to make a custom mic. Which color should I pick?\nBlack.",
+    "Her operas are so crushingly dull, how can she play them so well without being bored to tears?\nI think you could pull it off as well.",
+    "What would you recommend?\nFilm some ads."
+];

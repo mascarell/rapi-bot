@@ -1,0 +1,22 @@
+module.exports = [
+    "I want an honest answer.\nHer face.",
+    "I didn't go outside today.\nThen shower twice!",
+    "Commander, what do you think I should do?\nNot everyone finds joy in their work, and that's okay.",
+    "So what if I leave my dirty socks lying around?\nSocks? Where?",
+    "She's a firepower maniac.\nThat's why she excels at what she does.",
+    "So, which one is better in the end?\nChocolate-flavored Splendamin.",
+    "Sometimes I just can't figure out why we were put in the same squad.\nYour differences are what make you work well together.",
+    "... Should I ask Mary for medical treatment?\nSeems like you've been under a lot of pressure recently.",
+    "But I don't think there is anything wrong with it.\nMaybe because your shoulder is too heavy.",
+    "Do you think it's a little bit...\nYou look gorgeous in it.",
+    "No real reason, I'm just curious, that's all.\nI would literally die without them.",
+    "How about you, Commander? Do you help others, or ignore them?\nYou should solve your own problems.",
+    "They don't serve any purpose, and it seems like they'd be uncomfortable.\nDon't you ever put down her glasses!",
+    "It might be better if it had a more mouth-watering name.\nJuicy Perfecto.",
+    "If we were to show them our true colors, would they be averse to it?\nYou can't please everyone. Haters gonna hate.",
+    "I can't believe I'm saying this, but I may be a warmonger of some kind.\nYour body is tricking your brain in order to survive.",
+    "Having a girl shower in your room must make you a bit uneasy, right?\nUh...",
+    "If you're going through a rough patch, just let me know. I can help.\nI'll try to figure it out myself.",
+    "It was the first time I had ever seen that dog, yet it made a beeline straight for me...\nYou must have felt uncomfortable.",
+    "what would you want to do?\nI would just sit back and do nothing."
+];

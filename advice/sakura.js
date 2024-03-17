@@ -1,0 +1,22 @@
+module.exports = [
+    "Which type of tea do you like?\nBlack tea.",
+    "and you couldn't tell if the decision you were making was the right one?\nI would believe in myself and keep moving forward.",
+    "Are you this way with everyone?\nNo, only with you.",
+    "How do you feel when you see them?\nI feel very excited.",
+    "What about you?\nI've been exercising.",
+    "What would you do if you were me, CommanderName-kun?\nJust give it up.",
+    "I'll prepare some in the courtyard for you for the next time you visit.\nCherry blossoms.",
+    "what's your general approach?\nStick to the procedure.",
+    "What do you look for in a partner?\nSomeone with grace and sangfroid.",
+    "When she read my fortune, she mentioned your name. What do you think that means?\nIt certainly sounds positive to me.",
+    "What should I do?\nHow about I come visit and keep you company?",
+    "It's hardly appropriate for someone in your position to look that way.\nI know. I'm so helpless. Help meeeee, pretty please with a cherry on top?",
+    "how would you express yourself to her?\nI think I'd talk to her face to face.",
+    "Do you have any recommendations?\nThe Mistress and Her Dog.",
+    "but I don't feel terribly comfortable while I'm doing it.\nThe consequences of one's actions, both good and bad, should always be clear.",
+    "What goes through your mind when you see the first cherry blossoms of the year?\nI think about Sakura.",
+    "Do you have any memorable childhood memories, CommanderName-kun?\nThe hospital.",
+    "How can I access that gentler side of myself?\nIt's also important to be comfortable with who you are.",
+    "They've got lots of materials their customers can use to create their own confections.\nWhy don't we go and buy some sometime?",
+    "Have you ever fired a matchlock rifle, CommanderName-kun?\nI haven't, but I'd love to."
+];

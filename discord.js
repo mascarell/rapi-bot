@@ -1,9 +1,12 @@
 // dependencies
 const Discord = require('discord.js')
 const { getFiles } = require('./utils')
+// TODO: Update version for Axios to avoid security vulnerabilities.
 const axios = require('axios')
 const CronJobb = require('cron').CronJob
 const fetch = require("node-fetch")
+const path = require('path');
+const fs = require('fs');
 
 const TOKEN = process.env.WAIFUTOKEN
 const pre = '/' // what we use for the bot commands (nor for all of them tho)
@@ -233,7 +236,9 @@ const botCommands = {
 ➜ **/help** : list of commands for all Commanders 
 ➜ **/meme** : random general memes from the community 
 ➜ **/nikke** : random Nikke memes from the community 
-➜ **/relics** : get help with all lost relics in NIKKE 
+➜ **/relics** : get help with all lost relics in NIKKE
+➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
+➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE 
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
@@ -334,6 +339,88 @@ const botCommands = {
 		}
 	},
 }
+
+// Advice Configuration
+// Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
+// TODO: Figure out how to handle Alters like Privaty Maid and D Killer Wife later
+// TODO: Need to add remaining Nikkes (mainly some newer ones and alters)
+// TODO: Add Thumbnails for each character
+let characters = {};
+const charactersDir = './advice';
+// List of current Lolis in NIKKE
+const lollipops = [ 'liter', 'signal', 'yuni', 'miranda', 'soline', 'guillotine', 'admi', 'rei']
+fs.readdirSync(charactersDir)
+    .filter((file) => file.endsWith(".js"))
+    .forEach((file) => {
+        try {
+            const characterName = file.split(".")[0];
+            const characterPath = path.join(__dirname, charactersDir, file); // Use __dirname to get the absolute path
+            characters[characterName] = require(characterPath);
+        } catch (error) {
+            console.error(
+                `Error loading advice file for character: ${file}`,
+                error
+            );
+        }
+    });
+
+// TODO: Register this as a global command so we can utilize Interactions interface for sending ephemeral responses to avoid spam in a channel.
+// Workaround is to allow users to DM the bot directly since that works as well to avoid spam if desired.
+// Advice command functionality
+bot.on('message', msg => {
+    try {
+        if (!msg.content.toLowerCase().startsWith(pre)) return;
+
+        const args = msg.content.slice(pre.length).trim().split(/\s+/);
+        const character = args.shift().toLowerCase();
+        const searchQuery = args.join(' ').toLowerCase();
+
+        if (!characters[character]) {
+            return msg.channel.send(`Commander...Are you cheating on me? Who is ${character}? Please explain yourself.`);
+        }
+
+        if (searchQuery === 'list') {
+            // TODO: Create each section to be a prepend Q: & A: for readability.
+            const fullList = characters[character].join('\n\n');
+            const embed = new Discord.MessageEmbed()
+                .setColor('#a8bffb')
+                .setTitle(`Advice List for Nikke ${character.charAt(0).toUpperCase()}${character.slice(1)}`)
+                .setDescription(fullList);
+            return msg.channel.send(embed);
+        }
+
+        // Find matching advice assuming `characters[character]` is an array of strings
+        const matchingAdvice = characters[character].find((adviceString) => {
+            // Split the string into question and answer parts
+            const matchingAdviceParts = adviceString.split("\n");
+            // Check if either part includes the searchQuery
+            return matchingAdviceParts.some((part) => part.toLowerCase().includes(searchQuery));
+        });
+        
+        if (matchingAdvice) {
+            const adviceParts = matchingAdvice.split('\n');
+            const question = adviceParts[0] || 'Question not found';
+            const answer = adviceParts[1] || 'Answer not found';
+            const description = lollipops.includes(character) ? 'Shame on you Commander for advising lolis...' : "Here's the answer you're looking for Commander:";
+            const embed = new Discord.MessageEmbed()
+                .setColor('#63ff61')
+                .setTitle(`${character.charAt(0).toUpperCase()}${character.slice(1)}`)
+                .setDescription(description)
+                .addFields(
+                    { name: 'Question:', value: question},
+                    { name: 'Answer:', value: answer}
+                );
+            msg.channel.send(`${msg.author}`, embed);
+        } else {
+            msg.channel.send(`Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`);
+        }
+
+    } catch (error) {
+        console.error('Error processing message:', error);
+        msg.channel.send('Sorry Commander, I was unable to answer your question at this time...am I still a good girl?');
+    }
+});
+
 
 function initDiscordBot() {	
 	if (bot) new Error('Bot is already initialized, use getBot()')

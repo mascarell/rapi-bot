@@ -1,0 +1,22 @@
+module.exports = [
+    "Can nothing be done about this?\nLet me do the work for you.",
+    "Then again, as her guardian, perhaps I am just being selfish.\nEven if she has to grow up, Alice will always be Alice.",
+    "Is there anything I could do to make you more comfortable?\nAny chance I could get a hug from you?",
+    "Perhaps my taste buds are beginning to age?\nMaybe it's the tea leaves that got old.",
+    "What should I get for her?\nA doggie bone made of ice?",
+    "Do you have a type?\nSomeone who carries themselves like a Queen.",
+    "Speaking of, have you ever been to Royal Road?\nI haven't.",
+    "How would you define family?\nSimilar to the relationship between you and Alice.",
+    "Did you already know this?\nI'd rather have the affection of someone else.",
+    "What about you? Do you think living here is difficult?\nIt has its own stark beauty.",
+    "What do you think of it?\nIt's far from heaven, that much is certain.",
+    "What should I try?\nSome bitter tea.",
+    "What do you usually do on days like today?\nIt'd be nice to go out and have some tea.",
+    "When you look at snow, what does it make you think of?\nYou.",
+    "Which one do you think is better?\nReal but dangerous.",
+    "Why are you going to so much trouble to listen to all of our concerns?\nYou're all my friends and squadmates. I want to know what's on your mind.",
+    "!!\nSnatch the phone and ask what she is trying to do.",
+    "called people, or sent them messages?\nCalling.",
+    "Looking back, are there any locations that stand out?\nFor one, I remember the snowfields up north, where I met you.",
+    "Would you like to try it?\nSure, why not."
+];

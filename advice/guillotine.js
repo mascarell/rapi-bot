@@ -1,0 +1,22 @@
+module.exports = [
+    "Don't you think so?\nIt's almost as if... the wind is weeping.",
+    "*Tee hee hee!*\nWhy are you laughing?",
+    "How... do you control this feeling?\nEmbrace it. It is what we must do.",
+    "They may very well be eavesdropping on this very conversation.\nThis place is safe. We're protected by the Aegis Barriers.",
+    "Should I block followers who have private accounts?\nNo. If you did that, none of our allies with hidden identities could contact you.",
+    "My right eye is tingling.\nCould it be that the One-Winged Dark Lord's seal has been weakened?",
+    "Can you even begin to comprehend my loneliness?\nYes, I do. I'm the only one who does.",
+    "Could... she be afraid of the kotodama in my words?\nShe is not ready to accept your presence.",
+    "What's she up to?\nShe just thinks your posts are fun to read, that's all.",
+    "Someone who stays with you for the rest of your life?\nThat would make me very happy.",
+    "Something doesn't feel right.\nIt's simply the energy emanating from the Dragon of the Deep.",
+    "How can I find solace from their judgment?\nIt's too late for us to escape.",
+    "What is happening?\nSomeone is sending you a signal from another dimension.",
+    "What kind of music do you listen to when you're on your own?\nHymn of the Blood Moon.",
+    "who do you think I am?\nMy partner in crime.",
+    "Just let me be.\nI won't let you suffer all alone!",
+    "how would you spend your last day?\nI'd spend it with you.",
+    "which one would get the ax?\nDay is on the chopping block.",
+    "Do you think it's all right to lift the seal for a moment?\nNot here!",
+    "Can I hide here momentarily?\nSure."
+];

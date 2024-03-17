@@ -1,0 +1,22 @@
+module.exports = [
+    "What do I need to do... to not be n-nervous in front of people?\nBe aware of your own cuteness.",
+    "How should I decline?\nMake Emma taste her own food.",
+    "H-how can I make it stop?\nClose your eyes for 3 seconds, then open them again.",
+    "Do you have an i-ideal type?\nSomeone small and cute.",
+    "But, I'm worried, because my writing is so ugly...\nIt might be prettier than you think. Let me see it.",
+    "H-how can I fix this?\nThere is no need to fix it. It's a natural thing.",
+    "Do you have your own way of relieving stress?	\nI go out and be social.",
+    "Vesti looks upset.\nI am sorry I haven't been able to spend time with you these days.",
+    "... If you had someone you hate so much that you wanted to destroy them, what would you do?\nIgnore it and think about something else.",
+    "I want to have a counseling session with you every day.\nI enjoy having counseling time with you, too.",
+    "is there anything you only do with people that you're close to?\nBeing at ease while I talk with them, like right now.",
+    "What's your favorite movie genre?\nAnimated movies with cute characters.",
+    "have you ever had a crush on someone?\nNo, I haven't.",
+    "What do you do when you are overwhelmed with loneliness?\nI write in my journal to try and give words to my feelings.",
+    "what are you thinking about?\nNot much.",
+    "Do you make any resolutions for the new year?	\nTo forge a greater bond with you.",
+    "What do you think about people decorating their diaries?\nI think it's cute.",
+    "Is there a way to keep your feelings from being hurt?\nI wouldn't let it get me down and just move on.",
+    "There this person... and I want them all for myself.\nThe more you obsess about someone, the more you'll just drive them away.",
+    "who do you like the most? Who are you most comfortable being around?\nYou're my favorite, and I'm most comfortable around you."
+];

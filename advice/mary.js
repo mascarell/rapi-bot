@@ -1,0 +1,22 @@
+module.exports = [
+    "Or do you prefer it salty?\nBoth.",
+    "... or be just a little sick for a long time?\nOption 1.",
+    "Even the bad ones?\nNo.",
+    "What should I do?\nGive them a painful shot.",
+    "Every time I see Pepper, I just get so excited!\nLet me guess. You've found something to tease her about.",
+    "How should I respond to that?\nTell her to keep her eyes half-closed all the time.",
+    "Why are they all avoiding coming to the hospital?\nThey're scared of the hospital.",
+    "But, Commander... don't you ever want other people to listen to what's on your mind?\nI do.",
+    "I'm not a good person. Not really.\nThat's for Pepper to decide.",
+    "If I wasn't a doctor, what would I be doing instead?\nA nurse?",
+    "If you have any good ideas, feel free to share.\nHow about we place some flowers?",
+    "Feeling compassion for their patients, or distancing themselves from the patients?\nDistancing themselves from the patients.",
+    "How on earth am I supposed to administer a shot to these people?\nDistract them by talking about something else, then give them a stealthy jab.",
+    "What do you think the patients would get a bigger kick out of?\nCosplay.",
+    "By the way, are you sure you're not forgetting something?\nA checkup?",
+    "And the reasons are varied, such as because the manufacture is different, or the relationship was not good when they were human...\nAnything I can do to help?",
+    "Commander, how do you feel about white lies?\nI think they can be a good thing.",
+    "why I still work as a doctor when I'm a Nikke.\nThis is your calling. You don't owe anyone an explanation.",
+    "They all ate the same food and ended up collapsing.\nDo you have any suspects?",
+    "On that note, what traits do you look for in a person, Commander?\nBeing down-to-earth."
+];

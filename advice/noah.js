@@ -1,0 +1,22 @@
+module.exports = [
+    "Hehe...\nWhy are you laughing?",
+    "What can I do to make myself even worse than them?\nJust keep doing what you're doing.",
+    "A real Commander stands strong, even in the face of Raptures.\nIt's not necessarily the commander's duty to be strong.",
+    "Why do they not simply leave them behind?\nThe weak also have roles to play.",
+    "Why is it like that? It's enough to make my stomach churn.\nBecause of food shortages.",
+    "Isabel found out I used to bully you.\nBest of luck to you.",
+    "What is an Ark Ranger?\nIt's a story of 5 masked heroes who vow to crush the Raptures.",
+    "Why do you take care of me even though I bully you all the time?\nYou're like a little sister to me. I can't hate you.",
+    "Hyyaaah!\nWhat the heck are you doing?",
+    "Do you think I can touch it?\nAre you talking about Poli?",
+    "If you think I'm actually gonna sit down and talk to you, you've got another thing coming.\n... We can talk another day then.",
+    "Take a guess what this is.\nHarran's perfume?",
+    "Do you think there's a limit to how strong someone can get?\nI don't think so.",
+    "Can you guess why?\nBecause they're as strong as you are.",
+    "... If I use my shield, do you think I can do the same?\nYou can learn from her.",
+    "You can order me to do anything, and I'll do it.\nYou have to meow at the end of every sentence.",
+    "When have humans ever done anything for us?\nAs long as you continue walking your own path, you'll be fine.",
+    "Have you ever dozed off during a battle?\nYou mean you have before?",
+    "Guess what we use them for. If you get it right, I won't bug you anymore today.\nThey're just for decoration.",
+    "Have you ever thought about swapping it for a mechanical body?\nI'm not opposed to the idea."
+];

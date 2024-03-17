@@ -1,0 +1,22 @@
+module.exports = [
+    "Biscuit hands me a ball.\nThank you.",
+    "Uh, isn't it... stifling to stay indoors today?\nShall we go out for a walk?",
+    "W-Would you like to have some?\nI'm good. You can have it all.",
+    "Sweet snacks or savory snacks?\nSweet snacks are the best.",
+    "Trainer, what kind of weather do you like?\nSunny weather.",
+    "It makes me feel acknowledged, so I feel great!\nIs that the so-called bond between dogs?",
+    "She wags her tail furiously!\nStroke her head.",
+    "Let's play together!\nLightly toss the frisbee toward the door.",
+    "what kind of puppy would you want?\nA puppy like you.",
+    "Trainer, what kind of scent do you like?\nThe fresh smell of a dog right out of the shower.",
+    "What should I do to overcome this?\nTry covering your eyes as you speak.",
+    "The same thing goes for other cats. Why are they so lovely?\nBecause they are born lovely.",
+    "How about you, Trainer? Do you also want to understand them?\nI do wish I can do that when they're sick.",
+    "Uh... Trainer, what kind of person do you see me as?\nA cool and mighty puppy.",
+    "Hmmmmm...\nDo you want some snacks?",
+    "Do you like dogs or cats more?\nDogs.",
+    "I hope they can be happy forever. Hehe.\nThey will be, since you're here.",
+    "What should I do to give their teeth a good brush?\nHow about giving them snacks after brushing their teeth?",
+    "Trainer... I'm hungry.\nGive her sweet potato sticks.",
+    "How can I get to know it better?\ne patient and wait until it approaches you."
+];

@@ -1,0 +1,22 @@
+module.exports = [
+    "I'm just not sure how to satisfy her desire.\nFire a gun.",
+    "Which type of music are you in the mood for today?\nFast as a wave.",
+    "Could... could Anis have seen my soul wandering around without me knowing?\nI do think Anis has the power to see other people's souls.",
+    "However, I don't know what kind of music to prepare.\nBuoyant and entertaining music that will liven up the room.",
+    "But... where?\nWhenever you get musical inspiration?",
+    "When it's raining, what kind of music do you like to listen to?\nBold, emotional music that washes over me like a downpour.",
+    "What kind of music can best express my gratitude?\nSomething solemn that matches Rapi's style.",
+    "When I feel this way, what should I do?\nUse your music to express yourself.",
+    "When you think of your hometown, what kind of music comes to mind?\nMusic that's full of nostalgia, with a tinge of warmth.",
+    "I wonder what it could have been?\nA marching song that instills bravery into even the most cowardly of soldiers.",
+    "Julia is performing as if deeply immersed in her music.\nLet her be.",
+    "Should I play something soothing for you?\nActually, I'd prefer something more upbeat. I want to beat my fatigue into submission.",
+    "When you are resting, what kind of music do you listen to?\nMusic that gives me nice dreams.",
+    "If you could make today a holiday, what would you have it commemorate?\nThe moment I heard you play your music.",
+    "Is there anything else I could try riding?\nYou could ride the rhythm.",
+    "I wonder how much more they'll change in the future?\nNo matter how much things change, you'll always be who you are.",
+    "Is that true?\nIt's a truly lonely and desolate place.",
+    "That got me thinking: Is there anyone that you just don't get along with?\nNot in particular.",
+    "It was just awful! I can't get it out of my mind.\nBut even in a nightmare, you never forgot how to play your music, right?",
+    "what would you do with it?\nI would have you perform it for me."
+];

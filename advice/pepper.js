@@ -1,0 +1,22 @@
+module.exports = [
+    "What can I do to change the atmosphere?\nChange your gloomy hospital lights for brighter ones.",
+    "Do you think that's true?\nNo, of course not.",
+    "Commander, where do you like to take your dates?\nThe movie theatre.",
+    "Why do you think that is?\nSo they could see Mary.",
+    "So, what do you think I should study?\nHow to cure a patient's fake illness?",
+    "So, why do people hate coming to the hospital?\nBecause getting a shot is scary.",
+    "I hope they suffer more than everyone they've hurt!\n... I agree.",
+    "What should we do?\nLet's go on a date.",
+    "Commander, please tell me your definition of a real doctor!\nSomeone who works for the patient.",
+    "which one do you think can give you more energy?\nSomething refreshing.",
+    "I take it that means you're feeling well?\nFit as a fiddle.",
+    "What do you make of that?\nI find it all very romantic.",
+    "If I smile like this, do I look like her?\nYour smile also comforts those around you.",
+    "Is there any way to make it easier?\nGive them some candy, like a lollipop.",
+    "If you were in a private room, what kind of music would you like to hear?\nSomething light and hopeful.",
+    "What do you look for in a significant other?\nSomeone who is bright and energetic.",
+    "Commander, do you prefer movies with a happy or sad ending?\nHappy ending.",
+    "Commander... what kind of scent do you prefer?\nYou smell good even without perfume.",
+    "Will there ever come a time when there are no injured or sick?\nI'm sure that day will come eventually.",
+    "When you look at me, what's the first phrase that pops into your head?\nA doctor who makes people happy."
+];

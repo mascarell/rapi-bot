@@ -1,0 +1,22 @@
+module.exports = [
+    "Hey, Greenhorn. Do you think my advice is useless, too?\nDon't you remember what it's like to be young?",
+    "Would you clean it up, or just leave it?\nI would still clean it up.",
+    "But what do you think, Greenhorn?\nIt's about their safety, not their freedom.",
+    "Should I change my ways?\nBeing strict is a matter of safety.",
+    "But, I'm worried that she might become too dependent.\nCenti is not a kid.",
+    "But every time I think about life without work, I get frustrated.\nWhen that day comes, you'll find something else to do.",
+    "... Could she be lying about her age?\nMaybe it's because of her high quality of life.",
+    "I can only clean up after her for so long!\nIt's a bit of a secret, but Anis actually has a medical condition with her feet...",
+    "Maybe I'm getting old... Or maybe I'm just tired...\nMaybe it's because you don't find the work interesting anymore?",
+    "No one lives as comfortably as she does.\nBolt also has her own troubles.",
+    "I'm at a loss. What do I do?\nGive him a piece of your mind.",
+    "But, aren't I a bit too old for that sort of thing?\nAge doesn't matter when it comes to hobbies.",
+    "If I get him a little brother to play with, he might not be as lonely.\nThen you'll just end up with two lonely dogs instead of one.",
+    "If you had to choose, who would you side with?\nI can't choose. I see both sides.",
+    "So, how old would you like to be?\nI wanna become an old geezer.",
+    "What can I do to change things up?\nI'll pack your lunch.",
+    "What about you, Greenhorn? Is there any way you'd prefer to leave this world?\nSurrounded by beautiful women.",
+    "And for Anis...\nSocks all strewn about?",
+    "Try guessing what food I like.\n... Porridge?",
+    "So I just...\nDid you sell it for a premium?"
+];
