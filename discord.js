@@ -342,12 +342,11 @@ const botCommands = {
 
 // Advice Configuration
 // Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
-// TODO: Figure out how to handle Alters like Privaty Maid and D Killer Wife later
-// TODO: Need to add remaining Nikkes (mainly some newer ones and alters)
-// TODO: Add Thumbnails for each character
+// TODO: Need to add remaining Nikke Alters like Privaty Maid & Killer Wife
 let characters = {};
 const charactersDir = './advice';
 // List of current Lolis in NIKKE
+// TODO: Need to add more lollipops in the future.
 const lollipops = [ 'liter', 'signal', 'yuni', 'miranda', 'soline', 'guillotine', 'admi', 'rei']
 fs.readdirSync(charactersDir)
     .filter((file) => file.endsWith(".js"))
@@ -425,7 +424,7 @@ bot.on('message', msg => {
     }
 });
 
-
+// TODO: Split functionality into smaller functions
 function initDiscordBot() {	
 	if (bot) new Error('Bot is already initialized, use getBot()')
 		
