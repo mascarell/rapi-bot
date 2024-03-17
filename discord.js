@@ -380,8 +380,12 @@ bot.on('message', msg => {
         }
 
         if (searchQuery === 'list') {
-            // TODO: Create each section to be a prepend Q: & A: for readability.
-            const fullList = characters[character].join('\n\n');
+            // Split each advice into its question and answer parts, then prepend "Q:" and "A:"
+            const fullList = characters[character].map(advice => {
+                const parts = advice.split('\n'); // Split the advice into question and answer
+                return `Q: ${parts[0]}\nA: ${parts[1]}`; // Prepend "Q:" and "A:" to the question and answer, respectively
+            }).join('\n\n'); // Join all formatted advices with two newlines for separation
+
             const embed = new Discord.MessageEmbed()
                 .setColor('#a8bffb')
                 .setTitle(`Advice List for Nikke ${character.charAt(0).toUpperCase()}${character.slice(1)}`)
