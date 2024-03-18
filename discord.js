@@ -12,6 +12,7 @@ const TOKEN = process.env.WAIFUTOKEN
 const pre = '/' // what we use for the bot commands (nor for all of them tho)
 
 let bot = new Discord.Client() // the bot itself
+bot.commands = new Discord.Collection();
 
 const randomRapiMessages = [
 	`You’re too quiet, Commander, is everything alright?`,
@@ -340,212 +341,169 @@ const botCommands = {
 	},
 }
 
-// Advice Configuration
-// Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
-// TODO: Figure out how to handle Alters like Privaty Maid and D Killer Wife later
-// TODO: Need to add remaining Nikkes (mainly some newer ones and alters)
-// TODO: Add Thumbnails for each character
-let characters = {};
-const charactersDir = './advice';
-// List of current Lolis in NIKKE
-const lollipops = [ 'liter', 'signal', 'yuni', 'miranda', 'soline', 'guillotine', 'admi', 'rei']
-fs.readdirSync(charactersDir)
-    .filter((file) => file.endsWith(".js"))
-    .forEach((file) => {
-        try {
-            const characterName = file.split(".")[0];
-            const characterPath = path.join(__dirname, charactersDir, file); // Use __dirname to get the absolute path
-            characters[characterName] = require(characterPath);
-        } catch (error) {
-            console.error(
-                `Error loading advice file for character: ${file}`,
-                error
+function loadCommands() {
+    for (const key in botCommands) {
+        console.log(`The following command was loaded successfully: ${key}`);
+        bot.commands.set(botCommands[key].name, botCommands[key]);
+    }
+}
+
+function setActivity() {
+    bot.user.setActivity("SIMULATION ROOM", { type: "PLAYING" });
+}
+
+function greetNewMembers() {
+    bot.on("guildMemberAdd", (member) => {
+        const channel = member.guild.channels.cache.find(
+            (ch) => ch.name === "welcome"
+        );
+        if (channel) {
+            channel.send(
+                `Welcome Commander ${member}, please take care when going to the surface.`
             );
         }
     });
+}
 
-// TODO: Register this as a global command so we can utilize Interactions interface for sending ephemeral responses to avoid spam in a channel.
-// Workaround is to allow users to DM the bot directly since that works as well to avoid spam if desired.
-// Advice command functionality
-bot.on('message', msg => {
-    try {
-        if (!msg.content.toLowerCase().startsWith(pre)) return;
-
-        const args = msg.content.slice(pre.length).trim().split(/\s+/);
-        const character = args.shift().toLowerCase();
-        const searchQuery = args.join(' ').toLowerCase();
-
-        if (!characters[character]) {
-            return msg.channel.send(`Commander...Are you cheating on me? Who is ${character}? Please explain yourself.`);
-        }
-
-        if (searchQuery === 'list') {
-            // TODO: Create each section to be a prepend Q: & A: for readability.
-            const fullList = characters[character].join('\n\n');
-            const embed = new Discord.MessageEmbed()
-                .setColor('#a8bffb')
-                .setTitle(`Advice List for Nikke ${character.charAt(0).toUpperCase()}${character.slice(1)}`)
-                .setDescription(fullList);
-            return msg.channel.send(embed);
-        }
-
-        // Find matching advice assuming `characters[character]` is an array of strings
-        const matchingAdvice = characters[character].find((adviceString) => {
-            // Split the string into question and answer parts
-            const matchingAdviceParts = adviceString.split("\n");
-            // Check if either part includes the searchQuery
-            return matchingAdviceParts.some((part) => part.toLowerCase().includes(searchQuery));
-        });
-        
-        if (matchingAdvice) {
-            const adviceParts = matchingAdvice.split('\n');
-            const question = adviceParts[0] || 'Question not found';
-            const answer = adviceParts[1] || 'Answer not found';
-            const description = lollipops.includes(character) ? 'Shame on you Commander for advising lolis...' : "Here's the answer you're looking for Commander:";
-            const embed = new Discord.MessageEmbed()
-                .setColor('#63ff61')
-                .setTitle(`${character.charAt(0).toUpperCase()}${character.slice(1)}`)
-                .setDescription(description)
-                .addFields(
-                    { name: 'Question:', value: question},
-                    { name: 'Answer:', value: answer}
+function sendRandomMessages() {
+    const job = new CronJobb(
+        "0 */6 * * *",
+        function () {
+            bot.guilds.cache.forEach((guild) => {
+                const channel = guild.channels.cache.find(
+                    (ch) => ch.name === "nikke"
                 );
-            msg.channel.send(`${msg.author}`, embed);
-        } else {
-            msg.channel.send(`Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`);
-        }
+                if (channel) {
+                    const randomIndex = Math.floor(
+                        Math.random() * randomRapiMessages.length
+                    );
+                    channel.send(randomRapiMessages[randomIndex]);
+                }
+            });
+        },
+        null,
+        true,
+        "Europe/Madrid"
+    );
+    job.start();
+}
 
-    } catch (error) {
-        console.error('Error processing message:', error);
-        msg.channel.send('Sorry Commander, I was unable to answer your question at this time...am I still a good girl?');
-    }
-});
+function sendDailyInterceptionMessage() {
+    // Daily message on reset time telling people what the current special interception is
+    let interceptionMessage = new CronJobb(
+        "0 21 * * *",
+        () => {
+            try {
+                bot.guilds.cache.forEach((guild) => {
+                    const channel = guild.channels.cache.find(
+                        (ch) => ch.name === "nikke"
+                    );
+                    const role = guild.roles.cache.find(
+                        (role) => role.name === "Nikke"
+                    );
 
+                    if (!channel) return;
 
-function initDiscordBot() {	
-	if (bot) new Error('Bot is already initialized, use getBot()')
-		
-	// Set commands
-	bot.commands = new Discord.Collection()
-	Object.keys(botCommands).map(key => {
-		bot.commands.set(botCommands[key].name, botCommands[key])
-	})
+                    // Special interception bosses
+                    let bosses = [
+                        "Chatterbox",
+                        "Modernia",
+                        "Alteisen MK.VI",
+                        "Grave Digger",
+                        "Blacksmith",
+                    ];
+                    let bossesLinks = [
+                        "https://lootandwaifus.com/guides/special-individual-interception-chatterbox/",
+                        "https://lootandwaifus.com/guides/special-individual-interception-modernia/",
+                        "https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/",
+                        "https://lootandwaifus.com/guides/special-individual-interception-grave-digger/",
+                        "https://lootandwaifus.com/guides/special-individual-interception-blacksmith/",
+                    ];
+                    let tower = [
+                        "Tetra",
+                        "Elysion",
+                        "Missilis & Pilgrim",
+                        "Tetra",
+                        "Elysion",
+                        "Missilis",
+                        "all manufacturers",
+                    ];
 
-	// Set the rich presence activity of the bot
-	bot.on('ready', () => {
-		bot.user.setActivity('SIMULATION ROOM', { type: 'PLAYING' })
-	})
+                    const dayOfYear = (date) =>
+                        Math.floor(
+                            (date - new Date(date.getFullYear(), 0, 0)) /
+                                1000 /
+                                60 /
+                                60 /
+                                24
+                        );
+                    let currentDay = dayOfYear(new Date());
+                    let fileName = "";
 
-	// Login the bot
-	bot.login(TOKEN)
+                    switch (currentDay % 5) {
+                        case 0:
+                            fileName = "chatterbox.webp";
+                            break;
+                        case 1:
+                            fileName = "modernia.webp";
+                            break;
+                        case 2:
+                            fileName = "train.webp";
+                            break;
+                        case 3:
+                            fileName = "gravedigger.webp";
+                            break;
+                        case 4:
+                            fileName = "blacksmith.webp";
+                            break;
+                        default:
+                            fileName = "chatterbox.webp";
+                            break;
+                    }
 
-	// Greet new users when they join the server
-  bot.on('guildMemberAdd', member => {
-    const guild = member.guild; // Get the guild from the member object
-    const channel = guild.channels.cache.find(ch => ch.name === 'welcome');
-    channel.send(`Welcome Commander ${member}, please take care when going to the surface.`);
-  });
+                    const currentDate = new Date();
+                    const currentDayOfTheWeek = currentDate.getDay();
 
-	// Send random messages in #nikke channel to increase engagement every 6 hours
-	let nikkeMessage = new CronJobb(
-		'0 */6 * * *',
-		function () {
-      try {
-        bot.guilds.cache.forEach(guild => {
-          // Find the general chat (text channel named "nikke")
-          const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
-
-          // If a general chat is found, send a message
-          if (!channel) return
-
-          channel.send(randomRapiMessages[Math.floor(Math.random() * randomRapiMessages.length)]);
-        })
-      } catch (error) {
-        console.log(error)
-      }
-		}, {
-		timezone: 'Europe/Madrid'
-	})
-	nikkeMessage.start()
-
-	// Daily message on reset time telling people what the current special interception is
-	let interceptionMessage = new CronJobb(
-		'0 21 * * *', () => {
-      try {
-        bot.guilds.cache.forEach(guild => {
-          const channel = guild.channels.cache.find(ch => ch.name === 'nikke');
-          const role = guild.roles.cache.find(role => role.name === 'Nikke');
-
-          if (!channel) return;
-
-          // Special interception bosses
-          let bosses = ['Chatterbox', 'Modernia', 'Alteisen MK.VI', 'Grave Digger', 'Blacksmith']
-          let bossesLinks = ['https://lootandwaifus.com/guides/special-individual-interception-chatterbox/', 'https://lootandwaifus.com/guides/special-individual-interception-modernia/', 'https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/', 'https://lootandwaifus.com/guides/special-individual-interception-grave-digger/', 'https://lootandwaifus.com/guides/special-individual-interception-blacksmith/']
-          let tower = ['Tetra', 'Elysion', 'Missilis & Pilgrim', 'Tetra', 'Elysion', 'Missilis', 'all manufacturers']
-
-          const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-          let currentDay = dayOfYear(new Date())
-          let fileName = '';
-
-          switch ((currentDay) % 5) {
-            case 0:
-              fileName = 'chatterbox.webp'
-              break;
-            case 1:
-              fileName = 'modernia.webp'
-              break;
-            case 2:
-              fileName = 'train.webp'
-              break;
-            case 3:
-              fileName = 'gravedigger.webp'
-              break;
-            case 4:
-              fileName = 'blacksmith.webp'
-              break;
-            default:
-              fileName = 'chatterbox.webp'
-              break;
-          }
-
-          const currentDate = new Date();
-          const currentDayOfTheWeek = currentDate.getDay();
-
-          let message = ({
-            files: [{ attachment: `./public/images/bosses/${fileName}`, }],
-            content: `
+                    let message = {
+                        files: [
+                            {
+                                attachment: `./public/images/bosses/${fileName}`,
+                            },
+                        ],
+                        content: `
   ${role} Commanders, here's today schedule:  
 
-  - We have to fight **${bosses[(currentDay) % 5]}** in Special Interception  
-  - Tribe tower is open for **${tower[(currentDayOfTheWeek)]}**
+  - We have to fight **${bosses[currentDay % 5]}** in Special Interception  
+  - Tribe tower is open for **${tower[currentDayOfTheWeek]}**
   - I also attach a file with tips on how to fight this Rapture if you are having issues
 
-  ${bossesLinks[(currentDay) % 5]}
+  ${bossesLinks[currentDay % 5]}
 `,
-          })
-          // Send the message to a channel
-          channel.send(message)
-        })
-      } catch (error) {
-        console.log(error)
-      }
-		}, {
-		timezone: 'Europe/Madrid'
-	})
-	interceptionMessage.start()
+                    };
+                    // Send the message to a channel
+                    channel.send(message);
+                });
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        {
+            timezone: "Europe/Madrid",
+        }
+    );
+    interceptionMessage.start();
+}
 
-	// On message, find command and execute
-	bot.on('message', async message => {
-		// Get message from param and turn lowercase
-    if (!message.guild || !message.member) {
-      // If guild or member is not defined, ignore the message
-      return;
-    }
-
-    const guild = message.guild;
-    const user = guild.member(message.author.id);
-
-		// check if we're mentioning the bot
+function handleMessages() {
+    bot.on('message', async message => {
+        // Get message from param and turn lowercase
+        if (!message.guild || !message.member) {
+            // If guild or member is not defined, ignore the message
+            return;
+        }
+        const guild = message.guild;
+        
+        // check if we're mentioning the bot
 		if (message.mentions.has(bot.user)) {
 			try {
 				const response = await fetch(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
@@ -558,46 +516,182 @@ function initDiscordBot() {
 				message.channel.send(`Did you mention me, Commander ${message.author}?`);
 			}
 		}
+        // Establish arguments
+        let args = [];
+        if (message.content[0] === pre) {
+            args = message.content.split(/ +/);
+        } else {
+            args = [message.content];
+        }
 
-    // Establish arguments
-    let args = [];
-    if (message.content[0] === pre) {
-      args = message.content.split(/ +/);
-    } else {
-      args = [message.content];
-    }
+        const command = args.shift().toLowerCase();
 
-    const command = args.shift().toLowerCase();
+        if (!bot.commands.has(command)) return;
 
-    if (!bot.commands.has(command)) return;
+        try {
+            const ignoredRole = guild.roles.cache.find(role => role.name === 'Grounded');
+            const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
 
-    try {
-      const ignoredRole = guild.roles.cache.find(role => role.name === 'Grounded');
-      const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
+            if (command == "/content") {
+                if (contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id))
+                bot.commands.get(command).execute(message, args);
+                return;
+            }
 
-      if (command == "/content") {
-        if (contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id))
-          bot.commands.get(command).execute(message, args);
-        return;
-      }
+            if (ignoredRole && message.member.roles.cache.has(ignoredRole.id))
+                return;
 
-      if (ignoredRole && message.member.roles.cache.has(ignoredRole.id))
-        return;
+                bot.commands.get(command).execute(message, args);
+        } catch (error) {
+            console.error(error);
+            message.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)');
+        }
+    });
+}
 
-      bot.commands.get(command).execute(message, args);
-    } catch (error) {
-      console.error(error);
-      message.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)');
-    }
-	})
+function handleAdvice() {
+    // Advice Configuration
+    // Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
+    // TODO: Need to add remaining Nikke Alters like Privaty Maid & Killer Wife
+    let characters = {};
+    const charactersDir = "./advice";
+    // List of current Lolis in NIKKE
+    // TODO: Need to add more lollipops in the future.
+    const lollipops = [
+        "liter",
+        "signal",
+        "yuni",
+        "miranda",
+        "soline",
+        "guillotine",
+        "admi",
+        "rei",
+    ];
+    fs.readdirSync(charactersDir)
+        .filter((file) => file.endsWith(".js"))
+        .forEach((file) => {
+            try {
+                const characterName = file.split(".")[0];
+                const characterPath = path.join(__dirname, charactersDir, file); // Use __dirname to get the absolute path
+                characters[characterName] = require(characterPath);
+            } catch (error) {
+                console.error(
+                    `Error loading advice file for character: ${file}`,
+                    error
+                );
+            }
+        });
+
+    // TODO: Register this as a global command so we can utilize Interactions interface for sending ephemeral responses to avoid spam in a channel.
+    // Workaround is to allow users to DM the bot directly since that works as well to avoid spam if desired.
+    // Advice command functionality
+    bot.on("message", (msg) => {
+        try {
+            // Check if the message doesn't start with the prefix or doesn't include a valid command
+            const userInput = msg.content.trim().toLowerCase();
+            if ( !msg.content.toLowerCase().startsWith(pre) || Object.keys(botCommands).some((cmd) => botCommands[cmd].name === userInput)) {
+                return;
+            } else {
+                const args = msg.content.slice(pre.length).trim().split(/\s+/);
+                const character = args.shift().toLowerCase();
+                const searchQuery = args.join(" ").toLowerCase();
+
+                if (!characters[character]) {
+                    return msg.channel.send(
+                        `Commander...Are you cheating on me? Who is ${character}? Please explain yourself.`
+                    );
+                }
+
+                if (searchQuery === "list") {
+                    // Split each advice into its question and answer parts, then prepend "Q:" and "A:"
+                    const fullList = characters[character]
+                        .map((advice) => {
+                            const parts = advice.split("\n"); // Split the advice into question and answer
+                            return `Q: ${parts[0]}\nA: ${parts[1]}`; // Prepend "Q:" and "A:" to the question and answer, respectively
+                        })
+                        .join("\n\n"); // Join all formatted advices with two newlines for separation
+
+                    const embed = new Discord.MessageEmbed()
+                        .setColor("#a8bffb")
+                        .setTitle(
+                            `Advice List for Nikke ${character
+                                .charAt(0)
+                                .toUpperCase()}${character.slice(1)}`
+                        )
+                        .setDescription(fullList);
+                    return msg.channel.send(embed);
+                }
+
+                // Find matching advice assuming `characters[character]` is an array of strings
+                const matchingAdvice = characters[character].find(
+                    (adviceString) => {
+                        // Split the string into question and answer parts
+                        const matchingAdviceParts = adviceString.split("\n");
+                        // Check if either part includes the searchQuery
+                        return matchingAdviceParts.some((part) =>
+                            part.toLowerCase().includes(searchQuery)
+                        );
+                    }
+                );
+
+                if (matchingAdvice) {
+                    const adviceParts = matchingAdvice.split("\n");
+                    const question = adviceParts[0] || "Question not found";
+                    const answer = adviceParts[1] || "Answer not found";
+                    const description = lollipops.includes(character)
+                        ? "Shame on you Commander for advising lolis..."
+                        : "Here's the answer you're looking for Commander:";
+                    const embed = new Discord.MessageEmbed()
+                        .setColor("#63ff61")
+                        .setTitle(
+                            `${character
+                                .charAt(0)
+                                .toUpperCase()}${character.slice(1)}`
+                        )
+                        .setDescription(description)
+                        .addFields(
+                            { name: "Question:", value: question },
+                            { name: "Answer:", value: answer }
+                        );
+                    msg.channel.send(`${msg.author}`, embed);
+                } else {
+                    msg.channel.send(
+                        `Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`
+                    );
+                }
+            }
+        } catch (error) {
+            console.error("Error processing message:", error);
+            msg.channel.send(
+                "Sorry Commander, I was unable to answer your question at this time...am I still a good girl?"
+            );
+        }
+    });
+}
+
+function initDiscordBot() {
+    if (bot) new Error('Bot is already initialized, use getBot()');
+
+    loadCommands();
+    bot.once('ready', () => {
+        setActivity();
+        greetNewMembers();
+        sendRandomMessages();
+        sendDailyInterceptionMessage();
+        handleMessages();
+        handleAdvice();
+        console.log('Bot is ready!');
+    });
+
+    bot.login(TOKEN).catch(console.error);
 }
 
 function getDiscordBot() {
-	if (bot) {
-		return bot
-	} else {
-		new Error('Bot is not initialized')
-	}
+    if (bot) {
+        return bot;
+    } else {
+        new Error('Bot is not initialized');
+    }
 }
 
 module.exports = {
