@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 
 const TOKEN = process.env.WAIFUTOKEN
-const pre = '/' // what we use for the bot commands (nor for all of them tho)
+const pre = '/' // what we use for the bot commands (not for all of them tho)
 
 let bot = new Discord.Client() // the bot itself
 bot.commands = new Discord.Collection();

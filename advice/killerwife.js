@@ -1,0 +1,22 @@
+module.exports = [
+    "the cycle of evil?\nMake sure whoever does wrong pays for it.",
+    "What do you think about trust?\nIt's not something you can always rely on.",
+    "What would you like me to wear?\nA dress.",
+    "what it would be like to escape this mission and lead that fabricated existence.\nBut that's not you.",
+    "What's our move if the target figures out we're in disguise?\nStop the mission, right?",
+    "D stares at me quietly.\nWhat's in it?",
+    "... Can you give me something warm?\nI'll make you some coffee.",
+    "what's with the red stain on your shirt?\nOh, that? I must have spilled wine on myself.",
+    "Honey, is there something you want for our anniversary?\nHow about you? What would you like to have?",
+    "You're back, Honey! How was your day?\nIt's been a long day. What about you?",
+    "Honey, what do you want for dinner?\nAnything you make is good for me.",
+    "The paper is brimming with all sorts of backstories.\nI'll make sure to memorize as much as possible.",
+    "Check it out when you're on your own.\n... Got it.",
+    "D is lost in thought.\nHoney works fine.",
+    "What's up?\nThat tattoo on your arm... What's it about?",
+    "Flowers, or something practical?\nFlowers.",
+    "Is there any problem?\n	I just realized how beautiful my wife is.",
+    "Do you want to live in such a place?\nNot really.",
+    "Do you know the reason?\nBecause missions aren't meant to be a walk in the park.",
+    "what's your move?\nI'd brace for the fallout, whatever it may be."
+];
