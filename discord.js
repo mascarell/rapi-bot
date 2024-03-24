@@ -66,6 +66,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
+                    name: randomMeme.name
 				}],
 				content: `- ${randomMeme.name}`,
 			})
@@ -82,6 +83,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
+                    name: randomMeme.name
 				}],
 				content: `- ${randomMeme.name}`,
 			})
@@ -98,6 +100,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
+                    name: randomMeme.name
 				}],
 				content: `- ${randomMeme.name}`,
 			})
@@ -114,6 +117,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
+                    name: randomMeme.name
 				}],
 				content: `- ${randomMeme.name}`,
 			})
@@ -125,17 +129,20 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/skill.gif',
+                    name: 'skill.gif'
 				}],
 				content: `It sounds like you have some skill issues Commander.`,
 			})
 		}
 	},
+    // TODO: Check if both commands still necessary???
 	skillissueiphone: {
     name: 'sounds like…',
 		async execute(msg, args) {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/skill.gif',
+                    name: 'skill.gif'
 				}],
 				content: `It sounds like you have some skill issues Commander.`,
 			})
@@ -147,6 +154,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/seggs.mp4',
+                    name: 'seggs.mp4'
 				}],
 				content: `Wait, Shifty, what are you talking about?`,
 			})
@@ -169,6 +177,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/iswear.png',
+                    name: 'iswear.png'
 				}],
 				content: `Commander... I'm calling the authorities.`,
 			})
@@ -180,6 +189,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/12game.png',
+                    name: '12game.png'
 				}],
 				content: `Commander the surface is obviously safe for 12 year old kids.`,
 			})
@@ -196,6 +206,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
+                    name: randomMeme.name
 				}],
 				content: `Commander, let's take her out of NPC jail.`,
 			})
@@ -207,6 +218,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/whaling.png',
+                    name: 'whaling.jpg'
 				}],
 				content: `Commander, it's fine if you are poor.`,
 			})
@@ -282,6 +294,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/anis.png',
+                    name: 'anis.jpg'
 				}],
 				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
 			})
@@ -294,6 +307,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/memes/copium-cn.jpg',
+                    name: 'copium-cn.jpg'
 				}],
 				content: `Commander, what are you talking about?`,
 			})
@@ -305,6 +319,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/ready.png',
+                    name: 'ready.jpg'
 				}],
 				content: `Commander... ready for what?`,
 			})
@@ -324,6 +339,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/wrong.gif',
+                    name: 'wrong.jpg'
 				}],
 			})
 		}
@@ -335,6 +351,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/reward.jpg',
+                    name: 'reward.jpg'
 				}],
 			})
 		}
@@ -468,6 +485,7 @@ function sendDailyInterceptionMessage() {
                         files: [
                             {
                                 attachment: `./public/images/bosses/${fileName}`,
+                                name: `${fileName}`
                             },
                         ],
                         content: `
