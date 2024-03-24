@@ -1,5 +1,5 @@
 // dependencies
-const Discord = require('discord.js')
+const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const { getFiles } = require('./utils')
 // TODO: Update version for Axios to avoid security vulnerabilities.
 const axios = require('axios')
@@ -11,8 +11,15 @@ const fs = require('fs');
 const TOKEN = process.env.WAIFUTOKEN
 const pre = '/' // what we use for the bot commands (not for all of them tho)
 
-let bot = new Discord.Client() // the bot itself
-bot.commands = new Discord.Collection();
+const bot = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent, // Needed to receive message content
+        GatewayIntentBits.GuildMembers, // If you use features like welcoming a new member
+    ]
+}); // the bot itself
+bot.commands = new Collection();
 
 const randomRapiMessages = [
 	`You’re too quiet, Commander, is everything alright?`,
@@ -67,8 +74,7 @@ const botCommands = {
 				files: [{
 					attachment: randomMeme.path,
                     name: randomMeme.name
-				}],
-				content: `- ${randomMeme.name}`,
+				}]
 			})
 		}
 	},
@@ -84,8 +90,7 @@ const botCommands = {
 				files: [{
 					attachment: randomMeme.path,
                     name: randomMeme.name
-				}],
-				content: `- ${randomMeme.name}`,
+				}]
 			})
 		}
 	},
@@ -101,8 +106,7 @@ const botCommands = {
 				files: [{
 					attachment: randomMeme.path,
                     name: randomMeme.name
-				}],
-				content: `- ${randomMeme.name}`,
+				}]
 			})
 		}
 	},
@@ -118,8 +122,7 @@ const botCommands = {
 				files: [{
 					attachment: randomMeme.path,
                     name: randomMeme.name
-				}],
-				content: `- ${randomMeme.name}`,
+				}]
 			})
 		}
 	},
@@ -513,7 +516,7 @@ function sendDailyInterceptionMessage() {
 }
 
 function handleMessages() {
-    bot.on('message', async message => {
+    bot.on('messageCreate', async message => {
         // Get message from param and turn lowercase
         if (!message.guild || !message.member) {
             // If guild or member is not defined, ignore the message
@@ -603,7 +606,7 @@ function handleAdvice() {
     // TODO: Register this as a global command so we can utilize Interactions interface for sending ephemeral responses to avoid spam in a channel.
     // Workaround is to allow users to DM the bot directly since that works as well to avoid spam if desired.
     // Advice command functionality
-    bot.on("message", (msg) => {
+    bot.on("messageCreate", (msg) => {
         try {
             // Check if the message doesn't start with the prefix or doesn't include a valid command
             const userInput = msg.content.trim().toLowerCase();
@@ -629,7 +632,7 @@ function handleAdvice() {
                         })
                         .join("\n\n"); // Join all formatted advices with two newlines for separation
 
-                    const embed = new Discord.MessageEmbed()
+                    const embed = new EmbedBuilder()
                         .setColor("#a8bffb")
                         .setTitle(
                             `Advice List for Nikke ${character
@@ -659,7 +662,7 @@ function handleAdvice() {
                     const description = lollipops.includes(character)
                         ? "Shame on you Commander for advising lolis..."
                         : "Here's the answer you're looking for Commander:";
-                    const embed = new Discord.MessageEmbed()
+                    const embed = new EmbedBuilder()
                         .setColor("#63ff61")
                         .setTitle(
                             `${character
