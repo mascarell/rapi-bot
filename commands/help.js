@@ -5,8 +5,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('List of custom commands available for all Commanders'),
-    execute(msg) {
-			msg.channel.send(`CUSTOM COMMANDS \n 
+    async execute(msg) {
+			msg.reply(`CUSTOM COMMANDS \n 
 ➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
 ➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE 
 ➜ **good girl** : say thanks to the best girl & bot in this server 

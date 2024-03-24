@@ -8,7 +8,7 @@ module.exports = {
         .setDescription('Random general memes from the community'),
     async execute(msg) {
         // Pick image from folder
-        let files = await getFiles('../public/images/memes/')
+        let files = await getFiles('./public/images/memes/')
         // Get Random
         let randomMeme = files[Math.floor(Math.random() * files.length)]
     

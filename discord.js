@@ -1,8 +1,6 @@
 // dependencies
 const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder } = require('discord.js');
 const { getFiles } = require('./utils')
-// TODO: Update version for Axios to avoid security vulnerabilities.
-const axios = require('axios')
 const CronJobb = require('cron').CronJob
 const fetch = require("node-fetch")
 const path = require('path');
@@ -13,6 +11,7 @@ const CLIENTID = process.env.CLIENTID
 
 const pre = '/' // what we use for the bot commands (not for all of them tho)
 
+// Bot Configuration
 const bot = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -20,7 +19,7 @@ const bot = new Client({
         GatewayIntentBits.MessageContent, // Needed to receive message content
         GatewayIntentBits.GuildMembers, // If you use features like welcoming a new member
     ]
-}); // the bot itself
+});
 bot.commands = new Collection();
 
 //TODO: Create util function for this
@@ -198,30 +197,24 @@ const botCommands = {
 			})
 		}
 	},
-	compositions: {
-		name: pre + 'compositions',
-		execute(msg, args) {
-			msg.channel.send('Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/')
-		}
-	},
 	discipline: {
 		name: 'lap of discipline.',
 		execute(msg, args) {
-			msg.channel.send('Lap of discipline')
+			msg.reply('Lap of discipline')
 		}
 	},
 	goodgirl: {
 		name: 'good girl',
 		description: 'good girl Rapi',
 		execute(msg, args) {
-			msg.channel.send('Thank you Commander.')
+			msg.reply('Thank you Commander.')
 		}
 	},
 	dammit: {
 		name: 'dammit rapi',
 		description: 'dammit rapi',
 		execute(msg, args) {
-			msg.channel.send('Sorry Commander.')
+			msg.reply('Sorry Commander.')
 		}
 	},
 	wronggirl: {
@@ -266,7 +259,7 @@ const botCommands = {
         name: pre + 'content',
         description: 'content squad ping',
         execute(msg, args) {
-            msg.channel.send(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
+            msg.reply(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
 		}
 	},
 	badgirl: {
@@ -616,7 +609,7 @@ function handleAdvice() {
                 const searchQuery = args.join(" ").toLowerCase();
 
                 if (!characters[character]) {
-                    return msg.channel.send(
+                    return msg.reply(
                         `Commander...Are you cheating on me? Who is ${character}? Please explain yourself.`
                     );
                 }
@@ -638,7 +631,8 @@ function handleAdvice() {
                                 .toUpperCase()}${character.slice(1)}`
                         )
                         .setDescription(fullList);
-                    return msg.channel.send(embed);
+                    // Use send for sending embeds
+                    return msg.channel.send({embeds: [embed]});
                 }
 
                 // Find matching advice assuming `characters[character]` is an array of strings
@@ -672,16 +666,17 @@ function handleAdvice() {
                             { name: "Question:", value: question },
                             { name: "Answer:", value: answer }
                         );
-                    msg.channel.send(`${msg.author}`, embed);
+                    // Use send for sending embeds
+                    msg.channel.send({embeds: [embed]});
                 } else {
-                    msg.channel.send(
+                    msg.reply(
                         `Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`
                     );
                 }
             }
         } catch (error) {
             console.error("Error processing message:", error);
-            msg.channel.send(
+            msg.reply(
                 "Sorry Commander, I was unable to answer your question at this time...am I still a good girl?"
             );
         }
@@ -706,9 +701,9 @@ function handleSlashCommands(){
         } catch (error) {
             console.error(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+                await interaction.followUp({ content: 'Sorry Commander, there was an error while executing this command!', ephemeral: true });
             } else {
-                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+                await interaction.reply({ content: 'Sorry Commander, there was an error while executing this command!', ephemeral: true });
             }
         }
     });
