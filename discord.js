@@ -1,5 +1,5 @@
 // dependencies
-const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
+const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder } = require('discord.js');
 const { getFiles } = require('./utils')
 // TODO: Update version for Axios to avoid security vulnerabilities.
 const axios = require('axios')
@@ -9,6 +9,8 @@ const path = require('path');
 const fs = require('fs');
 
 const TOKEN = process.env.WAIFUTOKEN
+const CLIENTID = process.env.CLIENTID
+
 const pre = '/' // what we use for the bot commands (not for all of them tho)
 
 const bot = new Client({
@@ -21,6 +23,7 @@ const bot = new Client({
 }); // the bot itself
 bot.commands = new Collection();
 
+//TODO: Create util function for this
 const randomRapiMessages = [
 	`You’re too quiet, Commander, is everything alright?`,
 	`Commander, Anis was just joking with the Christmas present…`,
@@ -62,38 +65,6 @@ const randomRapiMessages = [
 // Bot commands object
 // The name has to be lowercase
 const botCommands = {
-	nikke: {
-		name: pre + 'nikke',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/nikke/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
-		
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-                    name: randomMeme.name
-				}]
-			})
-		}
-	},
-	meme: {
-		name: pre + 'meme',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/memes/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
-		
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-                    name: randomMeme.name
-				}]
-			})
-		}
-	},
 	booba: {
 		name: 'booba?',
 		async execute(msg, args) {
@@ -233,47 +204,10 @@ const botCommands = {
 			msg.channel.send('Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/')
 		}
 	},
-	relics: {
-		name: pre + 'relics',
-		execute(msg, args) {
-			msg.channel.send('Commander, if you need help finding Lost Relics this can help you ➜ https://nikke-map.onrender.com/')
-		}
-	},
 	discipline: {
 		name: 'lap of discipline.',
 		execute(msg, args) {
 			msg.channel.send('Lap of discipline')
-		}
-	},
-	help: {
-		name: pre + 'help',
-		execute(msg, args) {
-			msg.channel.send(`CUSTOM COMMANDS \n 
-➜ **/help** : list of commands for all Commanders 
-➜ **/meme** : random general memes from the community 
-➜ **/nikke** : random Nikke memes from the community 
-➜ **/relics** : get help with all lost relics in NIKKE
-➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
-➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE 
-➜ **good girl** : say thanks to the best girl & bot in this server 
-➜ **wrong girl** : hey, take care who you talk to  
-➜ **bad girl** : we all wanted to slap her  
-➜ **reward?** : 10 gems!?  
-➜ **sounds like...** : you are just bad, commander  
-➜ **whale levels** : how much do you spend?  
-➜ **i swear she is actually 3000 years old** : what?  
-➜ **ready rapi?** : 100% ready  
-➜ **12+ game** : kid safe game  
-➜ **booba?** : robot girl personalities  
-➜ **booty?** : robot girl cakes  
-➜ **kinda weird...** : tf commander...  
-➜ **JUSTICE FOR...** : she doesn't belong in jail  
-➜ **/compositions** : get help with your team compositions  
-➜ **dammit Rapi** : 😭  
-➜ **mold rates are not that bad** : 61% is enough  
-➜ **seggs?** : shifty?  
-➜ **Lap of discipline.** : Lap of discipline. 
-`)
 		}
 	},
 	goodgirl: {
@@ -328,11 +262,11 @@ const botCommands = {
 			})
 		}
 	},
-  contentSquad: {
-    name: pre + 'content',
-    description: 'content squad ping',
-    execute(msg, args) {
-      msg.channel.send(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
+    contentSquad: {
+        name: pre + 'content',
+        description: 'content squad ping',
+        execute(msg, args) {
+            msg.channel.send(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
 		}
 	},
 	badgirl: {
@@ -368,6 +302,70 @@ function loadCommands() {
     }
 }
 
+
+// Slash Commands Configuration
+function loadSlashCommands() {
+    const commandsPath = path.join(__dirname, "commands");
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        // Set a new item in the Collection with the key as the command name and the value as the exported module
+        if ("data" in command && "execute" in command) {
+            bot.commands.set(command.data.name, command);
+            console.log(`The following slash command was loaded successfully: ${command.data.name}`);
+        } else {
+            console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        }
+    }
+}
+
+function registerSlashCommands() {
+    const commands = [];
+    const commandsPath = path.join(__dirname, "commands");
+    const commandFiles = fs
+        .readdirSync(commandsPath)
+        .filter((file) => file.endsWith(".js"));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        if ("data" in command && "execute" in command) {
+            commands.push(command.data.toJSON());
+        } else {
+            console.log(
+                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+            );
+        }
+    }
+
+    // Construct and prepare an instance of the REST module
+    const rest = new REST().setToken(TOKEN);
+
+    // and deploy your commands!
+    (async () => {
+        try {
+            console.log(
+                `Started refreshing ${commands.length} application (/) commands.`
+            );
+
+            // Use PUT to fully refresh ALL commands
+            const data = await rest.put(
+                Routes.applicationCommands(CLIENTID),
+                { body: commands }
+            );
+
+            console.log(
+                `Successfully reloaded ${data.length} application (/) commands.`
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    })();
+}
+
+
+//TODO: Create a dynamic cronjob util to switch the activity every 6 hours
 function setActivity() {
     bot.user.setActivity("SIMULATION ROOM", { type: "PLAYING" });
 }
@@ -690,10 +688,40 @@ function handleAdvice() {
     });
 }
 
+// Handles bot slash commands interactions for all available slash commands
+// 
+function handleSlashCommands(){
+    bot.on(Events.InteractionCreate, async interaction => {
+        if (!interaction.isChatInputCommand()) return;
+    
+        const command = interaction.client.commands.get(interaction.commandName);
+    
+        if (!command) {
+            console.error(`No command matching ${interaction.commandName} was found.`);
+            return;
+        }
+    
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+            } else {
+                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+            }
+        }
+    });
+}
+
+
+
 function initDiscordBot() {
     if (bot) new Error('Bot is already initialized, use getBot()');
 
     loadCommands();
+    loadSlashCommands();
+    registerSlashCommands();
     bot.once('ready', () => {
         setActivity();
         greetNewMembers();
@@ -701,6 +729,7 @@ function initDiscordBot() {
         sendDailyInterceptionMessage();
         handleMessages();
         handleAdvice();
+        handleSlashCommands();
         console.log('Bot is ready!');
     });
 
