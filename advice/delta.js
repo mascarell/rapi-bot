@@ -1,6 +1,6 @@
 module.exports = [
     "What do you think, Commander?\n We'd have never allowed such indolence back in my day.",
-    "Could you please transmit a bugle call from the radio tower at approximately 6 AM?\n Private {AccountData.NickName}, reporting for duty!",
+    "Could you please transmit a bugle call from the radio tower at approximately 6 AM?\n Private ADMIN, reporting for duty!",
     "Do you think it's important how food tastes?\n No, it's not terribly important.",
     "Do you have any advice for me?\n Trust me.",
     "Hey Commander, how are you feeling?\n Great.",
