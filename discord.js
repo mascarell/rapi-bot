@@ -1,6 +1,6 @@
 // dependencies
 const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder } = require('discord.js');
-const { getFiles } = require('./utils')
+const { getFiles, getIsStreaming } = require('./utils')
 const CronJobb = require('cron').CronJob
 const fetch = require("node-fetch")
 const path = require('path');
@@ -357,10 +357,34 @@ function registerSlashCommands() {
     })();
 }
 
-
-//TODO: Create a dynamic cronjob util to switch the activity every 6 hours
+//TODO: Minor: Add dynamic assets for rich presence for each activity. 
 function setActivity() {
-    bot.user.setActivity("SIMULATION ROOM", { type: "PLAYING" });
+    const activities = [
+        { name: "SIMULATION ROOM", type: "PLAYING" },
+        { name: "with Commanders' hearts", type: "PLAYING" },
+        { name: "to the jukebox in Commanders' room", type: "LISTENING" },
+        { name: "over the Outpost", type: "WATCHING" },
+        { name: "SPECIAL ARENA", type: "PLAYING" },
+    ];
+
+    let currentActivity = 0;
+
+    function updateActivity() {
+        
+        const activity = activities[currentActivity % activities.length];
+        bot.user.setActivity(activity.name, { type: activity.type });
+        currentActivity++;
+    }
+
+    updateActivity();
+
+    // Create a new cron job to run every 4 hours
+    const job = new CronJobb('0 0 */4 * * *', function() {
+        if (getIsStreaming()) return; // Skip updating activities if streaming
+        updateActivity();
+    }, null, true, 'UTC');
+
+    job.start();
 }
 
 function greetNewMembers() {
