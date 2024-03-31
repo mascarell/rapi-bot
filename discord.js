@@ -391,7 +391,7 @@ function sendRandomMessages() {
 function sendDailyInterceptionMessage() {
     // Daily message on reset time telling people what the current special interception is
     let interceptionMessage = new CronJobb(
-        "0 21 * * *",
+        "0 22 * * *",
         () => {
             try {
                 bot.guilds.cache.forEach((guild) => {
