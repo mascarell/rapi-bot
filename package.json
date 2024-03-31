@@ -13,7 +13,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "cron": "*",
-    "discord.js": "*",
+    "discord.js": "^14.14.1",
     "dotenv": "^16.0.3",
     "express": "*",
     "node-fetch": "^2.6.9",

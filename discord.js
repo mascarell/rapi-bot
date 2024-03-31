@@ -1,19 +1,28 @@
 // dependencies
-const Discord = require('discord.js')
+const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder } = require('discord.js');
 const { getFiles } = require('./utils')
-// TODO: Update version for Axios to avoid security vulnerabilities.
-const axios = require('axios')
 const CronJobb = require('cron').CronJob
 const fetch = require("node-fetch")
 const path = require('path');
 const fs = require('fs');
 
 const TOKEN = process.env.WAIFUTOKEN
+const CLIENTID = process.env.CLIENTID
+
 const pre = '/' // what we use for the bot commands (not for all of them tho)
 
-let bot = new Discord.Client() // the bot itself
-bot.commands = new Discord.Collection();
+// Bot Configuration
+const bot = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent, // Needed to receive message content
+        GatewayIntentBits.GuildMembers, // If you use features like welcoming a new member
+    ]
+});
+bot.commands = new Collection();
 
+//TODO: Create util function for this
 const randomRapiMessages = [
 	`You’re too quiet, Commander, is everything alright?`,
 	`Commander, Anis was just joking with the Christmas present…`,
@@ -55,38 +64,6 @@ const randomRapiMessages = [
 // Bot commands object
 // The name has to be lowercase
 const botCommands = {
-	nikke: {
-		name: pre + 'nikke',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/nikke/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
-		
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-				}],
-				content: `- ${randomMeme.name}`,
-			})
-		}
-	},
-	meme: {
-		name: pre + 'meme',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/memes/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
-		
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-				}],
-				content: `- ${randomMeme.name}`,
-			})
-		}
-	},
 	booba: {
 		name: 'booba?',
 		async execute(msg, args) {
@@ -98,8 +75,8 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
-				}],
-				content: `- ${randomMeme.name}`,
+                    name: randomMeme.name
+				}]
 			})
 		}
 	},
@@ -114,8 +91,8 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
-				}],
-				content: `- ${randomMeme.name}`,
+                    name: randomMeme.name
+				}]
 			})
 		}
 	},
@@ -125,17 +102,20 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/skill.gif',
+                    name: 'skill.gif'
 				}],
 				content: `It sounds like you have some skill issues Commander.`,
 			})
 		}
 	},
+    // TODO: Check if both commands still necessary???
 	skillissueiphone: {
     name: 'sounds like…',
 		async execute(msg, args) {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/skill.gif',
+                    name: 'skill.gif'
 				}],
 				content: `It sounds like you have some skill issues Commander.`,
 			})
@@ -147,6 +127,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/seggs.mp4',
+                    name: 'seggs.mp4'
 				}],
 				content: `Wait, Shifty, what are you talking about?`,
 			})
@@ -169,6 +150,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/iswear.png',
+                    name: 'iswear.png'
 				}],
 				content: `Commander... I'm calling the authorities.`,
 			})
@@ -180,6 +162,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/12game.png',
+                    name: '12game.png'
 				}],
 				content: `Commander the surface is obviously safe for 12 year old kids.`,
 			})
@@ -196,6 +179,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: randomMeme.path,
+                    name: randomMeme.name
 				}],
 				content: `Commander, let's take her out of NPC jail.`,
 			})
@@ -207,72 +191,30 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/whaling.png',
+                    name: 'whaling.jpg'
 				}],
 				content: `Commander, it's fine if you are poor.`,
 			})
 		}
 	},
-	compositions: {
-		name: pre + 'compositions',
-		execute(msg, args) {
-			msg.channel.send('Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/')
-		}
-	},
-	relics: {
-		name: pre + 'relics',
-		execute(msg, args) {
-			msg.channel.send('Commander, if you need help finding Lost Relics this can help you ➜ https://nikke-map.onrender.com/')
-		}
-	},
 	discipline: {
 		name: 'lap of discipline.',
 		execute(msg, args) {
-			msg.channel.send('Lap of discipline')
-		}
-	},
-	help: {
-		name: pre + 'help',
-		execute(msg, args) {
-			msg.channel.send(`CUSTOM COMMANDS \n 
-➜ **/help** : list of commands for all Commanders 
-➜ **/meme** : random general memes from the community 
-➜ **/nikke** : random Nikke memes from the community 
-➜ **/relics** : get help with all lost relics in NIKKE
-➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
-➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE 
-➜ **good girl** : say thanks to the best girl & bot in this server 
-➜ **wrong girl** : hey, take care who you talk to  
-➜ **bad girl** : we all wanted to slap her  
-➜ **reward?** : 10 gems!?  
-➜ **sounds like...** : you are just bad, commander  
-➜ **whale levels** : how much do you spend?  
-➜ **i swear she is actually 3000 years old** : what?  
-➜ **ready rapi?** : 100% ready  
-➜ **12+ game** : kid safe game  
-➜ **booba?** : robot girl personalities  
-➜ **booty?** : robot girl cakes  
-➜ **kinda weird...** : tf commander...  
-➜ **JUSTICE FOR...** : she doesn't belong in jail  
-➜ **/compositions** : get help with your team compositions  
-➜ **dammit Rapi** : 😭  
-➜ **mold rates are not that bad** : 61% is enough  
-➜ **seggs?** : shifty?  
-➜ **Lap of discipline.** : Lap of discipline. 
-`)
+			msg.reply('Lap of discipline')
 		}
 	},
 	goodgirl: {
 		name: 'good girl',
 		description: 'good girl Rapi',
 		execute(msg, args) {
-			msg.channel.send('Thank you Commander.')
+			msg.reply('Thank you Commander.')
 		}
 	},
 	dammit: {
 		name: 'dammit rapi',
 		description: 'dammit rapi',
 		execute(msg, args) {
-			msg.channel.send('Sorry Commander.')
+			msg.reply('Sorry Commander.')
 		}
 	},
 	wronggirl: {
@@ -282,6 +224,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/anis.png',
+                    name: 'anis.jpg'
 				}],
 				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
 			})
@@ -294,6 +237,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/memes/copium-cn.jpg',
+                    name: 'copium-cn.jpg'
 				}],
 				content: `Commander, what are you talking about?`,
 			})
@@ -305,16 +249,17 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/ready.png',
+                    name: 'ready.jpg'
 				}],
 				content: `Commander... ready for what?`,
 			})
 		}
 	},
-  contentSquad: {
-    name: pre + 'content',
-    description: 'content squad ping',
-    execute(msg, args) {
-      msg.channel.send(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
+    contentSquad: {
+        name: pre + 'content',
+        description: 'content squad ping',
+        execute(msg, args) {
+            msg.reply(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
 		}
 	},
 	badgirl: {
@@ -324,6 +269,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/wrong.gif',
+                    name: 'wrong.jpg'
 				}],
 			})
 		}
@@ -335,6 +281,7 @@ const botCommands = {
 			msg.reply({
 				files: [{
 					attachment: './public/images/nikke/reward.jpg',
+                    name: 'reward.jpg'
 				}],
 			})
 		}
@@ -348,6 +295,70 @@ function loadCommands() {
     }
 }
 
+
+// Slash Commands Configuration
+function loadSlashCommands() {
+    const commandsPath = path.join(__dirname, "commands");
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        // Set a new item in the Collection with the key as the command name and the value as the exported module
+        if ("data" in command && "execute" in command) {
+            bot.commands.set(command.data.name, command);
+            console.log(`The following slash command was loaded successfully: ${command.data.name}`);
+        } else {
+            console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        }
+    }
+}
+
+function registerSlashCommands() {
+    const commands = [];
+    const commandsPath = path.join(__dirname, "commands");
+    const commandFiles = fs
+        .readdirSync(commandsPath)
+        .filter((file) => file.endsWith(".js"));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        if ("data" in command && "execute" in command) {
+            commands.push(command.data.toJSON());
+        } else {
+            console.log(
+                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+            );
+        }
+    }
+
+    // Construct and prepare an instance of the REST module
+    const rest = new REST().setToken(TOKEN);
+
+    // and deploy your commands!
+    (async () => {
+        try {
+            console.log(
+                `Started refreshing ${commands.length} application (/) commands.`
+            );
+
+            // Use PUT to fully refresh ALL commands
+            const data = await rest.put(
+                Routes.applicationCommands(CLIENTID),
+                { body: commands }
+            );
+
+            console.log(
+                `Successfully reloaded ${data.length} application (/) commands.`
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    })();
+}
+
+
+//TODO: Create a dynamic cronjob util to switch the activity every 6 hours
 function setActivity() {
     bot.user.setActivity("SIMULATION ROOM", { type: "PLAYING" });
 }
@@ -468,6 +479,7 @@ function sendDailyInterceptionMessage() {
                         files: [
                             {
                                 attachment: `./public/images/bosses/${fileName}`,
+                                name: `${fileName}`
                             },
                         ],
                         content: `
@@ -495,7 +507,7 @@ function sendDailyInterceptionMessage() {
 }
 
 function handleMessages() {
-    bot.on('message', async message => {
+    bot.on('messageCreate', async message => {
         // Get message from param and turn lowercase
         if (!message.guild || !message.member) {
             // If guild or member is not defined, ignore the message
@@ -585,7 +597,7 @@ function handleAdvice() {
     // TODO: Register this as a global command so we can utilize Interactions interface for sending ephemeral responses to avoid spam in a channel.
     // Workaround is to allow users to DM the bot directly since that works as well to avoid spam if desired.
     // Advice command functionality
-    bot.on("message", (msg) => {
+    bot.on("messageCreate", (msg) => {
         try {
             // Check if the message doesn't start with the prefix or doesn't include a valid command
             const userInput = msg.content.trim().toLowerCase();
@@ -597,7 +609,7 @@ function handleAdvice() {
                 const searchQuery = args.join(" ").toLowerCase();
 
                 if (!characters[character]) {
-                    return msg.channel.send(
+                    return msg.reply(
                         `Commander...Are you cheating on me? Who is ${character}? Please explain yourself.`
                     );
                 }
@@ -611,7 +623,7 @@ function handleAdvice() {
                         })
                         .join("\n\n"); // Join all formatted advices with two newlines for separation
 
-                    const embed = new Discord.MessageEmbed()
+                    const embed = new EmbedBuilder()
                         .setColor("#a8bffb")
                         .setTitle(
                             `Advice List for Nikke ${character
@@ -619,7 +631,8 @@ function handleAdvice() {
                                 .toUpperCase()}${character.slice(1)}`
                         )
                         .setDescription(fullList);
-                    return msg.channel.send(embed);
+                    // Use send for sending embeds
+                    return msg.channel.send({embeds: [embed]});
                 }
 
                 // Find matching advice assuming `characters[character]` is an array of strings
@@ -641,7 +654,7 @@ function handleAdvice() {
                     const description = lollipops.includes(character)
                         ? "Shame on you Commander for advising lolis..."
                         : "Here's the answer you're looking for Commander:";
-                    const embed = new Discord.MessageEmbed()
+                    const embed = new EmbedBuilder()
                         .setColor("#63ff61")
                         .setTitle(
                             `${character
@@ -653,26 +666,57 @@ function handleAdvice() {
                             { name: "Question:", value: question },
                             { name: "Answer:", value: answer }
                         );
-                    msg.channel.send(`${msg.author}`, embed);
+                    // Use send for sending embeds
+                    msg.channel.send({embeds: [embed]});
                 } else {
-                    msg.channel.send(
+                    msg.reply(
                         `Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`
                     );
                 }
             }
         } catch (error) {
             console.error("Error processing message:", error);
-            msg.channel.send(
+            msg.reply(
                 "Sorry Commander, I was unable to answer your question at this time...am I still a good girl?"
             );
         }
     });
 }
 
+// Handles bot slash commands interactions for all available slash commands
+// 
+function handleSlashCommands(){
+    bot.on(Events.InteractionCreate, async interaction => {
+        if (!interaction.isChatInputCommand()) return;
+    
+        const command = interaction.client.commands.get(interaction.commandName);
+    
+        if (!command) {
+            console.error(`No command matching ${interaction.commandName} was found.`);
+            return;
+        }
+    
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ content: 'Sorry Commander, there was an error while executing this command!', ephemeral: true });
+            } else {
+                await interaction.reply({ content: 'Sorry Commander, there was an error while executing this command!', ephemeral: true });
+            }
+        }
+    });
+}
+
+
+
 function initDiscordBot() {
     if (bot) new Error('Bot is already initialized, use getBot()');
 
     loadCommands();
+    loadSlashCommands();
+    registerSlashCommands();
     bot.once('ready', () => {
         setActivity();
         greetNewMembers();
@@ -680,6 +724,7 @@ function initDiscordBot() {
         sendDailyInterceptionMessage();
         handleMessages();
         handleAdvice();
+        handleSlashCommands();
         console.log('Bot is ready!');
     });
 
