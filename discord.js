@@ -532,6 +532,11 @@ function sendDailyInterceptionMessage() {
 
 function handleMessages() {
     bot.on('messageCreate', async message => {
+        // Ignore messages that mention @everyone or the bot itself
+        if (message.mentions.everyone || message.mentions.has(bot.user.id)) {
+            return;
+        }
+
         // Get message from param and turn lowercase
         if (!message.guild || !message.member) {
             // If guild or member is not defined, ignore the message
