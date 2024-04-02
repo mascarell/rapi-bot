@@ -1,5 +1,5 @@
 // Dependencies
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, ActivityType } = require("discord.js");
 const { setIsStreaming } = require('../utils')
 
 module.exports = {
@@ -26,7 +26,14 @@ module.exports = {
             if (url) {
 
                 // Update the bot's activity if the URL is provided
-                await interaction.client.user.setActivity({ name: 'Loot & Waifus', type: "STREAMING", url });
+                await interaction.client.user.setPresence({
+                    status: 'online',
+                    activities: [{
+                        name: "Loot & Waifus",
+                        type: ActivityType.Streaming,
+                        url: "https://www.twitch.tv/sefhi_922"            
+                    }]
+                });
                 setIsStreaming(true);
                 await interaction.reply({ content: `Streaming activity updated to: ${url}`, ephemeral: true });
 
@@ -41,8 +48,13 @@ module.exports = {
             } else {
                 // Clear the streaming activity
                 setIsStreaming(false);
-                //TODO: This can be replaced with a call to reset to dynamic activities
-                interaction.client.user.setActivity("SIMULATION ROOM", { type: "PLAYING" }); 
+                interaction.client.user.setPresence({
+                    status: 'online',
+                    activities: [{
+                        name: "SIMULATION ROOM",
+                        type: ActivityType.Competing,          
+                    }]
+                });
                 await interaction.reply({ content: "Streaming activity cleared.", ephemeral: true });
             }
         } else {
