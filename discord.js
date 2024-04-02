@@ -1,5 +1,5 @@
 // dependencies
-const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder } = require('discord.js');
+const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder, ActivityType } = require('discord.js');
 const { getFiles, getIsStreaming } = require('./utils')
 const CronJobb = require('cron').CronJob
 const fetch = require("node-fetch")
@@ -357,31 +357,36 @@ function registerSlashCommands() {
     })();
 }
 
-//TODO: Minor: Add dynamic assets for rich presence for each activity. 
-function setActivity() {
+function setBotActivity() {
     const activities = [
-        { name: "SIMULATION ROOM", type: "PLAYING" },
-        { name: "with Commanders' hearts", type: "PLAYING" },
-        { name: "to the jukebox in Commanders' room", type: "LISTENING" },
-        { name: "over the Outpost", type: "WATCHING" },
-        { name: "SPECIAL ARENA", type: "PLAYING" },
+        { name: "SIMULATION ROOM", type: ActivityType.Competing, status: 'dnd' },
+        { name: "With Commanders' hearts", type: ActivityType.Playing, status: 'online' },
+        { name: "Commanders' jukebox", type: ActivityType.Listening, status: 'online' },
+        { name: "Over The Outpost", type: ActivityType.Watching, status: 'idle' },
+        { name: "SPECIAL ARENA", type: ActivityType.Competing, status: 'dnd' },
     ];
 
     let currentActivity = 0;
 
-    function updateActivity() {
+    function updateBotActivity() {
         
         const activity = activities[currentActivity % activities.length];
-        bot.user.setActivity(activity.name, { type: activity.type });
+        bot.user.setPresence({
+            status: activity.status,
+            activities: [{
+                name: activity.name,
+                type: activity.type,          
+            }]
+        });
         currentActivity++;
     }
 
-    updateActivity();
+    updateBotActivity();
 
     // Create a new cron job to run every 4 hours
     const job = new CronJobb('0 0 */4 * * *', function() {
         if (getIsStreaming()) return; // Skip updating activities if streaming
-        updateActivity();
+        updateBotActivity();
     }, null, true, 'UTC');
 
     job.start();
@@ -747,7 +752,7 @@ function initDiscordBot() {
     loadSlashCommands();
     registerSlashCommands();
     bot.once('ready', () => {
-        setActivity();
+        setBotActivity();
         greetNewMembers();
         sendRandomMessages();
         sendDailyInterceptionMessage();
