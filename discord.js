@@ -357,34 +357,35 @@ function registerSlashCommands() {
     })();
 }
 
-//TODO: Minor: Add dynamic assets for rich presence for each activity. 
+//TODO: Minor: Need to verify rate limiting from discord for presence for now. Just hardcoded.
 function setActivity() {
-    const activities = [
-        { name: "SIMULATION ROOM", type: "PLAYING" },
-        { name: "with Commanders' hearts", type: "PLAYING" },
-        { name: "to the jukebox in Commanders' room", type: "LISTENING" },
-        { name: "over the Outpost", type: "WATCHING" },
-        { name: "SPECIAL ARENA", type: "PLAYING" },
-    ];
+    bot.user.setActivity('SIMULATION ROOM', { type: 'PLAYING' });
+    // const activities = [
+    //     { name: "SIMULATION ROOM", type: "PLAYING" },
+    //     { name: "with Commanders' hearts", type: "PLAYING" },
+    //     { name: "to the jukebox in Commanders' room", type: "LISTENING" },
+    //     { name: "over the Outpost", type: "WATCHING" },
+    //     { name: "SPECIAL ARENA", type: "PLAYING" },
+    // ];
 
-    let currentActivity = 0;
+    // let currentActivity = 0;
 
-    function updateActivity() {
+    // function updateActivity() {
         
-        const activity = activities[currentActivity % activities.length];
-        bot.user.setActivity(activity.name, { type: activity.type });
-        currentActivity++;
-    }
+    //     const activity = activities[currentActivity % activities.length];
+    //     bot.user.setActivity(activity.name, { type: activity.type });
+    //     currentActivity++;
+    // }
 
-    updateActivity();
+    // updateActivity();
 
-    // Create a new cron job to run every 4 hours
-    const job = new CronJobb('0 0 */4 * * *', function() {
-        if (getIsStreaming()) return; // Skip updating activities if streaming
-        updateActivity();
-    }, null, true, 'UTC');
+    // // Create a new cron job to run every 4 hours
+    // const job = new CronJobb('0 0 */4 * * *', function() {
+    //     if (getIsStreaming()) return; // Skip updating activities if streaming
+    //     updateActivity();
+    // }, null, true, 'UTC');
 
-    job.start();
+    // job.start();
 }
 
 function greetNewMembers() {
