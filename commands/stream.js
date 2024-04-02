@@ -26,7 +26,7 @@ module.exports = {
             if (url) {
 
                 // Update the bot's activity if the URL is provided
-                await interaction.client.user.setActivity(url, { type: "STREAMING", url });
+                await interaction.client.user.setActivity({ name: 'Loot & Waifus', type: "STREAMING", url });
                 setIsStreaming(true);
                 await interaction.reply({ content: `Streaming activity updated to: ${url}`, ephemeral: true });
 
