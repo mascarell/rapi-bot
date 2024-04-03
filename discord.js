@@ -540,58 +540,40 @@ function sendDailyInterceptionMessage() {
         cronTime,
         () => {
             try {
-                const currentDayOfYear = Math.floor(
-                    (new Date() - new Date(new Date().getFullYear(), 0, 0)) /
-                        1000 /
-                        60 /
-                        60 /
-                        24
-                );
-                const bossIndex = currentDayOfYear % bosses.length; // Ensure we use the correct length of the bosses array
-                const bossName = bosses[bossIndex]; // Get the boss name using the bossIndex
-                const fileName = getBossFileName(bossName); // Pass the boss name to getBossFileName
+                const currentDayOfYear = moment().dayOfYear();
+                const bossIndex = currentDayOfYear % bosses.length;
+                const bossName = bosses[bossIndex];
+                const fileName = getBossFileName(bossName);
                 const currentDayOfWeek = new Date().getDay();
 
-                bot.guilds.cache.forEach((guild) => {
-                    const channel = guild.channels.cache.find(
-                        (ch) => ch.name === "nikke"
-                    );
+                bot.guilds.cache.forEach(async (guild) => {
+                    const channel = guild.channels.cache.find(ch => ch.name === "nikke");
                     if (!channel) {
                         console.log("Channel 'nikke' not found.");
                         return;
                     }
 
-                    const role = guild.roles.cache.find(
-                        (role) => role.name === "Nikke"
-                    );
-                    const messageContent = `
-                    ${
-                        role ? role.toString() : "Commanders"
-                    }, here's today's schedule:
+                    const role = guild.roles.cache.find(role => role.name === "Nikke")?.toString() || "";
 
-                    - We have to fight **${bossName}** in Special Interception
-                    - Tribe tower is open for **${
-                        towerRotation[currentDayOfWeek % towerRotation.length]
-                    }**
-                    - I also attach a file with tips on how to fight this Rapture if you are having issues
+                    const embed = new EmbedBuilder()
+                        .setTitle(`Attention Commanders, here's today's schedule:`)
+                        .setDescription(
+                            `- ${role} We have to fight **${bossName}** in Special Interception\n` +
+                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**\n` +
+                            `- I've attached a combat report link with tips on how to fight this Rapture if you are having issues\n\n` +
+                            `${bossesLinks[bossIndex]}`
+                        )
+                        .setColor(0x00AE86) // Set an embed color
+                        .setTimestamp()
+                        .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
-                    ${bossesLinks[bossIndex]}
-                `;
-
-                    channel.send({
-                        files: [
-                            {
-                                attachment: `./public/images/bosses/${fileName}`,
-                                name: fileName,
-                            },
-                        ],
-                        content: messageContent,
+                    await channel.send({
+                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
+                        embeds: [embed]
                     });
                 });
             } catch (error) {
-                console.error(
-                    `Error sending daily interception message: ${error}`
-                );
+                console.error(`Error sending daily interception message: ${error}`);
             }
         },
         null,
