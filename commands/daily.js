@@ -82,7 +82,7 @@ module.exports = {
         }
 
         await interaction.reply({
-            content: `The next reset for **${gameData.game}** (${gameData.server} Server) is ${resetTimestamp}.`,
+            content: `Commander, the next reset for **${gameData.game}** (${gameData.server} Server) is ${resetTimestamp}.`,
             ephemeral: true,
         });
     },
