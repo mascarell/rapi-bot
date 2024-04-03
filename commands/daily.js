@@ -2,7 +2,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const moment = require("moment-timezone");
 
-// Game data array
 const gamesData = [
     {
         game: "GODDESS OF VICTORY: NIKKE",
@@ -11,7 +10,7 @@ const gamesData = [
         dailyReset: "05:00",
         icon: "goddess-of-victory-nikke",
     },
-    // Add more games as needed
+    // TODO: Add more games as needed. REF: https://raw.githubusercontent.com/cicerakes/Game-Time-Master/master/game-data.js
 ];
 
 module.exports = {
@@ -22,7 +21,7 @@ module.exports = {
             subcommand
                 .setName("time")
                 .setDescription(
-                    "Checks the time until the next daily reset for the specified game."
+                    "Checks the time until the next daily reset (global server) for the specified game."
                 )
                 .addStringOption((option) =>
                     option
@@ -32,10 +31,9 @@ module.exports = {
                 )
         ),
     async execute(interaction) {
-        let gameName = interaction.options.getString("game") || "Nikke";
+        let gameName = interaction.options.getString("game") || "nikke";
         let gameData;
 
-        // Special case for Nikke
         if (gameName.toLowerCase() === "nikke") {
             gameData = gamesData.find(
                 (game) =>
