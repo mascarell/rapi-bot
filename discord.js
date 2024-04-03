@@ -735,6 +735,18 @@ function handleSlashCommands(){
     });
 }
 
+function enableAutoComplete(){
+    bot.on(Events.InteractionCreate, async interaction => {
+        if (!interaction.isAutocomplete()) return;
+    
+        // Assuming you have a way to access your commands
+        const command = bot.commands.get(interaction.commandName);
+        if (command && typeof command.autocomplete === 'function') {
+            await command.autocomplete(interaction);
+        }
+    });
+}
+
 
 
 function initDiscordBot() {
@@ -748,6 +760,7 @@ function initDiscordBot() {
         greetNewMembers();
         sendRandomMessages();
         sendDailyInterceptionMessage();
+        enableAutoComplete();
         handleMessages();
         handleAdvice();
         handleSlashCommands();
