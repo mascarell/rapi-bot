@@ -4,10 +4,22 @@ const moment = require("moment-timezone");
 
 const gamesData = [
     {
+        game: "AFK Journey",
+        server: "Global",
+        timezone: "Europe/Madrid",
+        dailyReset: "02:00",
+    },
+    {
         game: "GODDESS OF VICTORY: NIKKE",
         server: "Global",
         timezone: "Etc/GMT-9",
         dailyReset: "05:00",
+    },
+    {
+        game: "SOLO LEVELING",
+        server: "Global",
+        timezone: "Europe/Madrid",
+        dailyReset: "02:00",
     },
     // TODO: Add more games as needed. REF: https://raw.githubusercontent.com/cicerakes/Game-Time-Master/master/game-data.js
 ];
