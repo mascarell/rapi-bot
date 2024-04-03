@@ -4,7 +4,7 @@ const moment = require("moment-timezone");
 
 const gamesData = [
     {
-        game: "AFK Journey",
+        game: "AFK JOURNEY",
         server: "Global",
         timezone: "Europe/Madrid",
         dailyReset: "02:00",
