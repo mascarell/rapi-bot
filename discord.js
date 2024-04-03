@@ -441,18 +441,11 @@ function sendDailyInterceptionMessage() {
 
                     // Special interception bosses
                     let bosses = [
+                        "Blacksmith",
                         "Chatterbox",
                         "Modernia",
                         "Alteisen MK.VI",
                         "Grave Digger",
-                        "Blacksmith",
-                    ];
-                    let bossesLinks = [
-                        "https://lootandwaifus.com/guides/special-individual-interception-chatterbox/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-modernia/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-grave-digger/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-blacksmith/",
                     ];
                     let tower = [
                         "Tetra",
@@ -477,19 +470,19 @@ function sendDailyInterceptionMessage() {
 
                     switch (currentDay % 5) {
                         case 0:
-                            fileName = "chatterbox.webp";
+                            fileName = "blacksmith.webp";
                             break;
                         case 1:
-                            fileName = "modernia.webp";
+                            fileName = "chatterbox.webp";
                             break;
                         case 2:
-                            fileName = "train.webp";
+                            fileName = "modernia.webp";
                             break;
                         case 3:
-                            fileName = "gravedigger.webp";
+                            fileName = "train.webp";
                             break;
                         case 4:
-                            fileName = "blacksmith.webp";
+                            fileName = "gravedigger.webp";
                             break;
                         default:
                             fileName = "chatterbox.webp";
@@ -511,9 +504,8 @@ function sendDailyInterceptionMessage() {
 
   - We have to fight **${bosses[currentDay % 5]}** in Special Interception  
   - Tribe tower is open for **${tower[currentDayOfTheWeek]}**
-  - I also attach a file with tips on how to fight this Rapture if you are having issues
-
-  ${bossesLinks[currentDay % 5]}
+  
+  Remember to be careful when going to the surface, Commander.
 `,
                     };
                     // Send the message to a channel
