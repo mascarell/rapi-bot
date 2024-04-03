@@ -1,5 +1,5 @@
 // dependencies
-const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder } = require('discord.js');
+const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder, ActivityType } = require('discord.js');
 const { getFiles, getIsStreaming } = require('./utils')
 const CronJobb = require('cron').CronJob
 const fetch = require("node-fetch")
@@ -357,31 +357,36 @@ function registerSlashCommands() {
     })();
 }
 
-//TODO: Minor: Add dynamic assets for rich presence for each activity. 
-function setActivity() {
+function setBotActivity() {
     const activities = [
-        { name: "SIMULATION ROOM", type: "PLAYING" },
-        { name: "with Commanders' hearts", type: "PLAYING" },
-        { name: "to the jukebox in Commanders' room", type: "LISTENING" },
-        { name: "over the Outpost", type: "WATCHING" },
-        { name: "SPECIAL ARENA", type: "PLAYING" },
+        { name: "SIMULATION ROOM", type: ActivityType.Competing, status: 'dnd' },
+        { name: "With Commanders' hearts", type: ActivityType.Playing, status: 'online' },
+        { name: "Commanders' jukebox", type: ActivityType.Listening, status: 'online' },
+        { name: "Over The Outpost", type: ActivityType.Watching, status: 'idle' },
+        { name: "SPECIAL ARENA", type: ActivityType.Competing, status: 'dnd' },
     ];
 
     let currentActivity = 0;
 
-    function updateActivity() {
+    function updateBotActivity() {
         
         const activity = activities[currentActivity % activities.length];
-        bot.user.setActivity(activity.name, { type: activity.type });
+        bot.user.setPresence({
+            status: activity.status,
+            activities: [{
+                name: activity.name,
+                type: activity.type,          
+            }]
+        });
         currentActivity++;
     }
 
-    updateActivity();
+    updateBotActivity();
 
     // Create a new cron job to run every 4 hours
     const job = new CronJobb('0 0 */4 * * *', function() {
         if (getIsStreaming()) return; // Skip updating activities if streaming
-        updateActivity();
+        updateBotActivity();
     }, null, true, 'UTC');
 
     job.start();
@@ -441,18 +446,11 @@ function sendDailyInterceptionMessage() {
 
                     // Special interception bosses
                     let bosses = [
+                        "Blacksmith",
                         "Chatterbox",
                         "Modernia",
                         "Alteisen MK.VI",
                         "Grave Digger",
-                        "Blacksmith",
-                    ];
-                    let bossesLinks = [
-                        "https://lootandwaifus.com/guides/special-individual-interception-chatterbox/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-modernia/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-grave-digger/",
-                        "https://lootandwaifus.com/guides/special-individual-interception-blacksmith/",
                     ];
                     let tower = [
                         "Tetra",
@@ -477,19 +475,19 @@ function sendDailyInterceptionMessage() {
 
                     switch (currentDay % 5) {
                         case 0:
-                            fileName = "chatterbox.webp";
+                            fileName = "blacksmith.webp";
                             break;
                         case 1:
-                            fileName = "modernia.webp";
+                            fileName = "chatterbox.webp";
                             break;
                         case 2:
-                            fileName = "train.webp";
+                            fileName = "modernia.webp";
                             break;
                         case 3:
-                            fileName = "gravedigger.webp";
+                            fileName = "train.webp";
                             break;
                         case 4:
-                            fileName = "blacksmith.webp";
+                            fileName = "gravedigger.webp";
                             break;
                         default:
                             fileName = "chatterbox.webp";
@@ -511,9 +509,8 @@ function sendDailyInterceptionMessage() {
 
   - We have to fight **${bosses[currentDay % 5]}** in Special Interception  
   - Tribe tower is open for **${tower[currentDayOfTheWeek]}**
-  - I also attach a file with tips on how to fight this Rapture if you are having issues
-
-  ${bossesLinks[currentDay % 5]}
+  
+  Remember to be careful when going to the surface, Commander.
 `,
                     };
                     // Send the message to a channel
@@ -747,7 +744,7 @@ function initDiscordBot() {
     loadSlashCommands();
     registerSlashCommands();
     bot.once('ready', () => {
-        setActivity();
+        setBotActivity();
         greetNewMembers();
         sendRandomMessages();
         sendDailyInterceptionMessage();
