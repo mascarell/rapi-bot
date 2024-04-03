@@ -1,15 +1,25 @@
 // dependencies
-const { REST, Routes, Client, GatewayIntentBits, Collection, Events, EmbedBuilder, ActivityType } = require('discord.js');
-const { getFiles, getIsStreaming } = require('./utils')
-const CronJobb = require('cron').CronJob
-const fetch = require("node-fetch")
-const path = require('path');
-const fs = require('fs');
+const {
+    REST,
+    Routes,
+    Client,
+    GatewayIntentBits,
+    Collection,
+    Events,
+    EmbedBuilder,
+    ActivityType,
+} = require("discord.js");
+const { getFiles, getIsStreaming } = require("./utils");
+const CronJobb = require("cron").CronJob;
+const fetch = require("node-fetch");
+const path = require("path");
+const fs = require("fs");
+const moment = require("moment-timezone");
 
-const TOKEN = process.env.WAIFUTOKEN
-const CLIENTID = process.env.CLIENTID
+const TOKEN = process.env.WAIFUTOKEN;
+const CLIENTID = process.env.CLIENTID;
 
-const pre = '/' // what we use for the bot commands (not for all of them tho)
+const pre = "/"; // what we use for the bot commands (not for all of them tho)
 
 // Bot Configuration
 const bot = new Client({
@@ -18,275 +28,307 @@ const bot = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent, // Needed to receive message content
         GatewayIntentBits.GuildMembers, // If you use features like welcoming a new member
-    ]
+    ],
 });
 bot.commands = new Collection();
 
 //TODO: Create util function for this
 const randomRapiMessages = [
-	`You’re too quiet, Commander, is everything alright?`,
-	`Commander, Anis was just joking with the Christmas present…`,
-	`Commander! When is the next mission?`,
-	`Please take care next time you go to the surface Commander.`,
-	`Don't push yourself too hard Commander!`,
-	`No matter what you think of us, we'll always be by your side.`,
-	`Commander, I'll protect you.`,
-	`Lap of discipline`,
-	`Is it time to break Syuen ribs again, Commander?`,
-	`I found a wet sock with a weird smell under your bed Commander, care to explain?`,
-	`Marian please stop wearing your underwear inside out...`,
-	`Commander, why do you bark every time you see Makima?`,
-	`Scarlet or Modernia? What kind of question is that Commander? The answer is obvious...`,
-	`I can't go out with you today Commander, there's a lot of paperwork to do.`,
-	`Commander... did you really marry Sakura?`,
-	`Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
-	`Commander, why do you have a picture of Andersen on your wallet?`,
-	`Commander, did you spend the night at Coin Rush again?`,
-	`Commander, people are saying you kissed Blanc and Noir... is that true?`,
-	`Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`,
-	`I guess Rosanna was right about idiots living longer.`,
-	`Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
-	`Waterpower? I don't know what that is Commander, but it sounds kinda weak.`,
-	`Commander! Is it Volt or Bolt?`,
-	`Commander, Admi was asking about Ruru, do you know where she is?`,
-	`The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
-	`Mast? Who's that? Doesn't ring a bell.`,
-	`Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://media.discordapp.net/attachments/1054761762395799552/1142732669617184898/image.png?width=445&height=595`,
-	`Commander, did you really tackle Crow? How did you do it?`,
-	`Age is just a number? Commander, I'm calling ACPU`,
-	`What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`,
-	`https://media.discordapp.net/attachments/1075785251156144179/1142745671766638592/1691823770699829.png`,
-	`Commander, what did you want to ask about Biscuit?`,
-	`Commander, 61% is more than enough, stop complaining.`,
-	`Commander, Ade said that I need to try a maid outfit, what do you think?`,
-]
+    `You’re too quiet, Commander, is everything alright?`,
+    `Commander, Anis was just joking with the Christmas present…`,
+    `Commander! When is the next mission?`,
+    `Please take care next time you go to the surface Commander.`,
+    `Don't push yourself too hard Commander!`,
+    `No matter what you think of us, we'll always be by your side.`,
+    `Commander, I'll protect you.`,
+    `Lap of discipline`,
+    `Is it time to break Syuen ribs again, Commander?`,
+    `I found a wet sock with a weird smell under your bed Commander, care to explain?`,
+    `Marian please stop wearing your underwear inside out...`,
+    `Commander, why do you bark every time you see Makima?`,
+    `Scarlet or Modernia? What kind of question is that Commander? The answer is obvious...`,
+    `I can't go out with you today Commander, there's a lot of paperwork to do.`,
+    `Commander... did you really marry Sakura?`,
+    `Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
+    `Commander, why do you have a picture of Andersen on your wallet?`,
+    `Commander, did you spend the night at Coin Rush again?`,
+    `Commander, people are saying you kissed Blanc and Noir... is that true?`,
+    `Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`,
+    `I guess Rosanna was right about idiots living longer.`,
+    `Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
+    `Waterpower? I don't know what that is Commander, but it sounds kinda weak.`,
+    `Commander! Is it Volt or Bolt?`,
+    `Commander, Admi was asking about Ruru, do you know where she is?`,
+    `The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
+    `Mast? Who's that? Doesn't ring a bell.`,
+    `Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://media.discordapp.net/attachments/1054761762395799552/1142732669617184898/image.png?width=445&height=595`,
+    `Commander, did you really tackle Crow? How did you do it?`,
+    `Age is just a number? Commander, I'm calling ACPU`,
+    `What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`,
+    `https://media.discordapp.net/attachments/1075785251156144179/1142745671766638592/1691823770699829.png`,
+    `Commander, what did you want to ask about Biscuit?`,
+    `Commander, 61% is more than enough, stop complaining.`,
+    `Commander, Ade said that I need to try a maid outfit, what do you think?`,
+];
 
 // Bot commands object
 // The name has to be lowercase
 const botCommands = {
-	booba: {
-		name: 'booba?',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/booba/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
-		
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-                    name: randomMeme.name
-				}]
-			})
-		}
-	},
-	booty: {
-		name: 'booty?',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/booty/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
-		
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-                    name: randomMeme.name
-				}]
-			})
-		}
-	},
-	skillissue: {
-		name: 'sounds like...',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/skill.gif',
-                    name: 'skill.gif'
-				}],
-				content: `It sounds like you have some skill issues Commander.`,
-			})
-		}
-	},
-    // TODO: Check if both commands still necessary???
-	skillissueiphone: {
-    name: 'sounds like…',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/skill.gif',
-                    name: 'skill.gif'
-				}],
-				content: `It sounds like you have some skill issues Commander.`,
-			})
-		}
-	},
-	seggs: {
-		name: 'seggs?',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/seggs.mp4',
-                    name: 'seggs.mp4'
-				}],
-				content: `Wait, Shifty, what are you talking about?`,
-			})
-		}
-	},
-	kindaweird: {
-		name: 'kinda weird...',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/kindaweird.png',
-				}],
-				content: `But why, Commander?...`,
-			})
-		}
-	},
-	iswear: {
-		name: 'i swear she is actually 3000 years old',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/iswear.png',
-                    name: 'iswear.png'
-				}],
-				content: `Commander... I'm calling the authorities.`,
-			})
-		}
-	},
-	teengame: {
-		name: '12+ game',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/12game.png',
-                    name: '12game.png'
-				}],
-				content: `Commander the surface is obviously safe for 12 year old kids.`,
-			})
-		}
-	},
-	justice: {
-		name: 'justice for...',
-		async execute(msg, args) {
-			// Pick image from folder
-			let files = await getFiles('./public/images/justice/')
-			// Get Random
-			let randomMeme = files[Math.floor(Math.random() * files.length)]
+    booba: {
+        name: "booba?",
+        async execute(msg, args) {
+            // Pick image from folder
+            let files = await getFiles("./public/images/booba/");
+            // Get Random
+            let randomMeme = files[Math.floor(Math.random() * files.length)];
 
-			msg.reply({
-				files: [{
-					attachment: randomMeme.path,
-                    name: randomMeme.name
-				}],
-				content: `Commander, let's take her out of NPC jail.`,
-			})
-		}
-	},
-	whale: {
-		name: 'whale levels',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/whaling.png',
-                    name: 'whaling.jpg'
-				}],
-				content: `Commander, it's fine if you are poor.`,
-			})
-		}
-	},
-	discipline: {
-		name: 'lap of discipline.',
-		execute(msg, args) {
-			msg.reply('Lap of discipline')
-		}
-	},
-	goodgirl: {
-		name: 'good girl',
-		description: 'good girl Rapi',
-		execute(msg, args) {
-			msg.reply('Thank you Commander.')
-		}
-	},
-	dammit: {
-		name: 'dammit rapi',
-		description: 'dammit rapi',
-		execute(msg, args) {
-			msg.reply('Sorry Commander.')
-		}
-	},
-	wronggirl: {
-		name: 'wrong girl',
-		description: 'wrong girl Rapi',
-		execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/anis.png',
-                    name: 'anis.jpg'
-				}],
-				content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
-			})
-		}
-	},
-	moldRates: {
-		name: 'mold rates are not that bad',
-		description: `Commander, what are you talking about?`,
-		execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/memes/copium-cn.jpg',
-                    name: 'copium-cn.jpg'
-				}],
-				content: `Commander, what are you talking about?`,
-			})
-		}
-	},
-	readyRapi: {
-		name: 'ready rapi?',
-		async execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/ready.png',
-                    name: 'ready.jpg'
-				}],
-				content: `Commander... ready for what?`,
-			})
-		}
-	},
-    contentSquad: {
-        name: pre + 'content',
-        description: 'content squad ping',
+            msg.reply({
+                files: [
+                    {
+                        attachment: randomMeme.path,
+                        name: randomMeme.name,
+                    },
+                ],
+            });
+        },
+    },
+    booty: {
+        name: "booty?",
+        async execute(msg, args) {
+            // Pick image from folder
+            let files = await getFiles("./public/images/booty/");
+            // Get Random
+            let randomMeme = files[Math.floor(Math.random() * files.length)];
+
+            msg.reply({
+                files: [
+                    {
+                        attachment: randomMeme.path,
+                        name: randomMeme.name,
+                    },
+                ],
+            });
+        },
+    },
+    skillissue: {
+        name: "sounds like...",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/skill.gif",
+                        name: "skill.gif",
+                    },
+                ],
+                content: `It sounds like you have some skill issues Commander.`,
+            });
+        },
+    },
+    // TODO: Check if both commands still necessary???
+    skillissueiphone: {
+        name: "sounds like…",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/skill.gif",
+                        name: "skill.gif",
+                    },
+                ],
+                content: `It sounds like you have some skill issues Commander.`,
+            });
+        },
+    },
+    seggs: {
+        name: "seggs?",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/seggs.mp4",
+                        name: "seggs.mp4",
+                    },
+                ],
+                content: `Wait, Shifty, what are you talking about?`,
+            });
+        },
+    },
+    kindaweird: {
+        name: "kinda weird...",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/kindaweird.png",
+                    },
+                ],
+                content: `But why, Commander?...`,
+            });
+        },
+    },
+    iswear: {
+        name: "i swear she is actually 3000 years old",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/iswear.png",
+                        name: "iswear.png",
+                    },
+                ],
+                content: `Commander... I'm calling the authorities.`,
+            });
+        },
+    },
+    teengame: {
+        name: "12+ game",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/12game.png",
+                        name: "12game.png",
+                    },
+                ],
+                content: `Commander the surface is obviously safe for 12 year old kids.`,
+            });
+        },
+    },
+    justice: {
+        name: "justice for...",
+        async execute(msg, args) {
+            // Pick image from folder
+            let files = await getFiles("./public/images/justice/");
+            // Get Random
+            let randomMeme = files[Math.floor(Math.random() * files.length)];
+
+            msg.reply({
+                files: [
+                    {
+                        attachment: randomMeme.path,
+                        name: randomMeme.name,
+                    },
+                ],
+                content: `Commander, let's take her out of NPC jail.`,
+            });
+        },
+    },
+    whale: {
+        name: "whale levels",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/whaling.png",
+                        name: "whaling.jpg",
+                    },
+                ],
+                content: `Commander, it's fine if you are poor.`,
+            });
+        },
+    },
+    discipline: {
+        name: "lap of discipline.",
         execute(msg, args) {
-            msg.reply(`<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`)
-		}
-	},
-	badgirl: {
-		name: 'bad girl',
-		description: 'bad girl',
-		execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/wrong.gif',
-                    name: 'wrong.jpg'
-				}],
-			})
-		}
-	},
-	reward: {
-		name: 'reward?',
-		description: 'reward?',
-		execute(msg, args) {
-			msg.reply({
-				files: [{
-					attachment: './public/images/nikke/reward.jpg',
-                    name: 'reward.jpg'
-				}],
-			})
-		}
-	},
-}
+            msg.reply("Lap of discipline");
+        },
+    },
+    goodgirl: {
+        name: "good girl",
+        description: "good girl Rapi",
+        execute(msg, args) {
+            msg.reply("Thank you Commander.");
+        },
+    },
+    dammit: {
+        name: "dammit rapi",
+        description: "dammit rapi",
+        execute(msg, args) {
+            msg.reply("Sorry Commander.");
+        },
+    },
+    wronggirl: {
+        name: "wrong girl",
+        description: "wrong girl Rapi",
+        execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/anis.png",
+                        name: "anis.jpg",
+                    },
+                ],
+                content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
+            });
+        },
+    },
+    moldRates: {
+        name: "mold rates are not that bad",
+        description: `Commander, what are you talking about?`,
+        execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/memes/copium-cn.jpg",
+                        name: "copium-cn.jpg",
+                    },
+                ],
+                content: `Commander, what are you talking about?`,
+            });
+        },
+    },
+    readyRapi: {
+        name: "ready rapi?",
+        async execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/ready.png",
+                        name: "ready.jpg",
+                    },
+                ],
+                content: `Commander... ready for what?`,
+            });
+        },
+    },
+    contentSquad: {
+        name: pre + "content",
+        description: "content squad ping",
+        execute(msg, args) {
+            msg.reply(
+                `<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`
+            );
+        },
+    },
+    badgirl: {
+        name: "bad girl",
+        description: "bad girl",
+        execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/wrong.gif",
+                        name: "wrong.jpg",
+                    },
+                ],
+            });
+        },
+    },
+    reward: {
+        name: "reward?",
+        description: "reward?",
+        execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/nikke/reward.jpg",
+                        name: "reward.jpg",
+                    },
+                ],
+            });
+        },
+    },
+};
 
 function loadCommands() {
     for (const key in botCommands) {
@@ -295,11 +337,12 @@ function loadCommands() {
     }
 }
 
-
 // Slash Commands Configuration
 function loadSlashCommands() {
     const commandsPath = path.join(__dirname, "commands");
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    const commandFiles = fs
+        .readdirSync(commandsPath)
+        .filter((file) => file.endsWith(".js"));
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
@@ -307,9 +350,13 @@ function loadSlashCommands() {
         // Set a new item in the Collection with the key as the command name and the value as the exported module
         if ("data" in command && "execute" in command) {
             bot.commands.set(command.data.name, command);
-            console.log(`The following slash command was loaded successfully: ${command.data.name}`);
+            console.log(
+                `The following slash command was loaded successfully: ${command.data.name}`
+            );
         } else {
-            console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+            console.warn(
+                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+            );
         }
     }
 }
@@ -343,10 +390,9 @@ function registerSlashCommands() {
             );
 
             // Use PUT to fully refresh ALL commands
-            const data = await rest.put(
-                Routes.applicationCommands(CLIENTID),
-                { body: commands }
-            );
+            const data = await rest.put(Routes.applicationCommands(CLIENTID), {
+                body: commands,
+            });
 
             console.log(
                 `Successfully reloaded ${data.length} application (/) commands.`
@@ -359,24 +405,41 @@ function registerSlashCommands() {
 
 function setBotActivity() {
     const activities = [
-        { name: "SIMULATION ROOM", type: ActivityType.Competing, status: 'dnd' },
-        { name: "With Commanders' hearts", type: ActivityType.Playing, status: 'online' },
-        { name: "Commanders' jukebox", type: ActivityType.Listening, status: 'online' },
-        { name: "Over The Outpost", type: ActivityType.Watching, status: 'idle' },
-        { name: "SPECIAL ARENA", type: ActivityType.Competing, status: 'dnd' },
+        {
+            name: "SIMULATION ROOM",
+            type: ActivityType.Competing,
+            status: "dnd",
+        },
+        {
+            name: "With Commanders' hearts",
+            type: ActivityType.Playing,
+            status: "online",
+        },
+        {
+            name: "Commanders' jukebox",
+            type: ActivityType.Listening,
+            status: "online",
+        },
+        {
+            name: "Over The Outpost",
+            type: ActivityType.Watching,
+            status: "idle",
+        },
+        { name: "SPECIAL ARENA", type: ActivityType.Competing, status: "dnd" },
     ];
 
     let currentActivity = 0;
 
     function updateBotActivity() {
-        
         const activity = activities[currentActivity % activities.length];
         bot.user.setPresence({
             status: activity.status,
-            activities: [{
-                name: activity.name,
-                type: activity.type,          
-            }]
+            activities: [
+                {
+                    name: activity.name,
+                    type: activity.type,
+                },
+            ],
         });
         currentActivity++;
     }
@@ -384,10 +447,16 @@ function setBotActivity() {
     updateBotActivity();
 
     // Create a new cron job to run every 4 hours
-    const job = new CronJobb('0 0 */4 * * *', function() {
-        if (getIsStreaming()) return; // Skip updating activities if streaming
-        updateBotActivity();
-    }, null, true, 'UTC');
+    const job = new CronJobb(
+        "0 0 */4 * * *",
+        function () {
+            if (getIsStreaming()) return; // Skip updating activities if streaming
+            updateBotActivity();
+        },
+        null,
+        true,
+        "UTC"
+    );
 
     job.start();
 }
@@ -428,107 +497,95 @@ function sendRandomMessages() {
     job.start();
 }
 
+// Daily Interception Configuration
+const bosses = [
+    "Blacksmith",
+    "Chatterbox",
+    "Modernia",
+    "Alteisen MK.VI",
+    "Grave Digger",
+];
+const bossesLinks = [
+    "https://lootandwaifus.com/guides/special-individual-interception-blacksmith/",
+    "https://lootandwaifus.com/guides/special-individual-interception-chatterbox/",
+    "https://lootandwaifus.com/guides/special-individual-interception-modernia/",
+    "https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/",
+    "https://lootandwaifus.com/guides/special-individual-interception-grave-digger/",
+];
+const towerRotation = [
+    "Tetra",
+    "Elysion",
+    "Missilis & Pilgrim",
+    "Tetra",
+    "Elysion",
+    "Missilis",
+    "all manufacturers",
+];
+
+function getBossFileName(bossName) {
+    switch (bossName) {
+        case "Alteisen MK.VI":
+            return "train.webp";
+        default:
+            return `${bossName.toLowerCase().replace(/\s+/g, '')}.webp`;
+    }
+}
+
+
 function sendDailyInterceptionMessage() {
-    // Daily message on reset time telling people what the current special interception is
-    let interceptionMessage = new CronJobb(
-        "0 22 * * *",
+    const utcTimeForJob = moment.tz({ hour: 20, minute: 0 }, "UTC");
+    const cronTime = `${utcTimeForJob.minute()} ${utcTimeForJob.hour()} * * *`;
+
+    const interceptionMessage = new CronJobb(
+        cronTime,
         () => {
             try {
-                bot.guilds.cache.forEach((guild) => {
-                    const channel = guild.channels.cache.find(
-                        (ch) => ch.name === "nikke"
-                    );
-                    const role = guild.roles.cache.find(
-                        (role) => role.name === "Nikke"
-                    );
+                const currentDayOfYear = moment().dayOfYear();
+                const bossIndex = currentDayOfYear % bosses.length;
+                const bossName = bosses[bossIndex];
+                const fileName = getBossFileName(bossName);
+                const currentDayOfWeek = new Date().getDay();
 
-                    if (!channel) return;
-
-                    // Special interception bosses
-                    let bosses = [
-                        "Blacksmith",
-                        "Chatterbox",
-                        "Modernia",
-                        "Alteisen MK.VI",
-                        "Grave Digger",
-                    ];
-                    let tower = [
-                        "Tetra",
-                        "Elysion",
-                        "Missilis & Pilgrim",
-                        "Tetra",
-                        "Elysion",
-                        "Missilis",
-                        "all manufacturers",
-                    ];
-
-                    const dayOfYear = (date) =>
-                        Math.floor(
-                            (date - new Date(date.getFullYear(), 0, 0)) /
-                                1000 /
-                                60 /
-                                60 /
-                                24
-                        );
-                    let currentDay = dayOfYear(new Date());
-                    let fileName = "";
-
-                    switch (currentDay % 5) {
-                        case 0:
-                            fileName = "blacksmith.webp";
-                            break;
-                        case 1:
-                            fileName = "chatterbox.webp";
-                            break;
-                        case 2:
-                            fileName = "modernia.webp";
-                            break;
-                        case 3:
-                            fileName = "train.webp";
-                            break;
-                        case 4:
-                            fileName = "gravedigger.webp";
-                            break;
-                        default:
-                            fileName = "chatterbox.webp";
-                            break;
+                bot.guilds.cache.forEach(async (guild) => {
+                    const channel = guild.channels.cache.find(ch => ch.name === "nikke");
+                    if (!channel) {
+                        console.log("Channel 'nikke' not found.");
+                        return;
                     }
 
-                    const currentDate = new Date();
-                    const currentDayOfTheWeek = currentDate.getDay();
+                    const role = guild.roles.cache.find(role => role.name === "Nikke")?.toString() || "";
 
-                    let message = {
-                        files: [
-                            {
-                                attachment: `./public/images/bosses/${fileName}`,
-                                name: `${fileName}`
-                            },
-                        ],
-                        content: `
-  ${role} Commanders, here's today schedule:  
+                    const embed = new EmbedBuilder()
+                        .setTitle(`Attention Commanders, here's today's schedule:`)
+                        .setDescription(
+                            `- ${role} We have to fight **${bossName}** in Special Interception\n` +
+                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**\n` +
+                            `- I've attached a combat report link with tips on how to fight this Rapture if you are having issues\n\n` +
+                            `${bossesLinks[bossIndex]}`
+                        )
+                        .setColor(0x00AE86) // Set an embed color
+                        .setTimestamp()
+                        .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
-  - We have to fight **${bosses[currentDay % 5]}** in Special Interception  
-  - Tribe tower is open for **${tower[currentDayOfTheWeek]}**
-  
-  Remember to be careful when going to the surface, Commander.
-`,
-                    };
-                    // Send the message to a channel
-                    channel.send(message);
+                    await channel.send({
+                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
+                        embeds: [embed]
+                    });
                 });
             } catch (error) {
-                console.log(error);
+                console.error(`Error sending daily interception message: ${error}`);
             }
         },
-        {
-            timezone: "Europe/Madrid",
-        }
+        null,
+        true,
+        "UTC"
     );
+
     interceptionMessage.start();
 }
 
 function handleMessages() {
-    bot.on('messageCreate', async message => {
+    bot.on("messageCreate", async (message) => {
         // Ignore messages that mention @everyone or the bot itself
         if (message.mentions.everyone || message.mentions.has(bot.user.id)) {
             return;
@@ -540,20 +597,26 @@ function handleMessages() {
             return;
         }
         const guild = message.guild;
-        
+
         // check if we're mentioning the bot
-		if (message.mentions.has(bot.user)) {
-			try {
-				const response = await fetch(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
-				const data = await response.json();
-				
-				message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
-				message.channel.send(data[0].url);
-			} catch (error) {
-				console.error(error);
-				message.channel.send(`Did you mention me, Commander ${message.author}?`);
-			}
-		}
+        if (message.mentions.has(bot.user)) {
+            try {
+                const response = await fetch(
+                    `https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`
+                );
+                const data = await response.json();
+
+                message.channel.send(
+                    `I'm busy Commander ${message.author}, but here's a cat.`
+                );
+                message.channel.send(data[0].url);
+            } catch (error) {
+                console.error(error);
+                message.channel.send(
+                    `Did you mention me, Commander ${message.author}?`
+                );
+            }
+        }
         // Establish arguments
         let args = [];
         if (message.content[0] === pre) {
@@ -567,22 +630,31 @@ function handleMessages() {
         if (!bot.commands.has(command)) return;
 
         try {
-            const ignoredRole = guild.roles.cache.find(role => role.name === 'Grounded');
-            const contentCreatorRole = guild.roles.cache.find(role => role.name === 'Content Creator');
+            const ignoredRole = guild.roles.cache.find(
+                (role) => role.name === "Grounded"
+            );
+            const contentCreatorRole = guild.roles.cache.find(
+                (role) => role.name === "Content Creator"
+            );
 
             if (command == "/content") {
-                if (contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id))
-                bot.commands.get(command).execute(message, args);
+                if (
+                    contentCreatorRole &&
+                    message.member.roles.cache.has(contentCreatorRole.id)
+                )
+                    bot.commands.get(command).execute(message, args);
                 return;
             }
 
             if (ignoredRole && message.member.roles.cache.has(ignoredRole.id))
                 return;
 
-                bot.commands.get(command).execute(message, args);
+            bot.commands.get(command).execute(message, args);
         } catch (error) {
             console.error(error);
-            message.reply('Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)');
+            message.reply(
+                "Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)"
+            );
         }
     });
 }
@@ -627,7 +699,12 @@ function handleAdvice() {
         try {
             // Check if the message doesn't start with the prefix or doesn't include a valid command
             const userInput = msg.content.trim().toLowerCase();
-            if ( !msg.content.toLowerCase().startsWith(pre) || Object.keys(botCommands).some((cmd) => botCommands[cmd].name === userInput)) {
+            if (
+                !msg.content.toLowerCase().startsWith(pre) ||
+                Object.keys(botCommands).some(
+                    (cmd) => botCommands[cmd].name === userInput
+                )
+            ) {
                 return;
             } else {
                 const args = msg.content.slice(pre.length).trim().split(/\s+/);
@@ -658,7 +735,7 @@ function handleAdvice() {
                         )
                         .setDescription(fullList);
                     // Use send for sending embeds
-                    return msg.channel.send({embeds: [embed]});
+                    return msg.channel.send({ embeds: [embed] });
                 }
 
                 // Find matching advice assuming `characters[character]` is an array of strings
@@ -693,7 +770,7 @@ function handleAdvice() {
                             { name: "Answer:", value: answer }
                         );
                     // Use send for sending embeds
-                    msg.channel.send({embeds: [embed]});
+                    msg.channel.send({ embeds: [embed] });
                 } else {
                     msg.reply(
                         `Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`
@@ -710,52 +787,62 @@ function handleAdvice() {
 }
 
 // Handles bot slash commands interactions for all available slash commands
-// 
-function handleSlashCommands(){
-    bot.on(Events.InteractionCreate, async interaction => {
+//
+function handleSlashCommands() {
+    bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
-    
-        const command = interaction.client.commands.get(interaction.commandName);
-    
+
+        const command = interaction.client.commands.get(
+            interaction.commandName
+        );
+
         if (!command) {
-            console.error(`No command matching ${interaction.commandName} was found.`);
+            console.error(
+                `No command matching ${interaction.commandName} was found.`
+            );
             return;
         }
-    
+
         try {
             await command.execute(interaction);
         } catch (error) {
             console.error(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: 'Sorry Commander, there was an error while executing this command!', ephemeral: true });
+                await interaction.followUp({
+                    content:
+                        "Sorry Commander, there was an error while executing this command!",
+                    ephemeral: true,
+                });
             } else {
-                await interaction.reply({ content: 'Sorry Commander, there was an error while executing this command!', ephemeral: true });
+                await interaction.reply({
+                    content:
+                        "Sorry Commander, there was an error while executing this command!",
+                    ephemeral: true,
+                });
             }
         }
     });
 }
 
-function enableAutoComplete(){
-    bot.on(Events.InteractionCreate, async interaction => {
+function enableAutoComplete() {
+    bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isAutocomplete()) return;
-    
+
         // Assuming you have a way to access your commands
         const command = bot.commands.get(interaction.commandName);
-        if (command && typeof command.autocomplete === 'function') {
+        if (command && typeof command.autocomplete === "function") {
             await command.autocomplete(interaction);
         }
     });
 }
 
-
-
 function initDiscordBot() {
-    if (bot) new Error('Bot is already initialized, use getBot()');
+    if (bot) new Error("Bot is already initialized, use getBot()");
 
     loadCommands();
     loadSlashCommands();
     registerSlashCommands();
-    bot.once('ready', () => {
+    bot.once("ready", () => {
         setBotActivity();
         greetNewMembers();
         sendRandomMessages();
@@ -764,7 +851,7 @@ function initDiscordBot() {
         handleMessages();
         handleAdvice();
         handleSlashCommands();
-        console.log('Bot is ready!');
+        console.log("Bot is ready!");
     });
 
     bot.login(TOKEN).catch(console.error);
@@ -774,11 +861,11 @@ function getDiscordBot() {
     if (bot) {
         return bot;
     } else {
-        new Error('Bot is not initialized');
+        new Error("Bot is not initialized");
     }
 }
 
 module.exports = {
-	initDiscordBot,
-	getDiscordBot,
-}
+    initDiscordBot,
+    getDiscordBot,
+};
