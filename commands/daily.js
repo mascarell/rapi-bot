@@ -8,7 +8,6 @@ const gamesData = [
         server: "Global",
         timezone: "Etc/GMT-9",
         dailyReset: "05:00",
-        icon: "goddess-of-victory-nikke",
     },
     // TODO: Add more games as needed. REF: https://raw.githubusercontent.com/cicerakes/Game-Time-Master/master/game-data.js
 ];
@@ -41,22 +40,34 @@ module.exports = {
 
         if (!gameData) {
             await interaction.reply({
-                content: `Game not found. Please provide a valid game name.`,
+                content: `Commander, I am unable to locate your game in your room. Maybe Anis was in your room again...`,
                 ephemeral: true,
             });
             return;
         }
 
-        const now = moment.tz(gameData.timezone);
-        let resetTime = moment.tz(
-            `${moment().format("YYYY-MM-DD")} ${gameData.dailyReset}`,
-            gameData.timezone
-        );
-        if (now > resetTime) {
-            resetTime.add(1, "days");
+        // Calculate the next reset time
+        const timezone = gameData.timezone;
+        const dailyReset = gameData.dailyReset;
+        let resetTime = moment.tz(dailyReset, "HH:mm", timezone);
+        if (moment.tz(timezone).isAfter(resetTime)) {
+            resetTime.add(1, "day");
         }
 
-        const resetTimestamp = `<t:${resetTime.unix()}:R>`;
+        // Determine the formatting based on the time difference
+        const timeDifference = resetTime.diff(
+            moment.tz(timezone),
+            "hours",
+            true
+        );
+        let resetTimestamp;
+        if (timeDifference <= 4) {
+            // Use relative format if within 4 hours
+            resetTimestamp = `<t:${resetTime.unix()}:R>`;
+        } else {
+            // Use Long Date/Time format otherwise
+            resetTimestamp = `<t:${resetTime.unix()}:F>`;
+        }
 
         await interaction.reply({
             content: `The next reset for **${gameData.game}** (${gameData.server} Server) is ${resetTimestamp}.`,
@@ -69,6 +80,6 @@ module.exports = {
             .filter((game) => game.game.toLowerCase().includes(focusedValue))
             .map((game) => ({ name: game.game, value: game.game }));
 
-        await interaction.respond(filtered.slice(0, 25)); // Limit to 25 results as per Discord's limit
+        await interaction.respond(filtered.slice(0, 25)); // Discord limits to 25 results
     },
 };
