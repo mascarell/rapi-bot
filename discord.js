@@ -392,6 +392,16 @@ function setBotActivity() {
             status: "online",
         },
         {
+            name: "SOLO RAID",
+            type: ActivityType.Competing,
+            status: "dnd",
+        },
+        {
+            name: "CAMPAIGN",
+            type: ActivityType.Playing,
+            status: "online",
+        },
+        {
             name: "Over The Outpost",
             type: ActivityType.Watching,
             status: "idle",
@@ -400,6 +410,11 @@ function setBotActivity() {
             name: "SPECIAL ARENA",
             type: ActivityType.Competing,
             status: "dnd",
+        },
+        {
+            name: "COSMOGRAPH",
+            type: ActivityType.Listening,
+            status: "online",
         },
     ];
 
