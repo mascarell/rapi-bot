@@ -1,4 +1,9 @@
 // dependencies
+const CronJob = require("cron").CronJob;
+const fetch = require("node-fetch");
+const path = require("path");
+const fs = require("fs");
+const moment = require("moment-timezone");
 const {
     REST,
     Routes,
@@ -9,12 +14,17 @@ const {
     EmbedBuilder,
     ActivityType,
 } = require("discord.js");
-const { getFiles, getIsStreaming } = require("./utils");
-const CronJobb = require("cron").CronJob;
-const fetch = require("node-fetch");
-const path = require("path");
-const fs = require("fs");
-const moment = require("moment-timezone");
+
+// utils
+const {
+    getFiles,
+    getIsStreaming,
+    getRapiMessages,
+    getBosses,
+    getBossesLinks,
+    getTribeTowerRotation,
+    getBossFileName,
+} = require("./utils");
 
 const TOKEN = process.env.WAIFUTOKEN;
 const CLIENTID = process.env.CLIENTID;
@@ -31,45 +41,6 @@ const bot = new Client({
     ],
 });
 bot.commands = new Collection();
-
-//TODO: Create util function for this
-const randomRapiMessages = [
-    `You’re too quiet, Commander, is everything alright?`,
-    `Commander, Anis was just joking with the Christmas present…`,
-    `Commander! When is the next mission?`,
-    `Please take care next time you go to the surface Commander.`,
-    `Don't push yourself too hard Commander!`,
-    `No matter what you think of us, we'll always be by your side.`,
-    `Commander, I'll protect you.`,
-    `Lap of discipline`,
-    `Is it time to break Syuen ribs again, Commander?`,
-    `I found a wet sock with a weird smell under your bed Commander, care to explain?`,
-    `Marian please stop wearing your underwear inside out...`,
-    `Commander, why do you bark every time you see Makima?`,
-    `Scarlet or Modernia? What kind of question is that Commander? The answer is obvious...`,
-    `I can't go out with you today Commander, there's a lot of paperwork to do.`,
-    `Commander... did you really marry Sakura?`,
-    `Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
-    `Commander, why do you have a picture of Andersen on your wallet?`,
-    `Commander, did you spend the night at Coin Rush again?`,
-    `Commander, people are saying you kissed Blanc and Noir... is that true?`,
-    `Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`,
-    `I guess Rosanna was right about idiots living longer.`,
-    `Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
-    `Waterpower? I don't know what that is Commander, but it sounds kinda weak.`,
-    `Commander! Is it Volt or Bolt?`,
-    `Commander, Admi was asking about Ruru, do you know where she is?`,
-    `The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
-    `Mast? Who's that? Doesn't ring a bell.`,
-    `Commander! Yan sold me this swimsuit, what do you think about it? Here's a picture https://media.discordapp.net/attachments/1054761762395799552/1142732669617184898/image.png?width=445&height=595`,
-    `Commander, did you really tackle Crow? How did you do it?`,
-    `Age is just a number? Commander, I'm calling ACPU`,
-    `What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`,
-    `https://media.discordapp.net/attachments/1075785251156144179/1142745671766638592/1691823770699829.png`,
-    `Commander, what did you want to ask about Biscuit?`,
-    `Commander, 61% is more than enough, stop complaining.`,
-    `Commander, Ade said that I need to try a maid outfit, what do you think?`,
-];
 
 // Bot commands object
 // The name has to be lowercase
@@ -338,7 +309,7 @@ function loadCommands() {
 }
 
 // Slash Commands Configuration
-function loadSlashCommands() {
+function loadGlobalSlashCommands() {
     const commandsPath = path.join(__dirname, "commands");
     const commandFiles = fs
         .readdirSync(commandsPath)
@@ -361,7 +332,7 @@ function loadSlashCommands() {
     }
 }
 
-function registerSlashCommands() {
+function registerGlobalSlashCommands() {
     const commands = [];
     const commandsPath = path.join(__dirname, "commands");
     const commandFiles = fs
@@ -425,7 +396,11 @@ function setBotActivity() {
             type: ActivityType.Watching,
             status: "idle",
         },
-        { name: "SPECIAL ARENA", type: ActivityType.Competing, status: "dnd" },
+        {
+            name: "SPECIAL ARENA",
+            type: ActivityType.Competing,
+            status: "dnd",
+        },
     ];
 
     let currentActivity = 0;
@@ -447,8 +422,8 @@ function setBotActivity() {
     updateBotActivity();
 
     // Create a new cron job to run every 4 hours
-    const job = new CronJobb(
-        "0 0 */4 * * *",
+    const job = new CronJob(
+        "0 */4 * * *",
         function () {
             if (getIsStreaming()) return; // Skip updating activities if streaming
             updateBotActivity();
@@ -475,105 +450,96 @@ function greetNewMembers() {
 }
 
 function sendRandomMessages() {
-    const job = new CronJobb(
-        "0 */6 * * *",
+    // Create a new cron job to run every 6 hours
+    const cronTime = "0 */6 * * *";
+    const job = new CronJob(
+        cronTime,
         function () {
             bot.guilds.cache.forEach((guild) => {
                 const channel = guild.channels.cache.find(
                     (ch) => ch.name === "nikke"
                 );
                 if (channel) {
+                    const messages = getRapiMessages();
                     const randomIndex = Math.floor(
-                        Math.random() * randomRapiMessages.length
+                        Math.random() * messages.length
                     );
-                    channel.send(randomRapiMessages[randomIndex]);
+                    channel.send(messages[randomIndex]);
                 }
             });
         },
         null,
         true,
-        "Europe/Madrid"
+        "UTC"
     );
+
     job.start();
 }
 
-// Daily Interception Configuration
-const bosses = [
-    "Blacksmith",
-    "Chatterbox",
-    "Modernia",
-    "Alteisen MK.VI",
-    "Grave Digger",
-];
-const bossesLinks = [
-    "https://lootandwaifus.com/guides/special-individual-interception-blacksmith/",
-    "https://lootandwaifus.com/guides/special-individual-interception-chatterbox/",
-    "https://lootandwaifus.com/guides/special-individual-interception-modernia/",
-    "https://lootandwaifus.com/guides/special-individual-interception-alteisen-mk-vi/",
-    "https://lootandwaifus.com/guides/special-individual-interception-grave-digger/",
-];
-const towerRotation = [
-    "Tetra",
-    "Elysion",
-    "Missilis & Pilgrim",
-    "Tetra",
-    "Elysion",
-    "Missilis",
-    "all manufacturers",
-];
-
-function getBossFileName(bossName) {
-    switch (bossName) {
-        case "Alteisen MK.VI":
-            return "train.webp";
-        default:
-            return `${bossName.toLowerCase().replace(/\s+/g, '')}.webp`;
-    }
-}
-
-
+// Send daily interception message to NIKKE channel
 function sendDailyInterceptionMessage() {
     const utcTimeForJob = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${utcTimeForJob.minute()} ${utcTimeForJob.hour()} * * *`;
 
-    const interceptionMessage = new CronJobb(
+    const job = new CronJob(
         cronTime,
         () => {
             try {
                 const currentDayOfYear = moment().dayOfYear();
+                const bosses = getBosses();
                 const bossIndex = currentDayOfYear % bosses.length;
                 const bossName = bosses[bossIndex];
                 const fileName = getBossFileName(bossName);
+                const towerRotation = getTribeTowerRotation();
                 const currentDayOfWeek = new Date().getDay();
 
                 bot.guilds.cache.forEach(async (guild) => {
-                    const channel = guild.channels.cache.find(ch => ch.name === "nikke");
+                    const channel = guild.channels.cache.find(
+                        (ch) => ch.name === "nikke"
+                    );
                     if (!channel) {
                         console.log("Channel 'nikke' not found.");
                         return;
                     }
 
-                    const role = guild.roles.cache.find(role => role.name === "Nikke")?.toString() || "";
+                    const role =
+                        guild.roles.cache
+                            .find((role) => role.name === "Nikke")
+                            ?.toString() || "Commanders";
 
                     const embed = new EmbedBuilder()
-                        .setTitle(`Attention Commanders, here's today's schedule:`)
+                        .setTitle(`${role}, here's today's schedule:`)
                         .setDescription(
-                            `- ${role} We have to fight **${bossName}** in Special Interception\n` +
-                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**\n` +
-                            `- I've attached a combat report link with tips on how to fight this Rapture if you are having issues\n\n` +
-                            `${bossesLinks[bossIndex]}`
+                            `- We have to fight **${bossName}** in Special Interception\n` +
+                                `- Tribe tower is open for **${
+                                    towerRotation[
+                                        currentDayOfWeek % towerRotation.length
+                                    ]
+                                }**\n` +
+                                `- Check out the combat report link for tips on how to fight this Rapture: \n\n ${
+                                    getBossesLinks()[bossIndex]
+                                }`
                         )
-                        .setColor(0x00AE86) // Set an embed color
+                        .setColor(0x00ae86)
                         .setTimestamp()
-                        .setFooter({ text: 'Stay safe on the surface, Commanders!' });
+                        .setFooter({
+                            text: "Stay safe on the surface, Commanders!",
+                        });
 
                     await channel.send({
-                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
-                        embeds: [embed]
+                        files: [
+                            {
+                                attachment: `./public/images/bosses/${fileName}`,
+                                name: fileName,
+                            },
+                        ],
+                        embeds: [embed],
                     });
                 });
             } catch (error) {
-                console.error(`Error sending daily interception message: ${error}`);
+                console.error(
+                    `Error sending daily interception message: ${error}`
+                );
             }
         },
         null,
@@ -581,13 +547,13 @@ function sendDailyInterceptionMessage() {
         "UTC"
     );
 
-    interceptionMessage.start();
+    job.start();
 }
 
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
-        // Ignore messages that mention @everyone or the bot itself
-        if (message.mentions.everyone || message.mentions.has(bot.user.id)) {
+        // Ignore messages that mention @everyone
+        if (message.mentions.everyone) {
             return;
         }
 
@@ -599,7 +565,7 @@ function handleMessages() {
         const guild = message.guild;
 
         // check if we're mentioning the bot
-        if (message.mentions.has(bot.user)) {
+        if (message.mentions.has(bot.user.id)) {
             try {
                 const response = await fetch(
                     `https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`
@@ -617,6 +583,7 @@ function handleMessages() {
                 );
             }
         }
+
         // Establish arguments
         let args = [];
         if (message.content[0] === pre) {
@@ -662,7 +629,6 @@ function handleMessages() {
 function handleAdvice() {
     // Advice Configuration
     // Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
-    // TODO: Need to add remaining Nikke Alters like Privaty Maid & Killer Wife
     let characters = {};
     const charactersDir = "./advice";
     // List of current Lolis in NIKKE
@@ -734,7 +700,6 @@ function handleAdvice() {
                                 .toUpperCase()}${character.slice(1)}`
                         )
                         .setDescription(fullList);
-                    // Use send for sending embeds
                     return msg.channel.send({ embeds: [embed] });
                 }
 
@@ -769,7 +734,6 @@ function handleAdvice() {
                             { name: "Question:", value: question },
                             { name: "Answer:", value: answer }
                         );
-                    // Use send for sending embeds
                     msg.channel.send({ embeds: [embed] });
                 } else {
                     msg.reply(
@@ -787,7 +751,6 @@ function handleAdvice() {
 }
 
 // Handles bot slash commands interactions for all available slash commands
-//
 function handleSlashCommands() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
@@ -828,7 +791,6 @@ function enableAutoComplete() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isAutocomplete()) return;
 
-        // Assuming you have a way to access your commands
         const command = bot.commands.get(interaction.commandName);
         if (command && typeof command.autocomplete === "function") {
             await command.autocomplete(interaction);
@@ -840,8 +802,8 @@ function initDiscordBot() {
     if (bot) new Error("Bot is already initialized, use getBot()");
 
     loadCommands();
-    loadSlashCommands();
-    registerSlashCommands();
+    loadGlobalSlashCommands();
+    registerGlobalSlashCommands();
     bot.once("ready", () => {
         setBotActivity();
         greetNewMembers();
