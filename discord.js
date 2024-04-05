@@ -542,14 +542,38 @@ function sendDailyInterceptionMessage() {
                         });
 
                     await channel.send({
-                        files: [
-                            {
-                                attachment: `./public/images/bosses/${fileName}`,
-                                name: fileName,
-                            },
-                        ],
-                        embeds: [embed],
+                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
+                        embeds: [embed]
                     });
+    
+                    let firstResponseHandled = false;
+                    const filter = (response) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
+                    const collector = channel.createMessageCollector({ filter, time: 15000 }); // Listen for 15 seconds
+
+                    collector.on("collect", async (m) => {
+                        if (!firstResponseHandled) {
+                            firstResponseHandled = true;
+                            try {
+                                const emoji = '❤️'; // Use the correct format 'name:id' for custom emojis
+                                await m.react(emoji);
+                            } catch (error) {
+                                console.error("Failed to react with custom emoji:", error);
+                            }
+                            
+                            channel.send(`Thank you, Commander ${m.author}.`);
+                        } else {
+                            try {
+                                const emoji = "sefhistare:1124869893880283306"; // Use the correct format 'name:id' for custom emojis
+                                await m.react(emoji);
+                            } catch (error) {
+                                console.error("Failed to react with custom emoji:", error);
+                            }
+
+                            m.reply(`Commander ${m.author}... I expected better...`);
+                        }
+                    });
+
+                    collector.on('end', collected => console.log(`Collector stopped, ${collected.size} items collected.`));
                 });
             } catch (error) {
                 console.error(
@@ -570,6 +594,16 @@ function handleMessages() {
         // Ignore messages that mention @everyone
         if (message.mentions.everyone) {
             return;
+        }
+
+        // Check if the message is a reply to a specific embed
+        if (message.reference) {
+            const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
+            // Check if the referenced message contains the unique identifier in the embed's footer
+            if (referencedMessage.embeds.length > 0 && referencedMessage.embeds[0].footer && referencedMessage.embeds[0].footer.text.includes("Stay safe on the surface, Commanders!")) {
+                console.log("Ignoring reply to daily interception message.");
+                return;
+            }
         }
 
         // Get message from param and turn lowercase
