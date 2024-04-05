@@ -523,9 +523,9 @@ function sendDailyInterceptionMessage() {
                             ?.toString() || "Commanders";
 
                     const embed = new EmbedBuilder()
-                        .setTitle(`${role}, here's today's schedule:`)
+                        .setTitle(`Attention commanders, here's today's schedule:`)
                         .setDescription(
-                            `- We have to fight **${bossName}** in Special Interception\n` +
+                            `- ${role}, we have to fight **${bossName}** in Special Interception\n` +
                                 `- Tribe tower is open for **${
                                     towerRotation[
                                         currentDayOfWeek % towerRotation.length
