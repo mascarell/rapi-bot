@@ -209,7 +209,16 @@ const botCommands = {
         name: "good girl",
         description: "good girl Rapi",
         execute(msg, args) {
-            msg.reply("Thank you Commander.");
+            // Check if the command is 'goodgirl' and the collector is active and return if in "nikke" discord channel
+            // Other channels are fine to allow the command flow to continue.
+            const isNikkeChannel = msg.channel.name === "nikke";
+            if (isCollectorActive && isNikkeChannel) {
+                console.log("Ignoring 'goodgirl' command in 'nikke' channel while collector is active.");
+                return;
+            }
+            else{
+                msg.reply("Thank you Commander.");
+            }
         },
     },
     dammit: {
@@ -517,7 +526,7 @@ function sendDailyInterceptionMessage() {
                         console.log("Channel 'nikke' not found.");
                         return;
                     }
-                    
+
                     // Send the role mention as a separate message before the embed
                     // Embeds does not allow mentions to actually ping unfortunately.
                     const role = guild.roles.cache.find(role => role.name === "Nikke");
@@ -579,7 +588,18 @@ function sendDailyInterceptionMessage() {
                                 );
                             }
 
-                            m.reply(`Thank you, Commander ${m.author}.`);
+                            const thankYouMessages = [
+                                "Your swiftness is unmatched, Commander ${m.author}. It's impressive.",
+                                "Your alertness honors us all, Commander ${m.author}.",
+                                "Your swift response is commendable, Commander ${m.author}."
+                            ];
+
+                            // Randomly select a thank you message
+                            const randomIndex = Math.floor(Math.random() * thankYouMessages.length);
+                            const thankYouMessage = thankYouMessages[randomIndex];
+                            // Use eval to dynamically insert the author mention
+                            m.reply(eval('`' + thankYouMessage + '`'));
+                            
                         } else {
                             try {
                                 const emoji = "sefhistare:1124869893880283306"; // Use the correct format 'name:id' for custom emojis
@@ -625,21 +645,13 @@ function handleMessages() {
             return;
         }
 
-        // Check if the command is 'goodgirl' and the collector is active and return if in "nikke" discord channel
-        // Other channels are fine to allow the command flow to continue.
-        const isNikkeChannel = message.channel.name === "nikke";
-        if (isCollectorActive && command === "goodgirl" && isNikkeChannel) {
-            console.log("Ignoring 'goodgirl' command in 'nikke' channel while collector is active.");
-            return;
-        }
-
         if (!message.guild || !message.member) {
             // If guild or member is not defined, ignore the message
             return;
         }
         const guild = message.guild;
 
-        // check if we're mentioning the bot
+        // Check if we're mentioning the bot
         if (message.mentions.has(bot.user.id)) {
             try {
                 const response = await fetch(
