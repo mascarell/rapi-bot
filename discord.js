@@ -517,18 +517,20 @@ function sendDailyInterceptionMessage() {
                         console.log("Channel 'nikke' not found.");
                         return;
                     }
-
-                    const role =
-                        guild.roles.cache
-                            .find((role) => role.name === "Nikke")
-                            ?.toString() || "Commanders";
+                    
+                    // Send the role mention as a separate message before the embed
+                    // Embeds does not allow mentions to actually ping unfortunately.
+                    const role = guild.roles.cache.find(role => role.name === "Nikke");
+                    if (role) {
+                        await channel.send(`${role.toString()}, attention!`);
+                    }
 
                     const embed = new EmbedBuilder()
                         .setTitle(
                             `Attention commanders, here's today's schedule:`
                         )
                         .setDescription(
-                            `- ${role}, we have to fight **${bossName}** in Special Interception\n` +
+                            `- We have to fight **${bossName}** in Special Interception\n` +
                                 `- Tribe tower is open for **${
                                     towerRotation[
                                         currentDayOfWeek % towerRotation.length
