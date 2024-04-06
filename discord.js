@@ -30,6 +30,7 @@ const TOKEN = process.env.WAIFUTOKEN;
 const CLIENTID = process.env.CLIENTID;
 
 const pre = "/"; // what we use for the bot commands (not for all of them tho)
+let isCollectorActive = false;
 
 // Bot Configuration
 const bot = new Client({
@@ -523,7 +524,9 @@ function sendDailyInterceptionMessage() {
                             ?.toString() || "Commanders";
 
                     const embed = new EmbedBuilder()
-                        .setTitle(`Attention commanders, here's today's schedule:`)
+                        .setTitle(
+                            `Attention commanders, here's today's schedule:`
+                        )
                         .setDescription(
                             `- ${role}, we have to fight **${bossName}** in Special Interception\n` +
                                 `- Tribe tower is open for **${
@@ -542,38 +545,62 @@ function sendDailyInterceptionMessage() {
                         });
 
                     await channel.send({
-                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
-                        embeds: [embed]
+                        files: [
+                            {
+                                attachment: `./public/images/bosses/${fileName}`,
+                                name: fileName,
+                            },
+                        ],
+                        embeds: [embed],
                     });
-    
-                    let firstResponseHandled = false;
-                    const filter = (response) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
-                    const collector = channel.createMessageCollector({ filter, time: 15000 }); // Listen for 15 seconds
 
+                    let firstResponseHandled = false;
+                    const filter = (response) =>
+                        response.content.toLowerCase().includes("good girl") &&
+                        !response.author.bot;
+                    const collector = channel.createMessageCollector({
+                        filter,
+                        time: 15000,
+                    }); // Listen for 15 seconds
+
+                    isCollectorActive = true;
                     collector.on("collect", async (m) => {
                         if (!firstResponseHandled) {
                             firstResponseHandled = true;
                             try {
-                                const emoji = '❤️'; // Use the correct format 'name:id' for custom emojis
+                                const emoji = "❤️"; // Use the correct format 'name:id' for custom emojis
                                 await m.react(emoji);
                             } catch (error) {
-                                console.error("Failed to react with custom emoji:", error);
+                                console.error(
+                                    "Failed to react with custom emoji:",
+                                    error
+                                );
                             }
-                            
-                            channel.send(`Thank you, Commander ${m.author}.`);
+
+                            m.reply(`Thank you, Commander ${m.author}.`);
                         } else {
                             try {
                                 const emoji = "sefhistare:1124869893880283306"; // Use the correct format 'name:id' for custom emojis
                                 await m.react(emoji);
                             } catch (error) {
-                                console.error("Failed to react with custom emoji:", error);
+                                console.error(
+                                    "Failed to react with custom emoji:",
+                                    error
+                                );
                             }
 
-                            m.reply(`Commander ${m.author}... I expected better...`);
+                            m.reply(
+                                `Commander ${m.author}... I expected better...`
+                            );
                         }
                     });
 
-                    collector.on('end', collected => console.log(`Collector stopped, ${collected.size} items collected.`));
+                    collector.on("end", (collected) => {
+                        isCollectorActive = false;
+                        console.log(
+                            `Collector stopped, ${collected.size} items collected.`
+                        );
+                    });
                 });
             } catch (error) {
                 console.error(
@@ -596,17 +623,14 @@ function handleMessages() {
             return;
         }
 
-        // Check if the message is a reply to a specific embed
-        if (message.reference) {
-            const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
-            // Check if the referenced message contains the unique identifier in the embed's footer
-            if (referencedMessage.embeds.length > 0 && referencedMessage.embeds[0].footer && referencedMessage.embeds[0].footer.text.includes("Stay safe on the surface, Commanders!")) {
-                console.log("Ignoring reply to daily interception message.");
-                return;
-            }
+        // Check if the command is 'goodgirl' and the collector is active and return if in "nikke" discord channel
+        // Other channels are fine to allow the command flow to continue.
+        const isNikkeChannel = message.channel.name === "nikke";
+        if (isCollectorActive && command === "goodgirl" && isNikkeChannel) {
+            console.log("Ignoring 'goodgirl' command in 'nikke' channel while collector is active.");
+            return;
         }
 
-        // Get message from param and turn lowercase
         if (!message.guild || !message.member) {
             // If guild or member is not defined, ignore the message
             return;
