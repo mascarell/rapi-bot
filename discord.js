@@ -30,7 +30,8 @@ const TOKEN = process.env.WAIFUTOKEN;
 const CLIENTID = process.env.CLIENTID;
 
 const pre = "/"; // what we use for the bot commands (not for all of them tho)
-let isCollectorActive = false;
+const resetStartTime = moment.tz({hour: 20, minute: 0, second: 0, millisecond: 0}, 'UTC');
+const resetEndTime = moment.tz({hour: 20, minute: 0, second: 15, millisecond: 0}, 'UTC');
 
 // Bot Configuration
 const bot = new Client({
@@ -212,8 +213,11 @@ const botCommands = {
             // Check if the command is 'goodgirl' and the collector is active and return if in "nikke" discord channel
             // Other channels are fine to allow the command flow to continue.
             const isNikkeChannel = msg.channel.name === "nikke";
-            if (isCollectorActive && isNikkeChannel) {
-                console.log("Ignoring 'goodgirl' command in 'nikke' channel while collector is active.");
+            const currentTime = moment.tz('UTC');
+            const isWithinTimeWindow = currentTime.isBetween(resetStartTime, resetEndTime);
+            console.log(`Is Nikke Channel: ${isNikkeChannel}`);
+            if ((isNikkeChannel && isWithinTimeWindow)) {
+                console.log("Ignoring 'goodgirl' command in 'nikke' channel  within specific time window.");
                 return;
             }
             else{
@@ -401,11 +405,11 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: "online",
         },
-        {
-            name: "SOLO RAID",
-            type: ActivityType.Competing,
-            status: "dnd",
-        },
+        // {
+        //     name: "SOLO RAID",
+        //     type: ActivityType.Competing,
+        //     status: "dnd",
+        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -502,13 +506,13 @@ function sendRandomMessages() {
 }
 
 // Send daily interception message to NIKKE channel
-function sendDailyInterceptionMessage() {
-    const utcTimeForJob = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    const cronTime = `${utcTimeForJob.minute()} ${utcTimeForJob.hour()} * * *`;
+async function sendDailyInterceptionMessage() {
+    const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
+    const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
 
     const job = new CronJob(
         cronTime,
-        () => {
+        async () => {
             try {
                 const currentDayOfYear = moment().dayOfYear();
                 const bosses = getBosses();
@@ -517,75 +521,54 @@ function sendDailyInterceptionMessage() {
                 const fileName = getBossFileName(bossName);
                 const towerRotation = getTribeTowerRotation();
                 const currentDayOfWeek = new Date().getDay();
+                const firstResponseHandledMap = new Map();
 
                 bot.guilds.cache.forEach(async (guild) => {
+                    // Initialize the state for the guild as false
+                    firstResponseHandledMap.set(guild.id, false);
                     const channel = guild.channels.cache.find(
                         (ch) => ch.name === "nikke"
                     );
                     if (!channel) {
-                        console.log("Channel 'nikke' not found.");
-                        return;
+                        console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
+                        return; // Continue to next guild
                     }
 
-                    // Send the role mention as a separate message before the embed
-                    // Embeds does not allow mentions to actually ping unfortunately.
                     const role = guild.roles.cache.find(role => role.name === "Nikke");
+                    // Send the role mention as a separate message before the embed if the role exists
                     if (role) {
                         await channel.send(`${role.toString()}, attention!`);
                     }
 
                     const embed = new EmbedBuilder()
-                        .setTitle(
-                            `Attention commanders, here's today's schedule:`
-                        )
+                        .setTitle(`Attention commanders, here's today's schedule:`)
                         .setDescription(
                             `- We have to fight **${bossName}** in Special Interception\n` +
-                                `- Tribe tower is open for **${
-                                    towerRotation[
-                                        currentDayOfWeek % towerRotation.length
-                                    ]
-                                }**\n` +
-                                `- Check out the combat report link for tips on how to fight this Rapture: \n\n ${
-                                    getBossesLinks()[bossIndex]
-                                }`
+                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**\n` +
+                            `- Check out the combat report link for tips on how to fight this Rapture: \n\n ${getBossesLinks()[bossIndex]}`
                         )
-                        .setColor(0x00ae86)
+                        .setColor(0x00AE86)
                         .setTimestamp()
-                        .setFooter({
-                            text: "Stay safe on the surface, Commanders!",
-                        });
+                        .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
-                    await channel.send({
-                        files: [
-                            {
-                                attachment: `./public/images/bosses/${fileName}`,
-                                name: fileName,
-                            },
-                        ],
-                        embeds: [embed],
+                    // Send the embed message
+                    const sentMessage = await channel.send({
+                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
+                        embeds: [embed]
                     });
 
-                    let firstResponseHandled = false;
-                    const filter = (response) =>
-                        response.content.toLowerCase().includes("good girl") &&
-                        !response.author.bot;
-                    const collector = channel.createMessageCollector({
-                        filter,
-                        time: 15000,
-                    }); // Listen for 15 seconds
+                    // Setup collector for responses to this message
+                    const filter = (response) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
+                    const collector = sentMessage.channel.createMessageCollector({ filter, time: 15000 });
 
-                    isCollectorActive = true;
-                    collector.on("collect", async (m) => {
-                        if (!firstResponseHandled) {
-                            firstResponseHandled = true;
+                    collector.on('collect', async m => {
+                        if (!firstResponseHandledMap.get(guild.id)) {
+                            firstResponseHandledMap.set(guild.id, true);
                             try {
-                                const emoji = "❤️"; // Use the correct format 'name:id' for custom emojis
+                                const emoji = "❤️";
                                 await m.react(emoji);
                             } catch (error) {
-                                console.error(
-                                    "Failed to react with custom emoji:",
-                                    error
-                                );
+                                console.error("Failed to react with custom emoji:", error);
                             }
 
                             const thankYouMessages = [
@@ -597,9 +580,8 @@ function sendDailyInterceptionMessage() {
                             // Randomly select a thank you message
                             const randomIndex = Math.floor(Math.random() * thankYouMessages.length);
                             const thankYouMessage = thankYouMessages[randomIndex];
-                            // Use eval to dynamically insert the author mention
-                            m.reply(eval('`' + thankYouMessage + '`'));
                             
+                            m.reply(eval('`' + thankYouMessage + '`'));
                         } else {
                             try {
                                 const emoji = "sefhistare:1124869893880283306"; // Use the correct format 'name:id' for custom emojis
@@ -610,24 +592,20 @@ function sendDailyInterceptionMessage() {
                                     error
                                 );
                             }
-
                             m.reply(
                                 `Commander ${m.author}... I expected better...`
                             );
                         }
                     });
 
-                    collector.on("end", (collected) => {
-                        isCollectorActive = false;
-                        console.log(
-                            `Collector stopped, ${collected.size} items collected.`
-                        );
+                    collector.on('end', collected => {
+                        // Reset the first response handler for the guild
+                        firstResponseHandledMap.set(guild.id, false);
+                        console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
                     });
                 });
             } catch (error) {
-                console.error(
-                    `Error sending daily interception message: ${error}`
-                );
+                console.error(`Error sending daily interception message: ${error}`);
             }
         },
         null,
@@ -637,6 +615,7 @@ function sendDailyInterceptionMessage() {
 
     job.start();
 }
+
 
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
