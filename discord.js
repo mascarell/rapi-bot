@@ -215,7 +215,6 @@ const botCommands = {
             const isNikkeChannel = msg.channel.name === "nikke";
             const currentTime = moment.tz('UTC');
             const isWithinTimeWindow = currentTime.isBetween(resetStartTime, resetEndTime);
-            console.log(`Is Nikke Channel: ${isNikkeChannel}`);
             if ((isNikkeChannel && isWithinTimeWindow)) {
                 console.log("Ignoring 'goodgirl' command in 'nikke' channel  within specific time window.");
                 return;
@@ -624,30 +623,9 @@ function handleMessages() {
             return;
         }
 
+        // If guild or member is not defined, ignore the message
         if (!message.guild || !message.member) {
-            // If guild or member is not defined, ignore the message
             return;
-        }
-        const guild = message.guild;
-
-        // Check if we're mentioning the bot
-        if (message.mentions.has(bot.user.id)) {
-            try {
-                const response = await fetch(
-                    `https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`
-                );
-                const data = await response.json();
-
-                message.channel.send(
-                    `I'm busy Commander ${message.author}, but here's a cat.`
-                );
-                message.channel.send(data[0].url);
-            } catch (error) {
-                console.error(error);
-                message.channel.send(
-                    `Did you mention me, Commander ${message.author}?`
-                );
-            }
         }
 
         // Establish arguments
@@ -660,34 +638,37 @@ function handleMessages() {
 
         const command = args.shift().toLowerCase();
 
-        if (!bot.commands.has(command)) return;
+        // Check if we're mentioning the bot and if the message contains a valid command
+        if (message.mentions.has(bot.user.id) && !bot.commands.has(command)) {
+            try {
+                const response = await fetch(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
+                const data = await response.json();
+                message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
+                message.channel.send(data[0].url);
+            } catch (error) {
+                console.error(error);
+                message.channel.send(`Did you mention me, Commander ${message.author}?`);
+            }
+            return;
+        }
+
+        // If there's no command or it's not a valid bot command, exit early
+        if (!command || !bot.commands.has(command)) return;
 
         try {
-            const ignoredRole = guild.roles.cache.find(
-                (role) => role.name === "Grounded"
-            );
-            const contentCreatorRole = guild.roles.cache.find(
-                (role) => role.name === "Content Creator"
-            );
+            const guild = message.guild;
+            const ignoredRole = guild.roles.cache.find((role) => role.name === "Grounded");
+            const contentCreatorRole = guild.roles.cache.find((role) => role.name === "Content Creator");
 
-            if (command == "/content") {
-                if (
-                    contentCreatorRole &&
-                    message.member.roles.cache.has(contentCreatorRole.id)
-                )
-                    bot.commands.get(command).execute(message, args);
-                return;
+            if (command == "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
+                bot.commands.get(command).execute(message, args);
+            } else if (!ignoredRole || !message.member.roles.cache.has(ignoredRole.id)) {
+                // Execute the command if it's not from a user with the ignored role
+                bot.commands.get(command).execute(message, args);
             }
-
-            if (ignoredRole && message.member.roles.cache.has(ignoredRole.id))
-                return;
-
-            bot.commands.get(command).execute(message, args);
         } catch (error) {
             console.error(error);
-            message.reply(
-                "Commander, I think there is something wrong with me (something broke, please ping @sefhi to check what is going on)"
-            );
+            message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)", ephemeral: true });
         }
     });
 }
