@@ -13,6 +13,7 @@ const {
     Events,
     EmbedBuilder,
     ActivityType,
+    PresenceUpdateStatus,
 } = require("discord.js");
 
 // utils
@@ -387,74 +388,101 @@ function registerGlobalSlashCommands() {
     })();
 }
 
+function updateBotActivity(activities) {
+    const activity = activities[Math.floor(Math.random() * activities.length)];
+    bot.user.setPresence({
+        status: activity.status,
+        activities: [
+            {
+                name: activity.name,
+                type: activity.type,
+            },
+        ],
+    });
+}
+
 function setBotActivity() {
     const activities = [
         {
             name: "SIMULATION ROOM",
             type: ActivityType.Competing,
-            status: "dnd",
+            status: PresenceUpdateStatus.DoNotDisturb,
         },
         {
             name: "With Commanders' hearts",
             type: ActivityType.Playing,
-            status: "online",
+            status: PresenceUpdateStatus.Online,
         },
         {
             name: "Commanders' jukebox",
             type: ActivityType.Listening,
-            status: "online",
+            status: PresenceUpdateStatus.Online,
         },
         // {
         //     name: "SOLO RAID",
         //     type: ActivityType.Competing,
-        //     status: "dnd",
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
+        // {
+        //     name: "UNION RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
+        // {
+        //     name: "COOP RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
-            status: "online",
+            status: PresenceUpdateStatus.Online,
         },
         {
             name: "Over The Outpost",
             type: ActivityType.Watching,
-            status: "idle",
+            status: PresenceUpdateStatus.Idle,
         },
         {
             name: "SPECIAL ARENA",
             type: ActivityType.Competing,
-            status: "dnd",
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
+        {
+            name: "ROOKIE ARENA",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
         },
         {
             name: "COSMOGRAPH",
             type: ActivityType.Listening,
-            status: "online",
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "HARD CAMPAIGN",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
+        {
+            name: "TRIBE TOWER",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
+        {
+            name: "ELYSION TOWER",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
         },
     ];
 
-    let currentActivity = 0;
-
-    function updateBotActivity() {
-        const activity = activities[currentActivity % activities.length];
-        bot.user.setPresence({
-            status: activity.status,
-            activities: [
-                {
-                    name: activity.name,
-                    type: activity.type,
-                },
-            ],
-        });
-        currentActivity++;
-    }
-
-    updateBotActivity();
+    updateBotActivity(activities);
 
     // Create a new cron job to run every 4 hours
     const job = new CronJob(
         "0 */4 * * *",
         function () {
             if (getIsStreaming()) return; // Skip updating activities if streaming
-            updateBotActivity();
+            updateBotActivity(activities);
         },
         null,
         true,
