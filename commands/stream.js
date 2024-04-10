@@ -1,5 +1,5 @@
 // Dependencies
-const { SlashCommandBuilder, ActivityType } = require("discord.js");
+const { SlashCommandBuilder, ActivityType, PresenceUpdateStatus } = require("discord.js");
 const { setIsStreaming } = require('../utils')
 
 module.exports = {
@@ -49,7 +49,7 @@ module.exports = {
                 // Clear the streaming activity
                 setIsStreaming(false);
                 interaction.client.user.setPresence({
-                    status: 'online',
+                    status: PresenceUpdateStatus.Online,
                     activities: [{
                         name: "SIMULATION ROOM",
                         type: ActivityType.Competing,          
