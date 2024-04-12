@@ -293,7 +293,7 @@ const botCommands = {
                 files: [
                     {
                         attachment: "./public/images/nikke/wrong.gif",
-                        name: "wrong.jpg",
+                        name: "wrong.gif",
                     },
                 ],
             });
