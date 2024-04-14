@@ -313,6 +313,31 @@ const botCommands = {
             });
         },
     },
+    damntrain: {
+        name: "damn train",
+        description: "damn train",
+        execute(msg, args ) {
+            try {
+                const emoji = "❌";
+                msg.react(emoji);
+            } catch (error) {
+                console.error(
+                    "Failed to react with emoji:",
+                    error
+                );
+            }
+            
+            msg.reply({
+                content: `Commander...we don't talk about trains here.`,
+                files: [
+                    {
+                        attachment: "./public/images/nikke/SmugRapi.jpg",
+                        name: "SmugRapi.jpg",
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
