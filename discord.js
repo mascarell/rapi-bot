@@ -345,7 +345,7 @@ const botCommands = {
             const filePaths = [
                 "./public/images/nikke/osugravedigger.png",
                 "./public/images/nikke/damngravedigger1.jpg",
-                "./public/images/nikke/damngravedigger.mp4"
+                "./public/images/nikke/damngravedigger.gif"
             ];
             
             let rnd = Math.floor(Math.random() * filePaths.length);
