@@ -338,6 +338,29 @@ const botCommands = {
             });
         },
     },
+    damngravedigger: {
+        name: "damn gravedigger",
+        description: "damn gravedigger",
+        execute(msg, args ) {      
+            const filePaths = [
+                "./public/images/nikke/osugravedigger.png",
+                "./public/images/nikke/damngravedigger1.jpg",
+                "./public/images/nikke/damngravedigger.mp4"
+            ];
+            
+            let rnd = Math.floor(Math.random() * filePaths.length);
+            let filePath = filePaths[rnd];
+
+            msg.reply({
+                content: `Commander...`,
+                files: [
+                    {
+                        attachment: filePath,
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
