@@ -89,7 +89,7 @@ module.exports = {
         if (!gameData) {
             await interaction.reply({
                 content: `Commander, I am unable to locate your game in your room. Maybe Anis was in your room again...`,
-                ephemeral: true,
+                ephemeral: false,
             });
             return;
         }
@@ -119,7 +119,7 @@ module.exports = {
 
         await interaction.reply({
             content: `Commander, the next reset for **${gameData.game}** (${gameData.server} Server) is ${resetTimestamp}.`,
-            ephemeral: true,
+            ephemeral: false,
         });
     },
     async autocomplete(interaction) {
