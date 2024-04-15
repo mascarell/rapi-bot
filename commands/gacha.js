@@ -1,4 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const {
+    SlashCommandBuilder,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+} = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 const charactersData = JSON.parse(
@@ -14,16 +20,17 @@ const userCommandUsage = {};
 // Cleanup job to remove old entries every 10 minutes
 setInterval(() => {
     const currentTime = Date.now();
-    Object.keys(userCommandUsage).forEach(userId => {
-        userCommandUsage[userId] = userCommandUsage[userId].filter(time => currentTime - time < 300000); // 300,000 ms = 5 minutes
+    Object.keys(userCommandUsage).forEach((userId) => {
+        userCommandUsage[userId] = userCommandUsage[userId].filter(
+            (time) => currentTime - time < 300000
+        ); // 300,000 ms = 5 minutes
         // If no entries remain for a user, delete the key entirely
         if (userCommandUsage[userId].length === 0) {
             delete userCommandUsage[userId];
         }
     });
-    console.log('Cleanup job ran, userCommandUsage pruned');
+    console.log("Cleanup job ran, userCommandUsage pruned");
 }, 600000); // 600,000 ms = 10 minutes
-
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -35,43 +42,115 @@ module.exports = {
                 .setDescription("Type of pull")
                 .setRequired(true)
                 .addChoices(
-                    { name: "single", value: "single" }
-                    // TODO: Disabled until we figure out how to make this shit look pretty in discord embeds...
-                    // { name: 'multi', value: 'multi' }
+                    { name: "single", value: "single" },
+                    // This should work as intended. If not just comment out below to avoid multi pulls
+                    { name: "multi", value: "multi" }
                 )
         ),
 
-  async execute(interaction) {
-    await interaction.deferReply({ ephemeral: false }); // Defer the reply initially
+    async execute(interaction) {
+        await interaction.deferReply({ ephemeral: false }); // Defer the reply initially
 
-    const userId = interaction.user.id;
+        const userId = interaction.user.id;
 
-    // Check if the user is the bot itself
-    if (userId === interaction.client.user.id) {
-      return; // Do nothing if the user is the bot itself
-    }
+        // Check if the user is the bot itself
+        if (userId === interaction.client.user.id) {
+            return; // Do nothing if the user is the bot itself
+        }
 
-    const currentTime = Date.now();
-    if (!userCommandUsage[userId]) {
-      userCommandUsage[userId] = [];
-    }
-    userCommandUsage[userId].push(currentTime);
-    userCommandUsage[userId] = userCommandUsage[userId].filter(time => currentTime - time < 300000);
+        const currentTime = Date.now();
+        if (!userCommandUsage[userId]) {
+            userCommandUsage[userId] = [];
+        }
+        userCommandUsage[userId].push(currentTime);
+        userCommandUsage[userId] = userCommandUsage[userId].filter(
+            (time) => currentTime - time < 300000
+        );
 
-    // Gamba warning if 20+ uses within 5 minutes (more than 10 pulls a minute lol).
-    if (userCommandUsage[userId].length >= 20) {
-      await interaction.followUp({
-        content: "Commander, let's take it easy with the gacha, shall we? Too much excitement in such a short time isn't good for anyone!",
-        ephemeral: false,
-      });
-      return; // Exit the function to prevent further execution
-    }
+        // Gamba warning if 20+ uses within 5 minutes (more than 10 pulls a minute lol).
+        if (userCommandUsage[userId].length >= 20) {
+            await interaction.followUp({
+                content:
+                    "Commander, let's take it easy with the gacha, shall we? Too much excitement in such a short time isn't good for anyone!",
+                ephemeral: false,
+            });
+            return; // Exit the function to prevent further execution
+        }
 
-    const pullType = interaction.options.getString("type");
-    const results = pullCharacters(pullType);
-    const embeds = generateEmbeds(results);
-    await interaction.followUp({ embeds: embeds }); // Use followUp here because we used deferReply initially
-  },
+        const pullType = interaction.options.getString("type");
+        const results = pullCharacters(pullType);
+        const embeds = generateEmbeds(results);
+
+        if (pullType === "multi") {
+            let currentPage = 0;
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("previous")
+                    .setLabel("Previous")
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId("page")
+                    .setLabel(`Page ${currentPage + 1} of ${embeds.length}`)
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId("next")
+                    .setLabel("Next")
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(embeds.length <= 1)
+            );
+
+            const message = await interaction.followUp({
+                embeds: [embeds[currentPage]],
+                components: [row],
+            });
+
+            const collector = message.createMessageComponentCollector({
+                time: 120000,
+            });
+
+            collector.on("collect", async (i) => {
+                if (i.user.id === interaction.user.id) {
+                    i.customId === "next" ? currentPage++ : currentPage--;
+                    currentPage =
+                        ((currentPage % embeds.length) + embeds.length) %
+                        embeds.length; // Cycle pages
+                    row.components[0].setDisabled(currentPage === 0);
+                    row.components[1].setLabel(
+                        `Page ${currentPage + 1} of ${embeds.length}`
+                    );
+                    row.components[2].setDisabled(
+                        currentPage === embeds.length - 1
+                    );
+                    await i.update({
+                        embeds: [embeds[currentPage]],
+                        components: [row],
+                    });
+                } else {
+                    await i.reply({
+                        content: "Commander, this is not YOUR pull results... I expected better.",
+                        ephemeral: true,
+                    });
+                }
+            });
+
+            collector.on("end", () => {
+                const disabledRow = new ActionRowBuilder().addComponents(
+                    row.components.map((component) =>
+                        ButtonBuilder.from(component).setDisabled(true)
+                    )
+                );
+                message.edit({
+                    components: [disabledRow],
+                    content:
+                        "Current interaction ended. Use '/gacha' again to pull more!",
+                });
+            });
+        } else {
+            await interaction.followUp({ embeds: [embeds[0]] });
+        }
+    },
 };
 
 function pullCharacters(pullType) {
