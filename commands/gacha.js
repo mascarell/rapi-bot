@@ -32,20 +32,25 @@ module.exports = {
 };
 
 function pullCharacters(pullType) {
-    const SSR_RATE = 0.04;
-    const SR_RATE = 0.43;
-    const R_RATE = 0.53;
+    const SSR_RATE = 0.04;    // 4% chance for SSR
+    const PILGRIM_RATE = 0.0005; // 0.05% chance under SSR for Pilgrim
+    const SR_RATE = 0.43;     // 43% chance for SR
+    const R_RATE = 0.53;      // 53% chance for R
     const results = [];
     const pulls = pullType === 'multi' ? 10 : 1;
 
     for (let i = 0; i < pulls; i++) {
         const rand = Math.random();
-        let rarity;
-        let characterPool;
+        let rarity, characterPool;
 
         if (rand < SSR_RATE) {
-            rarity = 'SSR';
-            characterPool = charactersData.SSR;
+            if (rand < PILGRIM_RATE) {
+                rarity = 'Pilgrim';
+                characterPool = charactersData.Pilgrim;
+            } else {
+                rarity = 'SSR';
+                characterPool = charactersData.SSR;
+            }
         } else if (rand < SSR_RATE + SR_RATE) {
             rarity = 'SR';
             characterPool = charactersData.SR;
@@ -65,10 +70,25 @@ function generateEmbeds(characters) {
     return characters.map(char => {
         return new EmbedBuilder()
             .setTitle(`${char.name} - Rarity: ${char.rarity}`)
-            .setColor(0x00AE86)
+            .setColor(getColorByRarity(char.rarity))
             .setImage(char.image)
             .setFooter({ text: getFooterTextByRarity(char.rarity) });
     });
+}
+
+function getColorByRarity(rarity) {
+    switch (rarity) {
+        case 'Pilgrim':
+            return '#FFA500'; // Light orange
+        case 'SSR':
+            return '#FFD700'; // Gold
+        case 'SR':
+            return '#800080'; // Purple
+        case 'R':
+            return '#ADD8E6'; // Light blue
+        default:
+            return '#FFFFFF'; // White as default
+    }
 }
 
 function getFooterTextByRarity(rarity) {
