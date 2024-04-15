@@ -42,7 +42,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true }); // Defer the reply initially
+        await interaction.deferReply({ ephemeral: false }); // Defer the reply initially
 
         const userId = interaction.user.id;
         const currentTime = Date.now();
@@ -56,7 +56,7 @@ module.exports = {
         if (userCommandUsage[userId].length >= 60) {
             await interaction.followUp({
                 content: "Commander, let's take it easy with the gacha, shall we? Too much excitement in such a short time isn't good for anyone!",
-                ephemeral: true,
+                ephemeral: false,
             });
         }
 
