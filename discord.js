@@ -571,8 +571,7 @@ async function sendDailyInterceptionMessage() {
                         .setTitle(`Attention commanders, here's today's schedule:`)
                         .setDescription(
                             `- We have to fight **${bossName}** in Special Interception\n` +
-                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**\n` +
-                            `- Check out the combat report link for tips on how to fight this Rapture: \n\n ${getBossesLinks()[bossIndex]}`
+                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
                         )
                         .setColor(0x00AE86)
                         .setTimestamp()
