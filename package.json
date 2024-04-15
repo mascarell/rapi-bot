@@ -11,10 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@discordjs/voice": "^0.16.1",
     "cron": "*",
     "discord.js": "^14.14.1",
     "dotenv": "^16.0.3",
     "express": "*",
+    "libsodium-wrappers": "^0.7.13",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.45",
     "node-fetch": "^2.6.9",
