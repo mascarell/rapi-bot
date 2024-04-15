@@ -313,6 +313,54 @@ const botCommands = {
             });
         },
     },
+    damntrain: {
+        name: "damn train",
+        description: "damn train",
+        execute(msg, args ) {
+            try {
+                const emoji = "❌";
+                msg.react(emoji);
+            } catch (error) {
+                console.error(
+                    "Failed to react with emoji:",
+                    error
+                );
+            }
+            
+            msg.reply({
+                content: `Commander...we don't talk about trains here.`,
+                files: [
+                    {
+                        attachment: "./public/images/nikke/SmugRapi.jpg",
+                        name: "SmugRapi.jpg",
+                    },
+                ],
+            });
+        },
+    },
+    damngravedigger: {
+        name: "damn gravedigger",
+        description: "damn gravedigger",
+        execute(msg, args ) {      
+            const filePaths = [
+                "./public/images/nikke/osugravedigger.png",
+                "./public/images/nikke/damngravedigger1.jpg",
+                "./public/images/nikke/damngravedigger.gif"
+            ];
+            
+            let rnd = Math.floor(Math.random() * filePaths.length);
+            let filePath = filePaths[rnd];
+
+            msg.reply({
+                content: `Commander...`,
+                files: [
+                    {
+                        attachment: filePath,
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
@@ -571,8 +619,7 @@ async function sendDailyInterceptionMessage() {
                         .setTitle(`Attention commanders, here's today's schedule:`)
                         .setDescription(
                             `- We have to fight **${bossName}** in Special Interception\n` +
-                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**\n` +
-                            `- Check out the combat report link for tips on how to fight this Rapture: \n\n ${getBossesLinks()[bossIndex]}`
+                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
                         )
                         .setColor(0x00AE86)
                         .setTimestamp()
