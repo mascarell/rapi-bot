@@ -1,7 +1,12 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
-const charactersData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'utils', 'characters.json'), 'utf-8'));
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const fs = require("fs");
+const path = require("path");
+const charactersData = JSON.parse(
+    fs.readFileSync(
+        path.join(__dirname, "..", "utils", "characters.json"),
+        "utf-8"
+    )
+);
 
 // Object to track command usage per user with timestamps
 const userCommandUsage = {};
