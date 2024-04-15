@@ -8,7 +8,9 @@ module.exports = {
     async execute(msg) {
 			msg.reply({ content: `CUSTOM COMMANDS \n 
 ➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
-➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE 
+➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE
+➜ **damn train** : Fuck Thomas The Train
+➜ **damn gravedigger** : Time for OSU!
 ➜ **good girl** : say thanks to the best girl & bot in this server 
 ➜ **wrong girl** : hey, take care who you talk to  
 ➜ **bad girl** : we all wanted to slap her  
