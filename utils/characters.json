@@ -37,6 +37,10 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/Scarlet.webp"
         },
         {
+            "name": "Scarlet: Black Shadow",
+            "image": "https://static.dotgg.gg/nikke/characters/c225_00.webp"
+        },
+        {
             "name": "Snow White",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/SnowWhite.webp"
         }
@@ -107,6 +111,10 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Drake.webp"
         },
         {
+            "name": "Elegg",
+            "image": "https://static.dotgg.gg/nikke/characters/c500_00.webp"
+        },
+        {
             "name": "Emma",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Emma.webp"
         },
@@ -149,6 +157,10 @@
         {
             "name": "Laplace",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Laplace.webp"
+        },
+        {
+            "name": "Leona",
+            "image": "https://www.prydwen.gg/static/e482b8e38f7ab4a2eda91c487aa413eb/3cd29/leona_full.webp"
         },
         {
             "name": "Liter",
@@ -217,6 +229,10 @@
         {
             "name": "Privaty",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Privaty.webp"
+        },
+        {
+            "name": "Privaty: Unkind Maid",
+            "image": "https://static.dotgg.gg/nikke/characters/c313_00.webp"
         },
         {
             "name": "Rei",
