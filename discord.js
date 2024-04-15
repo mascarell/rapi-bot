@@ -344,7 +344,6 @@ const botCommands = {
         execute(msg, args ) {      
             const filePaths = [
                 "./public/images/nikke/osugravedigger.png",
-                "./public/images/nikke/damngravedigger1.jpg",
                 "./public/images/nikke/damngravedigger.gif"
             ];
             
