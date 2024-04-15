@@ -41,30 +41,37 @@ module.exports = {
                 )
         ),
 
-    async execute(interaction) {
-        await interaction.deferReply({ ephemeral: false }); // Defer the reply initially
+  async execute(interaction) {
+    await interaction.deferReply({ ephemeral: false }); // Defer the reply initially
 
-        const userId = interaction.user.id;
-        const currentTime = Date.now();
-        if (!userCommandUsage[userId]) {
-            userCommandUsage[userId] = [];
-        }
-        userCommandUsage[userId].push(currentTime);
-        userCommandUsage[userId] = userCommandUsage[userId].filter(time => currentTime - time < 300000);
+    const userId = interaction.user.id;
 
-        // Gamba warning if 40+ uses within 5 minutes (more than 10 pulls a minute lol).
-        if (userCommandUsage[userId].length >= 40) {
-            await interaction.followUp({
-                content: "Commander, let's take it easy with the gacha, shall we? Too much excitement in such a short time isn't good for anyone!",
-                ephemeral: false,
-            });
-        }
+    // Check if the user is the bot itself
+    if (userId === interaction.client.user.id) {
+      return; // Do nothing if the user is the bot itself
+    }
 
-        const pullType = interaction.options.getString("type");
-        const results = pullCharacters(pullType);
-        const embeds = generateEmbeds(results);
-        await interaction.followUp({ embeds: embeds }); // Use followUp here because we used deferReply initially
-    },
+    const currentTime = Date.now();
+    if (!userCommandUsage[userId]) {
+      userCommandUsage[userId] = [];
+    }
+    userCommandUsage[userId].push(currentTime);
+    userCommandUsage[userId] = userCommandUsage[userId].filter(time => currentTime - time < 300000);
+
+    // Gamba warning if 20+ uses within 5 minutes (more than 10 pulls a minute lol).
+    if (userCommandUsage[userId].length >= 20) {
+      await interaction.followUp({
+        content: "Commander, let's take it easy with the gacha, shall we? Too much excitement in such a short time isn't good for anyone!",
+        ephemeral: false,
+      });
+      return; // Exit the function to prevent further execution
+    }
+
+    const pullType = interaction.options.getString("type");
+    const results = pullCharacters(pullType);
+    const embeds = generateEmbeds(results);
+    await interaction.followUp({ embeds: embeds }); // Use followUp here because we used deferReply initially
+  },
 };
 
 function pullCharacters(pullType) {
