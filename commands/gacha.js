@@ -67,6 +67,21 @@ function generateEmbeds(characters) {
             .setTitle(`${char.name} - Rarity: ${char.rarity}`)
             .setColor(0x00AE86)
             .setImage(char.image)
-            .setFooter({ text: 'Gacha results' });
+            .setFooter({ text: getFooterTextByRarity(char.rarity) });
     });
+}
+
+function getFooterTextByRarity(rarity) {
+    switch (rarity) {
+        case 'Pilgrim':
+            return "A legendary find, Commander! Are we dreaming?";
+        case 'SSR':
+            return "Wow! A SSR? That's incredibly lucky, Commander!";
+        case 'SR':
+            return "An SR! You're on the right track, Commander!";
+        case 'R':
+            return "It's just an R, but every squad member counts!";
+        default:
+            return "Keep pulling, Commander! Victory awaits!";
+    }
 }
