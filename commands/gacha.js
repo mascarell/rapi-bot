@@ -52,8 +52,8 @@ module.exports = {
         userCommandUsage[userId].push(currentTime);
         userCommandUsage[userId] = userCommandUsage[userId].filter(time => currentTime - time < 300000);
 
-        // Gamba warning if 60+ uses within 5 minutes (more than 10 pulls a minute lol).
-        if (userCommandUsage[userId].length >= 5) {
+        // Gamba warning if 40+ uses within 5 minutes (more than 10 pulls a minute lol).
+        if (userCommandUsage[userId].length >= 40) {
             await interaction.followUp({
                 content: "Commander, let's take it easy with the gacha, shall we? Too much excitement in such a short time isn't good for anyone!",
                 ephemeral: false,
