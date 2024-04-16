@@ -8,7 +8,7 @@ module.exports = [
     "... Could she be lying about her age?\nMaybe it's because of her high quality of life.",
     "I can only clean up after her for so long!\nIt's a bit of a secret, but Anis actually has a medical condition with her feet...",
     "Maybe I'm getting old... Or maybe I'm just tired...\nMaybe it's because you don't find the work interesting anymore?",
-    "No one lives as comfortably as she does.\nBolt also has her own troubles.",
+    "No one lives as comfortably as she does.\nVolt also has her own troubles.",
     "I'm at a loss. What do I do?\nGive him a piece of your mind.",
     "But, aren't I a bit too old for that sort of thing?\nAge doesn't matter when it comes to hobbies.",
     "If I get him a little brother to play with, he might not be as lonely.\nThen you'll just end up with two lonely dogs instead of one.",
