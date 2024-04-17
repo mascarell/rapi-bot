@@ -3,7 +3,7 @@ name: Build, Push and Deploy Docker Image
 on:
   push:
     branches:
-      - main
+      # - main
       - master
 
 jobs:
@@ -11,16 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Out Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3.1.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5.3.0
         with:
           context: .
           file: ./Dockerfile
@@ -32,13 +32,13 @@ jobs:
     needs: build-and-push
     steps:
       - name: Deploy to DigitalOcean Droplet
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DO_DROPLET_IP }}
-          username: ${{ secrets.DEPLOY_USER }} 
+          username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             docker pull ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
             docker stop rapibot || true
             docker rm rapibot || true
-            docker run -d --restart unless-stopped --name rapibot -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
+            docker run -d --restart unless-stopped --name rapibot -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} -e CLIENT_ID=${{ secrets.CLIENT_ID }} -e GUILD_ID=${{ secrets.GUILD_ID }} ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
