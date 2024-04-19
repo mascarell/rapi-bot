@@ -4,7 +4,7 @@ const getRapiMessages = require("./getRapiMessages");
 const { getBosses, getBossesLinks, getTribeTowerRotation, getBossFileName } = require("./getDailyInterceptionConfig");
 
 module.exports = {
-	getFiles,
+    getFiles,
     getIsStreaming,
     setIsStreaming,
     getRapiMessages,
