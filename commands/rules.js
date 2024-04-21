@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('help')
+    .setName('rules')
     .setDescription(`Rapi Rules (she'll ban you if you don't behave)`),
   async execute(msg) {
     msg.reply({
