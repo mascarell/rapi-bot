@@ -33,7 +33,7 @@ module.exports = {
         const responseIndex = Math.floor(Math.random() * responses.length);
         const response = responses[responseIndex];
         await interaction.reply({
-            content: `<:rapi:1229635953274916935> ${response}`, //need to implement emotes properly
+          content: `<:literawooo:1056600445558210632> ${response}`, //need to implement emotes properly
             ephemeral: false
         });
     }
