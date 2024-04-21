@@ -375,7 +375,10 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/R/iDollSun.webp"
         }
     ],
-    "Limited": [
-        
-    ]
+    "rates": {
+        "SSR": 0.04,
+        "Pilgrim": 0.0005,
+        "SR": 0.43,
+        "R": 0.53
+    }
 }
