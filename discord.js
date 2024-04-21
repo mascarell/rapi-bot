@@ -6,22 +6,22 @@ const fs = require("fs");
 const { createReadStream } = require('fs');
 const moment = require("moment-timezone");
 const {
-  REST,
-  Routes,
-  Client,
-  Collection,
-  GatewayIntentBits,
-  Events,
-  EmbedBuilder,
-  ActivityType,
-  PresenceUpdateStatus,
+    REST,
+    Routes,
+    Client,
+    Collection,
+    GatewayIntentBits,
+    Events,
+    EmbedBuilder,
+    ActivityType,
+    PresenceUpdateStatus,
 } = require("discord.js");
 const {
-  createAudioPlayer,
-  joinVoiceChannel,
-  createAudioResource,
-  VoiceConnectionStatus,
-  AudioPlayerStatus,
+    createAudioPlayer,
+    joinVoiceChannel,
+    createAudioResource,
+    VoiceConnectionStatus,
+    AudioPlayerStatus,
 } = require('@discordjs/voice');
 
 // utils
@@ -43,8 +43,8 @@ const RADIO_FOLDER_PATH = './radio';
 const voiceConnections = new Map();
 
 const pre = "/"; // what we use for the bot commands (not for all of them tho)
-const resetStartTime = moment.tz({hour: 20, minute: 0, second: 0, millisecond: 0}, 'UTC');
-const resetEndTime = moment.tz({hour: 20, minute: 0, second: 15, millisecond: 0}, 'UTC');
+const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
+const resetEndTime = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
 // Bot Configuration
 const bot = new Client({
@@ -233,7 +233,7 @@ const botCommands = {
                 console.log("Ignoring 'goodgirl' command in 'nikke' channel  within specific time window.");
                 return;
             }
-            else{
+            else {
                 msg.reply("Thank you Commander.");
             }
         },
@@ -329,7 +329,7 @@ const botCommands = {
     damntrain: {
         name: "damn train",
         description: "damn train",
-        execute(msg, args ) {
+        execute(msg, args) {
             try {
                 const emoji = "❌";
                 msg.react(emoji);
@@ -339,7 +339,7 @@ const botCommands = {
                     error
                 );
             }
-            
+
             msg.reply({
                 content: `Commander...we don't talk about trains here.`,
                 files: [
@@ -354,12 +354,12 @@ const botCommands = {
     damngravedigger: {
         name: "damn gravedigger",
         description: "damn gravedigger",
-        execute(msg, args ) {      
+        execute(msg, args) {
             const filePaths = [
                 "./public/images/nikke/osugravedigger.png",
                 "./public/images/nikke/damngravedigger.gif"
             ];
-            
+
             let rnd = Math.floor(Math.random() * filePaths.length);
             let filePath = filePaths[rnd];
 
@@ -666,7 +666,7 @@ async function sendDailyInterceptionMessage() {
                             // Randomly select a thank you message
                             const randomIndex = Math.floor(Math.random() * thankYouMessages.length);
                             const thankYouMessage = thankYouMessages[randomIndex];
-                            
+
                             m.reply(eval('`' + thankYouMessage + '`'));
                         } else {
                             try {
@@ -933,110 +933,110 @@ function enableAutoComplete() {
 }
 
 async function initDiscordBot() {
-  if (bot) new Error("Bot is already initialized, use getBot()");
+    if (bot) new Error("Bot is already initialized, use getBot()");
 
-  loadCommands();
-  loadGlobalSlashCommands();
-  registerGlobalSlashCommands();
-  
-  bot.once("ready", async () => {
-    setBotActivity();
-    greetNewMembers();
-    sendRandomMessages();
-    sendDailyInterceptionMessage();
-    enableAutoComplete();
-    handleMessages();
-    handleAdvice();
-    handleSlashCommands();
+    loadCommands();
+    loadGlobalSlashCommands();
+    registerGlobalSlashCommands();
 
-    console.log("Bot is ready!");
+    bot.once("ready", async () => {
+        setBotActivity();
+        greetNewMembers();
+        sendRandomMessages();
+        sendDailyInterceptionMessage();
+        enableAutoComplete();
+        handleMessages();
+        handleAdvice();
+        handleSlashCommands();
 
-    // try to connec to VC for the Rapi Radio
-    try {
-      // Loop through each guild (server) the bot is in
-      bot.guilds.cache.forEach(guild => {
-        // Get a voice channel to connect to (default rapi-radio channel)
-        const voiceChannel = guild.channels.cache.get('1229441264718577734');
+        console.log("Bot is ready!");
 
-        if (voiceChannel) {
-          connectToVoiceChannel(guild.id, voiceChannel);
+        // try to connec to VC for the Rapi Radio
+        try {
+            // Loop through each guild (server) the bot is in
+            bot.guilds.cache.forEach(guild => {
+                // Get a voice channel to connect to (default rapi-radio channel)
+                const voiceChannel = guild.channels.cache.get('1229441264718577734');
+
+                if (voiceChannel) {
+                    connectToVoiceChannel(guild.id, voiceChannel);
+                }
+            });
+        } catch (error) {
+            console.error("Failed to connec to VC Chat bot:", error);
         }
-      });
-    } catch (error) {
-      console.error("Failed to connec to VC Chat bot:", error);
-    }
-  });
+    });
 
-  bot.on('voiceStateUpdate', (oldState, newState) => {
-    const guildId = newState.guild.id;
-    const botId = bot.user.id;
+    bot.on('voiceStateUpdate', (oldState, newState) => {
+        const guildId = newState.guild.id;
+        const botId = bot.user.id;
 
-    if (newState.member.id === botId && !newState.channelId) {
-      // Bot left a voice channel
-      voiceConnections.get(guildId)?.destroy();
-      voiceConnections.delete(guildId);
-    }
-  });
+        if (newState.member.id === botId && !newState.channelId) {
+            // Bot left a voice channel
+            voiceConnections.get(guildId)?.destroy();
+            voiceConnections.delete(guildId);
+        }
+    });
 
-  bot.login(TOKEN).catch(console.error);
+    bot.login(TOKEN).catch(console.error);
 }
 
 async function connectToVoiceChannel(guildId, voiceChannel) {
-  try {
-    const connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: voiceChannel.guild.id,
-      adapterCreator: voiceChannel.guild.voiceAdapterCreator
-    });
+    try {
+        const connection = joinVoiceChannel({
+            channelId: voiceChannel.id,
+            guildId: voiceChannel.guild.id,
+            adapterCreator: voiceChannel.guild.voiceAdapterCreator
+        });
 
-    connection.on('error', error => {
-      console.error(`Voice connection error in guild ${guildId}:`, error);
-    });
+        connection.on('error', error => {
+            console.error(`Voice connection error in guild ${guildId}:`, error);
+        });
 
-    const playlist = fs.readdirSync(RADIO_FOLDER_PATH);
+        const playlist = fs.readdirSync(RADIO_FOLDER_PATH);
 
-    voiceConnections.set(guildId, { connection, playlist });
+        voiceConnections.set(guildId, { connection, playlist });
 
-    connection.on(VoiceConnectionStatus.Ready, () => {
-      console.log(`Bot connected to voice channel in guild ${guildId}`);
-      playNextSong(guildId);
-    });
-  } catch (error) {
-    console.error(`Failed to connect to voice channel in guild ${guildId}:`, error);
-  }
+        connection.on(VoiceConnectionStatus.Ready, () => {
+            console.log(`Bot connected to voice channel in guild ${guildId}`);
+            playNextSong(guildId);
+        });
+    } catch (error) {
+        console.error(`Failed to connect to voice channel in guild ${guildId}:`, error);
+    }
 }
 
 function playNextSong(guildId) {
-  try {
-    const { connection, playlist } = voiceConnections.get(guildId);
-    const currentIndex = connection.currentSongIndex || 0;
-    const nextIndex = (currentIndex + 1) % playlist.length;
-    const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
-    const resource = createAudioResource(songPath);
+    try {
+        const { connection, playlist } = voiceConnections.get(guildId);
+        const currentIndex = connection.currentSongIndex || 0;
+        const nextIndex = (currentIndex + 1) % playlist.length;
+        const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
+        const resource = createAudioResource(songPath);
 
-    // TODO
-    // this is not available yet on discord.js, setting up the VC status to the current song name
-    // only works for text channels for now, when it's updated i'll change it
-    // const guild = bot.guilds.cache.get(guildId);
-    // const voiceChannel = guild.channels.cache.get('1229441264718577734');
-    // const fileName = path.parse(songPath).name;
-    // voiceChannel.setTopic(`🎶 ${fileName} 🎶`);
+        // TODO
+        // this is not available yet on discord.js, setting up the VC status to the current song name
+        // only works for text channels for now, when it's updated i'll change it
+        // const guild = bot.guilds.cache.get(guildId);
+        // const voiceChannel = guild.channels.cache.get('1229441264718577734');
+        // const fileName = path.parse(songPath).name;
+        // voiceChannel.setTopic(`🎶 ${fileName} 🎶`);
 
-    if (!connection.player) {
-      connection.player = createAudioPlayer();
-      connection.player.on(AudioPlayerStatus.Idle, () => {
-        playNextSong(guildId);
-      });
+        if (!connection.player) {
+            connection.player = createAudioPlayer();
+            connection.player.on(AudioPlayerStatus.Idle, () => {
+                playNextSong(guildId);
+            });
+        }
+
+        connection.subscribe(connection.player);
+        connection.player.play(resource);
+
+        // Update current song index for next iteration
+        connection.currentSongIndex = nextIndex;
+    } catch (error) {
+        console.error(`Error while playing next song in guild ${guildId}:`, error);
     }
-
-    connection.subscribe(connection.player);
-    connection.player.play(resource);
-
-    // Update current song index for next iteration
-    connection.currentSongIndex = nextIndex;
-  } catch (error) {
-    console.error(`Error while playing next song in guild ${guildId}:`, error);
-  }
 }
 
 function getDiscordBot() {

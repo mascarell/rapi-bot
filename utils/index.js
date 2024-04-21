@@ -5,7 +5,7 @@ const { getBosses, getBossesLinks, getTribeTowerRotation, getBossFileName } = re
 const gamesData = require('./data/gamesData');
 
 module.exports = {
-	getFiles,
+    getFiles,
     getIsStreaming,
     setIsStreaming,
     getRapiMessages,
