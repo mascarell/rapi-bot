@@ -1,6 +1,10 @@
 {
     "Pilgrim": [
         {
+            "name": "Crown",
+            "image": "https://static.dotgg.gg/nikke/characters/c330_00.webp"
+        },
+        {
             "name": "Dorothy",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/Dorothy.webp"
         },
@@ -153,6 +157,10 @@
         {
             "name": "Julia",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Julia.webp"
+        },
+        {
+            "name": "Kilo",
+            "image": "https://static.dotgg.gg/nikke/characters/c361_00.webp"
         },
         {
             "name": "Laplace",
