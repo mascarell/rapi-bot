@@ -373,6 +373,20 @@ const botCommands = {
             });
         },
     },
+    shiftdeadspicycrawl: {
+        name: "dead spicy?",
+        description: "dead spicy?",
+        execute(msg, args) {
+            msg.reply({
+                files: [
+                    {
+                        attachment: "./public/images/shifty/shifty_dead_spicy_crawl.webm",
+                        name: "shifty_dead_spicy_crawl.webm"
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
