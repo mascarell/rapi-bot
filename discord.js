@@ -380,8 +380,8 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/shifty/shifty_dead_spicy_crawl.webm",
-                        name: "shifty_dead_spicy_crawl.webm"
+                        attachment: "./public/images/shifty/shifty_dead_spicy_crawl.gif",
+                        name: "shifty_dead_spicy_crawl.gif"
                     },
                 ],
             });
