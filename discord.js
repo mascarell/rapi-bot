@@ -738,6 +738,12 @@ function handleMessages() {
         }
 
         const command = args.shift().toLowerCase();
+        
+        //TODO: Update this function to be more robust. Right now it's acting as if /help command is being passed later on and being executed.
+        // This is a short term fix to temporarily ignore help command from being executed by accident.
+        if (command == "help"){
+            return;
+        }
 
         // Check if we're mentioning the bot and if the message contains a valid command
         if (message.mentions.has(bot.user.id) && !bot.commands.has(command)) {
