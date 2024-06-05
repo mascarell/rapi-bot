@@ -739,9 +739,8 @@ function handleMessages() {
 
         const command = args.shift().toLowerCase();
         
-        //TODO: Update this function to be more robust. Right now it's acting as if /help command is being passed later on and being executed.
-        // This is a short term fix to temporarily ignore help command from being executed by accident.
-        if (command == "help"){
+        // This will ensure that any chat message passed individually will be ignored if it's a registered command within the slash commands.
+        if (bot.commands.has(command)){
             return;
         }
 
