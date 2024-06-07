@@ -738,6 +738,11 @@ function handleMessages() {
         }
 
         const command = args.shift().toLowerCase();
+        
+        // This will ensure that any chat message passed individually will be ignored if it's a registered command within the slash commands.
+        if (bot.commands.has(command)){
+            return;
+        }
 
         // Check if we're mentioning the bot and if the message contains a valid command
         if (message.mentions.has(bot.user.id) && !bot.commands.has(command)) {
