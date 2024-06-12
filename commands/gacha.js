@@ -122,7 +122,7 @@ function generateEmbeds(characters, game) {
 function getColorByRarity(rarity, game, itemType) {
     const baseColors = {
         nikke: { "Pilgrim": "#FFA500", "SSR": "#FFD700", "SR": "#800080", "R": "#ADD8E6" },
-        solo_leveling: { "SSD": "#FF4500", "4-Star": "#4682B4", "3-Star": "#778899" },
+        solo_leveling: { "SSR": "#FF4500", "SR": "#4682B4", "R": "#778899" },
         wuthering_waves: { 
             "5-Star": "#FFD700", 
             "4-Star": { "character": "#800080", "weapon": "#34eb6b" }, // Different colors for character and weapon
