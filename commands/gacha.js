@@ -7,6 +7,7 @@ const {
 } = require("discord.js");
 const nikkeData = require("../utils/data/characters/nikke.json");
 const soloLevelingData = require("../utils/data/characters/soloLeveling.json");
+const wutheringWavesData = require("../utils/data/characters/wutheringWaves.json");
 
 // Object to track command usage per user with timestamps
 const userCommandUsage = {};
@@ -36,7 +37,11 @@ module.exports = {
             option.setName("game")
                 .setDescription("Select the game")
                 .setRequired(true)
-                .addChoices({ name: "GODDESS OF VICTORY: NIKKE", value: "nikke" }, { name: "Solo Leveling", value: "solo_leveling" })),
+                .addChoices(
+                    { name: "GODDESS OF VICTORY: NIKKE", value: "nikke" },
+                    { name: "Solo Leveling", value: "solo_leveling" },
+                    { name: "Wuthering Waves", value: "wuthering_waves"}
+                )),
 
     async execute(interaction) {
         await interaction.deferReply();
@@ -53,7 +58,23 @@ module.exports = {
             return;
         }
 
-        const results = game === "nikke" ? pullCharacters(pullType, nikkeData) : pullCharacters(pullType, soloLevelingData);
+        let data;
+        switch(game) {
+            case "nikke":
+                data = nikkeData;
+                break;
+            case "solo_leveling":
+                data = soloLevelingData;
+                break;
+            case "wuthering_waves":
+                data = wutheringWavesData;
+                break;
+            default:
+                await interaction.reply("Selected game is not supported!");
+                return;
+        }
+
+        const results = pullCharacters(pullType, data);
         const embeds = generateEmbeds(results, game);
 
         if (pullType === "multi") {
@@ -79,38 +100,56 @@ function pullCharacters(pullType, data) {
 }
 
 function determineRarity(rand, rates) {
-    if (rand < rates.SSR) return rand < rates.Pilgrim ? "Pilgrim" : "SSR";
-    if (rand < rates.SSR + rates.SR) return "SR";
-    return "R";
+    const sortedRates = Object.entries(rates).sort((a, b) => a[1] - b[1]);
+    let cumulativeRate = 0;
+    for (let [rarity, rate] of sortedRates) {
+        cumulativeRate += rate;
+        if (rand < cumulativeRate) {
+            return rarity;
+        }
+    }
+    return "Unknown";
 }
+
 function generateEmbeds(characters, game) {
     return characters.map(char => new EmbedBuilder()
         .setTitle(`${char.name} - Rarity: ${char.rarity}`)
-        .setColor(getColorByRarity(char.rarity, game))
+        .setColor(getColorByRarity(char.rarity, game, char.type))
         .setImage(char.image)
         .setFooter({ text: getFooterTextByRarity(char.rarity, game) }));
 }
 
-function getColorByRarity(rarity, game) {
-    const colors = {
-        nikke: { Pilgrim: "#FFA500", SSR: "#FFD700", SR: "#800080", R: "#ADD8E6" },
-        solo_leveling: { SSR: "#FF4500", SR: "#4682B4", R: "#778899" }
+function getColorByRarity(rarity, game, itemType) {
+    const baseColors = {
+        nikke: { "Pilgrim": "#FFA500", "SSR": "#FFD700", "SR": "#800080", "R": "#ADD8E6" },
+        solo_leveling: { "SSD": "#FF4500", "4-Star": "#4682B4", "3-Star": "#778899" },
+        wuthering_waves: { 
+            "5-Star": "#FFD700", 
+            "4-Star": { "character": "#800080", "weapon": "#34eb6b" }, // Different colors for character and weapon
+            "3-Star": "#34a8eb" 
+        }
     };
-    return colors[game][rarity] || "#FFFFFF";
+    const colors = baseColors[game];
+    return colors[rarity][itemType] || colors[rarity] || "#FFFFFF";
 }
 
 function getFooterTextByRarity(rarity, game) {
     const messages = {
         nikke: {
-            Pilgrim: "A legendary find, Commander! Are we dreaming?",
-            SSR: "Wow! A SSR? That's incredibly lucky, Commander!",
-            SR: "An SR! You're on the right track, Commander!",
-            R: "It's just an R, but every squad member counts!"
+            "Pilgrim": "A legendary find, Commander! Are we dreaming?",
+            "SSR": "Wow! A SSR? That's incredibly lucky, Commander!",
+            "SR": "An SR! You're on the right track, Commander!",
+            "R": "It's just an R, but every squad member counts!"
         },
         solo_leveling: {
-            SSR: "A legendary find, Commander! Are we dreaming?",
-            SR: "An SR! You're on the right track, Commander!",
-            R: "It's just an R, but every member counts!"
+            "SSR": "A legendary find, Commander! Are we dreaming?",
+            "SR": "An SR! You're on the right track, Commander!",
+            "R": "It's just an R, but every member counts!"
+        },
+        wuthering_waves: {
+            "5-Star": "Commander, you've struck gold with a 5-Star!",
+            "4-Star": "Solid find, Commander! A 4-Star!",
+            "3-Star": "It's a common 3-Star, but it's a start!"
         }
     };
     return messages[game][rarity] || "Keep pulling, Commander! Victory awaits!";
