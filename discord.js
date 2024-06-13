@@ -718,6 +718,14 @@ async function sendDailyInterceptionMessage() {
 
 
 function handleMessages() {
+    // Read command files from the commands directory
+    const commandsDir = path.join(__dirname, "commands");
+    const commandFiles = fs.readdirSync(commandsDir)
+        .filter(file => file.endsWith('.js'))
+        .map(file => file.slice(0, -3));  // Remove the .js extension
+
+    const validSlashCommands = new Set(commandFiles);
+
     bot.on("messageCreate", async (message) => {
         // Ignore messages that mention @everyone
         if (message.mentions.everyone) {
@@ -739,9 +747,9 @@ function handleMessages() {
 
         const command = args.shift().toLowerCase();
         
-        // This will ensure that any chat message passed individually will be ignored if it's a registered command within the slash commands.
-        if (bot.commands.has(command)){
-            return;
+        // Ignore if the command is part of slash commands
+        if (validSlashCommands.has(command)) {
+            return;  
         }
 
         // Check if we're mentioning the bot and if the message contains a valid command
