@@ -41,4 +41,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
             docker stop rapibot || true
             docker rm rapibot || true
-            docker run -d --restart unless-stopped --name rapibot -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} -e CLIENT_ID=${{ secrets.CLIENT_ID }} -e GUILD_ID=${{ secrets.GUILD_ID }} ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
+            docker run -d --restart unless-stopped --name rapibot -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} -e CLIENT_ID=${{ secrets.CLIENT_ID }} ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
