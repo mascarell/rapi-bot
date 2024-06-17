@@ -25,7 +25,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -38,10 +38,12 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
-            docker stop rapibot || true
-            docker rm rapibot || true
+            docker pull ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+            if [ "$(docker ps -q -f name=rapibot)" ]; then
+                docker stop rapibot
+                docker rm rapibot
+            fi
             docker run -d --restart unless-stopped --name rapibot \
               -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
               -e CLIENT_ID=${{ secrets.CLIENT_ID }} \
-              ${{ secrets.DOCKER_USERNAME }}/rapibot:latest
+              ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
