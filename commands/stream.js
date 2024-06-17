@@ -40,7 +40,7 @@ module.exports = {
                 // Post the video link into the specific channel
                 const channel = await interaction.client.channels.fetch(channelId);
                 if (channel) {
-                    await channel.send(`@everyone Commander Sefhi is now streaming! Watch here: ${url}`);
+                    await channel.send(`@everyone Commander Sefhi is now streaming! You can watch on YouTube and Twitch here: ${url} ${twitchLink}`);
                 } else {
                     console.error(`Channel with ID ${channelId} not found.`);
                 }
