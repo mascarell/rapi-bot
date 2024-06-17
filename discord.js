@@ -589,6 +589,11 @@ function setBotActivity() {
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
+        {
+            name: "WUTHERING WAVES",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
     ];
 
     updateBotActivity(activities);
