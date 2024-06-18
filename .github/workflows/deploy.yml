@@ -44,6 +44,8 @@ jobs:
                 docker rm rapibot
             fi
             docker run -d --restart unless-stopped --name rapibot \
-              -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
-              -e CLIENT_ID=${{ secrets.CLIENT_ID }} \
+              -e WAIFUPORT=${{ secrets.WAIFU_PORT }} \
+              -e WAIFUTOKEN=${{ secrets.DISCORD_TOKEN }} \
+              -e CATAPI=${{ secrets.CAT_API }} \
+              -e CLIENTID=${{ secrets.CLIENT_ID }} \
               ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
