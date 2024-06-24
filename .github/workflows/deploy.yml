@@ -37,14 +37,26 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "Pulling the latest Docker image..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+            
+            echo "Checking if the container is already running..."
             if [ "$(docker ps -q -f name=rapibot)" ]; then
+                echo "Container is running. Stopping and removing..."
                 docker stop rapibot
                 docker rm rapibot
             fi
-            docker run -d --restart unless-stopped --name rapibot \
-              -e WAIFUPORT=${{ secrets.WAIFU_PORT }} \
-              -e WAIFUTOKEN=${{ secrets.DISCORD_TOKEN }} \
-              -e CATAPI=${{ secrets.CAT_API }} \
-              -e CLIENTID=${{ secrets.CLIENT_ID }} \
-              ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+            
+            echo "Removing all unused images..."
+            docker image prune -a -f
+            
+            echo "Creating environment file..."
+            cat << EOF > .env
+            WAIFUPORT=${{ secrets.WAIFU_PORT }}
+            WAIFUTOKEN=${{ secrets.DISCORD_TOKEN }}
+            CATAPI=${{ secrets.CAT_API }}
+            CLIENTID=${{ secrets.CLIENT_ID }}
+            EOF
+            
+            echo "Running the new container..."
+            docker run -d --restart unless-stopped --name rapibot --env-file .env ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
