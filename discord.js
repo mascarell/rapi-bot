@@ -813,6 +813,38 @@ function handleMessages() {
             return;
         }
 
+        if (message.content.trim().toLowerCase().startsWith("broke boi")){
+            const mentionedUser = message.mentions.users.first();
+            const brokeboiReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
+            const filePaths = [
+                "./public/images/memes/money-empty.gif",
+                "./public/audio/brokeboi.mp3"
+            ];
+        
+            const brokeboiMessages = [
+                "it looks like your wallet is as empty as your promises.",
+                "running low on funds again? Maybe you should try saving for once.",
+                "looks like you need a lesson in budgeting. How much is left in the treasury, broke boy?",
+                "I think it's time to reconsider your spending habits. You're practically broke.",
+                "planning to lead us into battle with an empty wallet? Classic move.",
+                "another day, another dollar... missing from your account.",
+                "your financial situation is more dire than our latest mission.",
+                "guess we'll have to tighten our belts again. Your funds are looking pretty thin.",
+                "even the enemy seems to have more resources than you. What's your excuse this time?",
+                "seems like you need a bailout. Broke boy, what's the plan now?"
+            ];
+        
+            const randomMessage = brokeboiMessages[Math.floor(Math.random() * brokeboiMessages.length)];
+        
+            message.reply({
+                content: brokeboiReply + randomMessage,
+                files: filePaths.map(filePath => ({ attachment: filePath })),
+            });
+
+            return;
+        }
+
+        
         // If there's no command or it's not a valid bot command, exit early
         if (!command || !bot.commands.has(command)) return;
 
