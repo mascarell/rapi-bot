@@ -21,10 +21,6 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/Modernia.webp"
         },
         {
-            "name": "Nihilister",
-            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/Nihilister.webp"
-        },
-        {
             "name": "Noah",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/Noah.webp"
         },
@@ -167,10 +163,6 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Julia.webp"
         },
         {
-            "name": "Kilo",
-            "image": "https://static.dotgg.gg/nikke/characters/c361_00.webp"
-        },
-        {
             "name": "Laplace",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Laplace.webp"
         },
@@ -253,10 +245,6 @@
         {
             "name": "Privaty: Unkind Maid",
             "image": "https://static.dotgg.gg/nikke/characters/c313_00.webp"
-        },
-        {
-            "name": "Rei",
-            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Rei.webp"
         },
         {
             "name": "Rosanna",
