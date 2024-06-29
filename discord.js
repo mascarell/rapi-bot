@@ -429,6 +429,20 @@ const botCommands = {
             });
         },
     },
+    cpprules: {
+        name: "cpp rules...",
+        description: "CPP Rules",
+        async execute(msg, args) {
+            msg.reply({
+                content: "Commander...please review our CPP Guidelines set by El Shafto...",
+                files: [
+                    {
+                        attachment: "./public/images/commands/cpp-rules.png",
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
