@@ -429,15 +429,15 @@ const botCommands = {
             });
         },
     },
-    cpprules: {
-        name: "cpp rules...",
-        description: "CPP Rules",
+    ccprules: {
+        name: "ccp rules...",
+        description: "ccp Rules",
         async execute(msg, args) {
             msg.reply({
-                content: "Commander...please review our CPP Guidelines set by El Shafto...",
+                content: "Commander...please review our ccp Guidelines set by El Shafto...",
                 files: [
                     {
-                        attachment: "./public/images/commands/cpp-rules.png",
+                        attachment: "./public/images/commands/ccp-rules.png",
                     },
                 ],
             });
