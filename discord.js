@@ -429,6 +429,20 @@ const botCommands = {
             });
         },
     },
+    cpprules: {
+        name: "cpp rules...",
+        description: "CPP Rules",
+        async execute(msg, args) {
+            msg.reply({
+                content: "Commander...please review our CPP Guidelines set by El Shafto...",
+                files: [
+                    {
+                        attachment: "./public/images/commands/cpp-rules.png",
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
@@ -843,6 +857,37 @@ function handleMessages() {
 
             return;
         }
+
+        if (message.content.trim().toLowerCase().startsWith("read nikke")){
+            const mentionedUser = message.mentions.users.first();
+            const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
+            const filePaths = [
+                "./public/images/commands/boondocks-read.gif",
+            ];
+        
+            const readNikkeMessages = [
+                "skipping the story again? You miss all the good parts...",
+                "maybe try reading the dialogue. It’s not just about the battles!",
+                "you’d enjoy the game more if you actually read the story...",
+                "always skipping content??? You’re missing all the plot twists!",
+                "read the story! There’s more than just shooting!",
+                "what’s the rush? Enjoy the dialogue for once...",
+                "you skip more content than you should. Try reading!!!",
+                "the story is half the fun. Stop skipping it like El Shafto!!!",
+                "always rushing? The dialogue has great moments, you know...",
+                "ever thought about reading? You’re missing out on the lore!"
+            ];
+        
+            const randomMessage = readNikkeMessages[Math.floor(Math.random() * readNikkeMessages.length)];
+        
+            message.reply({
+                content: readNikkeReply + randomMessage,
+                files: filePaths.map(filePath => ({ attachment: filePath })),
+            });
+
+            return;
+        }
+
 
         
         // If there's no command or it's not a valid bot command, exit early
