@@ -431,10 +431,10 @@ const botCommands = {
     },
     ccprules: {
         name: "ccp rules...",
-        description: "ccp Rules",
+        description: "CCP Rules",
         async execute(msg, args) {
             msg.reply({
-                content: "Commander...please review our ccp Guidelines set by El Shafto...",
+                content: "Commander...please review our CCP Guidelines set by El Shafto...",
                 files: [
                     {
                         attachment: "./public/images/commands/ccp-rules.png",
