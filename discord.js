@@ -411,9 +411,10 @@ const botCommands = {
         description: "CURSE OF BELORTA",
         async execute(msg, args) {
             const filePaths = [
-                "./public/images/nikke/belortaCloseUp.png",
-                "./public/images/nikke/curseofBelorta.png",
-                "./public/images/nikke/belortaPeek.jpg"
+                "./public/images/commands/belorta/belorta_close_up_eyes.png",
+                "./public/images/commands/belorta/belorta_slapped.png",
+                "./public/images/commands/belorta/belorta_peek.jpg",
+                "./public/images/commands/belorta/belorta_shocked.jpg"
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
@@ -431,10 +432,10 @@ const botCommands = {
     },
     ccprules: {
         name: "ccp rules...",
-        description: "ccp Rules",
+        description: "CCP Rules",
         async execute(msg, args) {
             msg.reply({
-                content: "Commander...please review our ccp Guidelines set by El Shafto...",
+                content: "Commander...please review our CCP Guidelines set by El Shafto...",
                 files: [
                     {
                         attachment: "./public/images/commands/ccp-rules.png",
