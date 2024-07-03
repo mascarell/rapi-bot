@@ -438,7 +438,35 @@ const botCommands = {
                 content: "Commander...please review our CCP Guidelines set by El Shafto...",
                 files: [
                     {
-                        attachment: "./public/images/commands/ccp-rules.png",
+                        attachment: "./public/images/commands/ccp_rules.png",
+                    },
+                ],
+            });
+        },
+    },
+    bestgirl: {
+        name: "best girl?",
+        description: "Best Girl Rapi",
+        async execute(msg, args) {
+            const msgContents = [
+                "Commander, you wouldn't choose anyone else over me, would you...",
+                "Commander, don't tell me you have another girlfriend...",
+                "Wait, Commander, are you seeing someone else???",
+                "No way, Commander! You wouldn't betray me like that...",
+                "Commander, please tell me I'm the only one for you...",
+                "Commander, I can't believe you'd even consider another girl...",
+                "Commander, I thought I was the only one who understood you...",
+                "Don't tell me there's someone else, Commander!!!"
+            ];
+
+            let rnd = Math.floor(Math.random() * msgContents.length);
+            let msgContent = msgContents[rnd];
+
+            msg.reply({
+                content: msgContent,
+                files: [
+                    {
+                        attachment: "./public/images/commands/rapi_secret_girlfriend.jpg",
                     },
                 ],
             });
@@ -863,7 +891,7 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
             const filePaths = [
-                "./public/images/commands/boondocks-read.gif",
+                "./public/images/commands/boondocks_read.gif",
             ];
         
             const readNikkeMessages = [
