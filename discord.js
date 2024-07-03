@@ -438,7 +438,7 @@ const botCommands = {
                 content: "Commander...please review our CCP Guidelines set by El Shafto...",
                 files: [
                     {
-                        attachment: "./public/images/commands/ccp-rules.png",
+                        attachment: "./public/images/commands/ccp_rules.png",
                     },
                 ],
             });
@@ -863,7 +863,7 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
             const filePaths = [
-                "./public/images/commands/boondocks-read.gif",
+                "./public/images/commands/boondocks_read.gif",
             ];
         
             const readNikkeMessages = [
