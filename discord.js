@@ -444,6 +444,34 @@ const botCommands = {
             });
         },
     },
+    bestgirl: {
+        name: "best girl?",
+        description: "Best Girl Rapi",
+        async execute(msg, args) {
+            const msgContents = [
+                "Commander, you wouldn't choose anyone else over me, would you...",
+                "Commander, don't tell me you have another girlfriend...",
+                "Wait, Commander, are you seeing someone else???",
+                "No way, Commander! You wouldn't betray me like that...",
+                "Commander, please tell me I'm the only one for you...",
+                "Commander, I can't believe you'd even consider another girl...",
+                "Commander, I thought I was the only one who understood you...",
+                "Don't tell me there's someone else, Commander!!!"
+            ];
+
+            let rnd = Math.floor(Math.random() * msgContents.length);
+            let msgContent = msgContents[rnd];
+
+            msg.reply({
+                content: msgContent,
+                files: [
+                    {
+                        attachment: "./public/images/commands/rapi_secret_girlfriend.jpg",
+                    },
+                ],
+            });
+        },
+    },
 };
 
 function loadCommands() {
