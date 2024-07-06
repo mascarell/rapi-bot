@@ -341,6 +341,10 @@
     ],
     "SR": [
         {
+            "name": "Anchor",
+            "image": "https://static.dotgg.gg/nikke/characters/c351_00.webp"
+        },
+        {
             "name": "Anis",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SR/Anis.webp"
         },
