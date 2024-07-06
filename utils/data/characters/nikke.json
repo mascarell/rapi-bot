@@ -63,6 +63,10 @@
             "image": "https://static.dotgg.gg/nikke/characters/c195_00.webp"
         },
         {
+            "name": "Anis: Sparkling Summer",
+            "image": "https://static.dotgg.gg/nikke/characters/c015_00.webp"
+        },
+        {
             "name": "Aria",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Aria.webp"
         },
@@ -155,6 +159,10 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Helm.webp"
         },
         {
+            "name": "Helm: Aquamarine",
+            "image": "https://static.dotgg.gg/nikke/characters/c353_00.webp"
+        },
+        {
             "name": "Jackal",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Jackal.webp"
         },
@@ -185,6 +193,10 @@
         {
             "name": "Mary",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Mary.webp"
+        },
+        {
+            "name": "Mary: Bay Goddess",
+            "image": "https://static.dotgg.gg/nikke/characters/c132_00.webp"
         },
         {
             "name": "Marciana",
@@ -219,6 +231,10 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Nero.webp"
         },
         {
+            "name": "Neon: Blue Ocean",
+            "image": "https://static.dotgg.gg/nikke/characters/c014_00.webp"
+        },
+        {
             "name": "Noir",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Noir.webp"
         },
@@ -251,12 +267,20 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Rosanna.webp"
         },
         {
+            "name": "Rosanna: Chic Ocean",
+            "image": "https://static.dotgg.gg/nikke/characters/c283_00.webp"
+        },
+        {
             "name": "Rupee",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Rupee.webp"
         },
         {
             "name": "Sakura",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Sakura.webp"
+        },
+        {
+            "name": "Sakura: Bloom in Summer",
+            "image": "https://static.dotgg.gg/nikke/characters/c284_00.webp"
         },
         {
             "name": "Signal",
