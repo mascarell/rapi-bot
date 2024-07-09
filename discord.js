@@ -472,6 +472,28 @@ const botCommands = {
             });
         },
     },
+    gambleradvice: {
+        name: "99%",
+        description: "Gamblers' Advice",
+        async execute(msg, args) {
+            const filePaths = [
+                "./public/images/commands/gamblerAdvice/GetShafted.mp4",
+                "./public/images/commands/gamblerAdvice/GetShafted.jpg",
+            ];
+
+            let rnd = Math.floor(Math.random() * filePaths.length);
+            let filePath = filePaths[rnd];
+
+            msg.reply({
+                content: "Commander...did you know 99% of gamblers quit before hitting it big?",
+                files: [
+                    {
+                        attachment: filePath
+                    },
+                ],
+            });
+        },
+    }
 };
 
 function loadCommands() {
@@ -577,21 +599,21 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: PresenceUpdateStatus.Online,
         },
-        // {
-        //     name: "SOLO RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
+        {
+            name: "SOLO RAID",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
         // {
         //     name: "UNION RAID",
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
-        // {
-        //     name: "COOP RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
+        {
+            name: "COOP RAID",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -635,6 +657,26 @@ function setBotActivity() {
         {
             name: "WUTHERING WAVES",
             type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Honkai: Star Rail",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Brown Dust 2",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Solo Leveling: ARISE",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Walking on the Beach",
+            type: ActivityType.DoNotDisturb,
             status: PresenceUpdateStatus.Online,
         },
     ];
