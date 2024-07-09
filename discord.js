@@ -577,21 +577,21 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: PresenceUpdateStatus.Online,
         },
-        // {
-        //     name: "SOLO RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
+        {
+            name: "SOLO RAID",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
         // {
         //     name: "UNION RAID",
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
-        // {
-        //     name: "COOP RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
+        {
+            name: "COOP RAID",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -635,6 +635,26 @@ function setBotActivity() {
         {
             name: "WUTHERING WAVES",
             type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Honkai: Star Rail",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Brown Dust 2",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Solo Leveling: ARISE",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Walking on the Beach",
+            type: ActivityType.DoNotDisturb,
             status: PresenceUpdateStatus.Online,
         },
     ];
