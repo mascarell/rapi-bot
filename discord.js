@@ -472,6 +472,28 @@ const botCommands = {
             });
         },
     },
+    gambleradvice: {
+        name: "99%",
+        description: "Gamblers' Advice",
+        async execute(msg, args) {
+            const filePaths = [
+                "./public/images/commands/gamblerAdvice/GetShafted.mp4",
+                "./public/images/commands/gamblerAdvice/GetShafted.jpg",
+            ];
+
+            let rnd = Math.floor(Math.random() * filePaths.length);
+            let filePath = filePaths[rnd];
+
+            msg.reply({
+                content: "Commander...did you know 99% of gamblers quit before hitting it big?",
+                files: [
+                    {
+                        attachment: filePath
+                    },
+                ],
+            });
+        },
+    }
 };
 
 function loadCommands() {
