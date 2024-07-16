@@ -670,13 +670,18 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Solo Leveling: ARISE",
+            name: "Lost Ark",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Walking on the Beach",
+            name: "on the Beach",
             type: ActivityType.DoNotDisturb,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Trickal RE:VIVE",
+            type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
     ];
