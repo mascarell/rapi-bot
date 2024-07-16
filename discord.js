@@ -478,6 +478,7 @@ const botCommands = {
         async execute(msg, args) {
             const filePaths = [
                 "./public/images/commands/gamblerAdvice/GetShafted.mp4",
+                "./public/images/commands/gamblerAdvice/GetShafted2.mp4",
                 "./public/images/commands/gamblerAdvice/GetShafted.jpg",
             ];
 
