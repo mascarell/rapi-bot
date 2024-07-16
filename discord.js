@@ -478,6 +478,7 @@ const botCommands = {
         async execute(msg, args) {
             const filePaths = [
                 "./public/images/commands/gamblerAdvice/GetShafted.mp4",
+                "./public/images/commands/gamblerAdvice/GetShafted2.mp4",
                 "./public/images/commands/gamblerAdvice/GetShafted.jpg",
             ];
 
@@ -670,13 +671,18 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Solo Leveling: ARISE",
+            name: "Lost Ark",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Walking on the Beach",
+            name: "on the Beach",
             type: ActivityType.DoNotDisturb,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Trickal RE:VIVE",
+            type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
     ];
