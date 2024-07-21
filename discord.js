@@ -414,7 +414,10 @@ const botCommands = {
                 "./public/images/commands/belorta/belorta_close_up_eyes.png",
                 "./public/images/commands/belorta/belorta_slapped.png",
                 "./public/images/commands/belorta/belorta_peek.jpg",
-                "./public/images/commands/belorta/belorta_shocked.jpg"
+                "./public/images/commands/belorta/belorta_shocked.jpg",
+                "./public/images/commands/belorta/belorta_multi_shafted.jpg",
+                "./public/images/commands/belorta/belorta_shocked.jpg",
+                "./public/images/commands/belorta/belorta_slapped.jpg",
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
