@@ -536,43 +536,48 @@ function loadGlobalSlashCommands() {
 }
 
 function handleTimeout(msg) {
+    const { member, author } = msg;
+
+    // Calculating whether to timeout
     if (Math.random() < 0.5) {
-        msg.member.timeout(300000, "Commander, I need a moment of peace away from you!")
+        member.timeout(300000, "Commander, I need a moment of peace away from you!")
             .then(() => {
-                sendTimeoutMessage(msg, true);
+                const emojis = ["sefhistare:1124869893880283306", "❌"];
+                emojis.forEach(emoji => msg.react(emoji).catch(console.error));
+
+                msg.reply({
+                    content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
+                    files: [{
+                        attachment: "./public/images/nikke/SmugRapi.jpg",
+                        name: "SmugRapi.jpg",
+                    }]
+                });
             })
             .catch(error => {
                 console.error('Failed to timeout the user:', error);
-                sendTimeoutMessage(msg, false);
+                handleTimeoutError(msg, author);
             });
     } else {
-        msg.reply(`You're lucky this time, Commander ${msg.author}. I'm feeling generous and letting you off the hook... but just this once!`);
+        msg.reply({
+            content: `Well, I tried to give myself a break from you, Commander ${author}...but maybe I was being too rash. Thank you, Commander...`,
+            files: [{
+                attachment: "./public/images/commands/goodGirl/commander_rapi_hug.jpg",
+                name: "commander_rapi_hug.jpg",
+            }]
+        });
     }
 }
 
-function sendTimeoutMessage(msg, success) {
-    const baseMessage = success ? 
-        `Honestly, Commander ${msg.author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!` :
-        `Well, I tried to give myself a break from you Commander ${msg.author}, but it seems luck is on your side... consider this winning the hard pity at 50/50.`;
-
+function handleTimeoutError(msg, author) {
     msg.reply({
-        content: baseMessage,
+        content: `Something caught me off guard...Commander ${author}...`,
         files: [{
-            attachment: "./public/images/nikke/SmugRapi.jpg",
-            name: "SmugRapi.jpg",
+            attachment: "./public/images/commands/goodGirl/commander_rapi_hug.jpg",
+            name: "commander_rapi_hug.jpg",
         }]
     });
-
-    if (success) {
-        try {
-            const emoji = "sefhistare:1124869893880283306"; // Custom emoji format
-            msg.react(emoji);
-            msg.react("❌");
-        } catch (error) {
-            console.error('Failed to react to the user:', error);
-        }
-    }
 }
+
 
 function registerGlobalSlashCommands() {
     const commands = [];
