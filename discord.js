@@ -243,19 +243,23 @@ const botCommands = {
         name: "good girl",
         description: "good girl Rapi",
         execute(msg, args) {
-            // Check if the command is 'goodgirl' and the collector is active and return if in "nikke" discord channel
-            // Other channels are fine to allow the command flow to continue.
+            // Check if the command is in the restricted channel and time window
             const isNikkeChannel = msg.channel.name === "nikke";
             const currentTime = moment.tz('UTC');
             const isWithinTimeWindow = currentTime.isBetween(resetStartTime, resetEndTime);
-            if ((isNikkeChannel && isWithinTimeWindow)) {
-                console.log("Ignoring 'goodgirl' command in 'nikke' channel  within specific time window.");
+
+            if (isNikkeChannel && isWithinTimeWindow) {
+                console.log("Ignoring 'goodgirl' command in 'nikke' channel within specific time window.");
                 return;
             }
-            else {
-                msg.reply("Thank you Commander.");
+
+            // Random chance for a timeout action
+            if (Math.random() < 0.04) {
+                handleTimeout(msg);
+            } else {
+                msg.reply(`Thank you Commander ${msg.author}.`);
             }
-        },
+        }
     },
     dammit: {
         name: "dammit rapi",
@@ -531,6 +535,50 @@ function loadGlobalSlashCommands() {
     }
 }
 
+function handleTimeout(msg) {
+    const { member, author } = msg;
+
+    // Calculating whether to timeout
+    if (Math.random() < 0.5) {
+        member.timeout(300000, "Commander, I need a moment of peace away from you!")
+            .then(() => {
+                const emojis = ["sefhistare:1124869893880283306", "❌"];
+                emojis.forEach(emoji => msg.react(emoji).catch(console.error));
+
+                msg.reply({
+                    content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
+                    files: [{
+                        attachment: "./public/images/nikke/SmugRapi.jpg",
+                        name: "SmugRapi.jpg",
+                    }]
+                });
+            })
+            .catch(error => {
+                console.error('Failed to timeout the user:', error);
+                handleTimeoutError(msg, author);
+            });
+    } else {
+        msg.reply({
+            content: `Well, I tried to give myself a break from you, Commander ${author}...but maybe I was being too rash. Thank you, Commander...`,
+            files: [{
+                attachment: "./public/images/commands/goodGirl/commander_rapi_hug.jpg",
+                name: "commander_rapi_hug.jpg",
+            }]
+        });
+    }
+}
+
+function handleTimeoutError(msg, author) {
+    msg.reply({
+        content: `Something caught me off guard...Commander ${author}...`,
+        files: [{
+            attachment: "./public/images/commands/goodGirl/commander_rapi_hug.jpg",
+            name: "commander_rapi_hug.jpg",
+        }]
+    });
+}
+
+
 function registerGlobalSlashCommands() {
     const commands = [];
     const commandsPath = path.join(__dirname, "commands");
@@ -603,21 +651,21 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: PresenceUpdateStatus.Online,
         },
-        {
-            name: "SOLO RAID",
-            type: ActivityType.Competing,
-            status: PresenceUpdateStatus.DoNotDisturb,
-        },
+        // {
+        //     name: "SOLO RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
         // {
         //     name: "UNION RAID",
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
-        {
-            name: "COOP RAID",
-            type: ActivityType.Competing,
-            status: PresenceUpdateStatus.DoNotDisturb,
-        },
+        // {
+        //     name: "COOP RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
