@@ -727,12 +727,12 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "on the Beach",
-            type: ActivityType.DoNotDisturb,
+            name: "Trickal RE:VIVE",
+            type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Trickal RE:VIVE",
+            name: "Sword of Convallaria",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
