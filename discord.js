@@ -111,7 +111,7 @@ const botCommands = {
                 "It seems your skills are lacking, Commander. Let's work on it..."
             ];
             // Get Random Phrase
-            let randomPhrase = skillIssuePhrases[Math.floor(Math.random() * phrases.length)];
+            let randomPhrase = skillIssuePhrases[Math.floor(Math.random() * skillIssuePhrases.length)];
 
             // Pick image from folder
             let files = await getFiles("./public/images/commands/skillIssue/");
@@ -133,14 +133,32 @@ const botCommands = {
     skillissueiphone: {
         name: "sounds like…",
         async execute(msg, args) {
+            // Phrases array
+            let skillIssuePhrases = [
+                "It sounds like you have some skill issues, Commander...",
+                "Commander, seems like we need to work on those skills...",
+                "Skill issues detected, Commander. Let's improve together...",
+                "Commander, looks like your skills need a bit of polishing...",
+                "I think your skills are falling short, Commander. Let's fix that...",
+                "Commander, your skills could use some improvement...",
+                "It seems your skills are lacking, Commander. Let's work on it..."
+            ];
+            // Get Random Phrase
+            let randomPhrase = skillIssuePhrases[Math.floor(Math.random() * skillIssuePhrases.length)];
+
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/skillIssue/");
+            // Get Random
+            let randomSkillIssueImage = files[Math.floor(Math.random() * files.length)];
+
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/skill.gif",
-                        name: "skill.gif",
+                        attachment: randomSkillIssueImage.path,
+                        name: randomSkillIssueImage.name,
                     },
                 ],
-                content: `It sounds like you have some skill issues Commander.`,
+                content: randomPhrase,
             });
         },
     },
