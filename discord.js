@@ -100,32 +100,14 @@ const botCommands = {
     skillissue: {
         name: "sounds like...",
         async execute(msg, args) {
-            // Phrases array
-            let skillIssuePhrases = [
-                "It sounds like you have some skill issues, Commander...",
-                "Commander, seems like we need to work on those skills...",
-                "Skill issues detected, Commander. Let's improve together...",
-                "Commander, looks like your skills need a bit of polishing...",
-                "I think your skills are falling short, Commander. Let's fix that...",
-                "Commander, your skills could use some improvement...",
-                "It seems your skills are lacking, Commander. Let's work on it..."
-            ];
-            // Get Random Phrase
-            let randomPhrase = skillIssuePhrases[Math.floor(Math.random() * skillIssuePhrases.length)];
-
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/skillIssue/");
-            // Get Random
-            let randomSkillIssueImage = files[Math.floor(Math.random() * files.length)];
-
             msg.reply({
                 files: [
                     {
-                        attachment: randomSkillIssueImage.path,
-                        name: randomSkillIssueImage.name,
+                        attachment: "./public/images/nikke/skill.gif",
+                        name: "skill.gif",
                     },
                 ],
-                content: randomPhrase,
+                content: `It sounds like you have some skill issues Commander.`,
             });
         },
     },
@@ -133,32 +115,14 @@ const botCommands = {
     skillissueiphone: {
         name: "sounds like…",
         async execute(msg, args) {
-            // Phrases array
-            let skillIssuePhrases = [
-                "It sounds like you have some skill issues, Commander...",
-                "Commander, seems like we need to work on those skills...",
-                "Skill issues detected, Commander. Let's improve together...",
-                "Commander, looks like your skills need a bit of polishing...",
-                "I think your skills are falling short, Commander. Let's fix that...",
-                "Commander, your skills could use some improvement...",
-                "It seems your skills are lacking, Commander. Let's work on it..."
-            ];
-            // Get Random Phrase
-            let randomPhrase = skillIssuePhrases[Math.floor(Math.random() * skillIssuePhrases.length)];
-
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/skillIssue/");
-            // Get Random
-            let randomSkillIssueImage = files[Math.floor(Math.random() * files.length)];
-
             msg.reply({
                 files: [
                     {
-                        attachment: randomSkillIssueImage.path,
-                        name: randomSkillIssueImage.name,
+                        attachment: "./public/images/nikke/skill.gif",
+                        name: "skill.gif",
                     },
                 ],
-                content: randomPhrase,
+                content: `It sounds like you have some skill issues Commander.`,
             });
         },
     },
@@ -452,12 +416,13 @@ const botCommands = {
         async execute(msg, args) {
             const filePaths = [
                 "./public/images/commands/belorta/belorta_close_up_eyes.png",
-                "./public/images/commands/belorta/belorta_slapped.png",
+                "./public/images/commands/belorta/belorta_moran_yell.png",
+                "./public/images/commands/belorta/belorta_multi_shafted.png",
                 "./public/images/commands/belorta/belorta_peek.jpg",
+                "./public/images/commands/belorta/belorta_pilgrim_mold.png",
+                "./public/images/commands/belorta/belorta_pull_rage.png",
                 "./public/images/commands/belorta/belorta_shocked.jpg",
-                "./public/images/commands/belorta/belorta_multi_shafted.jpg",
-                "./public/images/commands/belorta/belorta_shocked.jpg",
-                "./public/images/commands/belorta/belorta_slapped.jpg",
+                "./public/images/commands/belorta/belorta_slapped.png",
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
