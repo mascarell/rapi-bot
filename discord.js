@@ -959,23 +959,21 @@ function handleMessages() {
         if (message.content.trim().toLowerCase().startsWith("rapi get dat nikke")){
             const mentionedUser = message.mentions.users.first();
             const getHimReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
-            const filePaths = [
-                "./public/images/commands/getDatNikke/get_her_boondocks.gif",
-                "./public/images/commands/getDatNikke/get_him_boondocks_stfu.gif",
-                "./public/images/commands/getDatNikke/get_him_boondocks.gif",                
-                "./public/images/commands/getDatNikke/get_him_counters.png",
-                "./public/images/commands/getDatNikke/get_him_initialD_slap.gif",
-                "./public/images/commands/getDatNikke/get_him_ntr.png",
-                "./public/images/commands/getDatNikke/get_him_spongebob_meme.gif",
-            ];
-        
-            const randomImage = filePaths[Math.floor(Math.random() * filePaths.length)];
+            
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/getDatNikke/");
+            
+            // Get Random Image
+            let randomImage = files[Math.floor(Math.random() * files.length)];
         
             message.reply({
                 content: getHimReply,
-                files: [{
-                    attachment: randomImage
-                }]
+                files: [
+                    {
+                        attachment: randomImage.path,
+                        name: randomImage.name,
+                    },
+                ]
             });
 
             return;
@@ -1081,6 +1079,7 @@ function handleAdvice() {
         "guillotine",
         "admi",
         "rei",
+        "kilo"
     ];
     fs.readdirSync(charactersDir)
         .filter((file) => file.endsWith(".js"))
