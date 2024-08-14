@@ -1079,6 +1079,7 @@ function handleAdvice() {
         "guillotine",
         "admi",
         "rei",
+        "kilo"
     ];
     fs.readdirSync(charactersDir)
         .filter((file) => file.endsWith(".js"))
