@@ -956,6 +956,31 @@ function handleMessages() {
             return;
         }
 
+        if (message.content.trim().toLowerCase().startsWith("rapi get dat nikke")){
+            const mentionedUser = message.mentions.users.first();
+            const getHimReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
+            const filePaths = [
+                "./public/images/commands/getDatNikke/get_her_boondocks.gif",
+                "./public/images/commands/getDatNikke/get_him_boondocks_stfu.gif",
+                "./public/images/commands/getDatNikke/get_him_boondocks.gif",                
+                "./public/images/commands/getDatNikke/get_him_counters.png",
+                "./public/images/commands/getDatNikke/get_him_initialD_slap.gif",
+                "./public/images/commands/getDatNikke/get_him_ntr.png",
+                "./public/images/commands/getDatNikke/get_him_spongebob_meme.gif",
+            ];
+        
+            const randomImage = filePaths[Math.floor(Math.random() * filePaths.length)];
+        
+            message.reply({
+                content: getHimReply,
+                files: [{
+                    attachment: randomImage
+                }]
+            });
+
+            return;
+        }
+
         if (message.content.trim().toLowerCase().startsWith("broke boi")){
             const mentionedUser = message.mentions.users.first();
             const brokeboiReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
