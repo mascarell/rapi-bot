@@ -100,14 +100,20 @@ const botCommands = {
     skillissue: {
         name: "sounds like...",
         async execute(msg, args) {
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/skillIssue/");
+            
+            // Get Random Image
+            let randomImage = files[Math.floor(Math.random() * files.length)];
+        
             msg.reply({
+                content: 'It sounds like you have some skill issues Commander.',
                 files: [
                     {
-                        attachment: "./public/images/nikke/skill.gif",
-                        name: "skill.gif",
+                        attachment: randomImage.path,
+                        name: randomImage.name,
                     },
-                ],
-                content: `It sounds like you have some skill issues Commander.`,
+                ]
             });
         },
     },
@@ -115,14 +121,20 @@ const botCommands = {
     skillissueiphone: {
         name: "sounds like…",
         async execute(msg, args) {
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/skillIssue/");
+            
+            // Get Random Image
+            let randomImage = files[Math.floor(Math.random() * files.length)];
+        
             msg.reply({
+                content: 'It sounds like you have some skill issues Commander.',
                 files: [
                     {
-                        attachment: "./public/images/nikke/skill.gif",
-                        name: "skill.gif",
+                        attachment: randomImage.path,
+                        name: randomImage.name,
                     },
-                ],
-                content: `It sounds like you have some skill issues Commander.`,
+                ]
             });
         },
     },
