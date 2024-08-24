@@ -689,11 +689,11 @@ function setBotActivity() {
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
-        // {
-        //     name: "UNION RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
+        {
+            name: "UNION RAID",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
         // {
         //     name: "COOP RAID",
         //     type: ActivityType.Competing,
