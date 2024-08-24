@@ -514,6 +514,26 @@ const botCommands = {
                 ],
             });
         },
+    },
+    ccpNumbahOne: {
+        name: "ccp #1",
+        description: "CCP LOYALTY",
+        async execute(msg, args) {
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/ccp/");
+            
+            // Get Random Image
+            let randomMeme = files[Math.floor(Math.random() * files.length)];
+
+            msg.reply({
+                content: "Unite, Progress, Empower.",
+                files: [
+                    {
+                        attachment: filePath
+                    },
+                ],
+            });
+        },
     }
 };
 
