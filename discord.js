@@ -30,7 +30,6 @@ const {
     getIsStreaming,
     getRapiMessages,
     getBosses,
-    getBossesLinks,
     getTribeTowerRotation,
     getBossFileName,
 } = require("./utils");
@@ -63,7 +62,7 @@ bot.commands = new Collection();
 const botCommands = {
     booba: {
         name: "booba?",
-        async execute(msg, args) {
+        async execute(msg) {
             // Pick image from folder
             let files = await getFiles("./public/images/booba/");
             // Get Random
@@ -81,7 +80,7 @@ const botCommands = {
     },
     booty: {
         name: "booty?",
-        async execute(msg, args) {
+        async execute(msg) {
             // Pick image from folder
             let files = await getFiles("./public/images/booty/");
             // Get Random
@@ -99,7 +98,7 @@ const botCommands = {
     },
     skillissue: {
         name: "sounds like...",
-        async execute(msg, args) {
+        async execute(msg) {
             // Pick image from folder
             let files = await getFiles("./public/images/commands/skillIssue/");
             
@@ -120,7 +119,7 @@ const botCommands = {
     // TODO: Check if both commands still necessary???
     skillissueiphone: {
         name: "sounds like…",
-        async execute(msg, args) {
+        async execute(msg) {
             // Pick image from folder
             let files = await getFiles("./public/images/commands/skillIssue/");
             
@@ -140,7 +139,7 @@ const botCommands = {
     },
     seggs: {
         name: "seggs?",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -154,7 +153,7 @@ const botCommands = {
     },
     kindaweird: {
         name: "kinda weird...",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -167,7 +166,7 @@ const botCommands = {
     },
     iswear: {
         name: "i swear she is actually 3000 years old",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -181,7 +180,7 @@ const botCommands = {
     },
     teengame: {
         name: "12+ game",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -195,7 +194,7 @@ const botCommands = {
     },
     justice: {
         name: "justice for...",
-        async execute(msg, args) {
+        async execute(msg) {
             // Pick image from folder
             let files = await getFiles("./public/images/justice/");
             // Get Random
@@ -214,7 +213,7 @@ const botCommands = {
     },
     whale: {
         name: "whale levels",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -228,7 +227,7 @@ const botCommands = {
     },
     discipline: {
         name: "lap of discipline.",
-        async execute(msg, args) {
+        async execute(msg) {
             const filePaths = [
                 "./public/images/nikke/lapOfCounters.webp",
                 "./public/images/nikke/lapOfDiscipline.jpg"
@@ -254,7 +253,7 @@ const botCommands = {
     goodgirl: {
         name: "good girl",
         description: "good girl Rapi",
-        execute(msg, args) {
+        execute(msg) {
             // Check if the command is in the restricted channel and time window
             const isNikkeChannel = msg.channel.name === "nikke";
             const currentTime = moment.tz('UTC');
@@ -276,14 +275,14 @@ const botCommands = {
     dammit: {
         name: "dammit rapi",
         description: "dammit rapi",
-        execute(msg, args) {
+        execute(msg) {
             msg.reply("Sorry Commander.");
         },
     },
     wronggirl: {
         name: "wrong girl",
         description: "wrong girl Rapi",
-        execute(msg, args) {
+        execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -298,7 +297,7 @@ const botCommands = {
     moldRates: {
         name: "mold rates are not that bad",
         description: `Commander, what are you talking about?`,
-        execute(msg, args) {
+        execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -312,7 +311,7 @@ const botCommands = {
     },
     readyRapi: {
         name: "ready rapi?",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -327,7 +326,7 @@ const botCommands = {
     contentSquad: {
         name: pre + "content",
         description: "content squad ping",
-        execute(msg, args) {
+        execute(msg) {
             msg.reply(
                 `<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`
             );
@@ -336,7 +335,7 @@ const botCommands = {
     badgirl: {
         name: "bad girl",
         description: "bad girl",
-        execute(msg, args) {
+        execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -350,7 +349,7 @@ const botCommands = {
     reward: {
         name: "reward?",
         description: "reward?",
-        execute(msg, args) {
+        execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -364,7 +363,7 @@ const botCommands = {
     damntrain: {
         name: "damn train",
         description: "damn train",
-        execute(msg, args) {
+        execute(msg) {
             try {
                 const emoji = "❌";
                 msg.react(emoji);
@@ -389,7 +388,7 @@ const botCommands = {
     damngravedigger: {
         name: "damn gravedigger",
         description: "damn gravedigger",
-        execute(msg, args) {
+        execute(msg) {
             const filePaths = [
                 "./public/images/nikke/osugravedigger.png",
                 "./public/images/nikke/damngravedigger.gif"
@@ -411,7 +410,7 @@ const botCommands = {
     shiftdeadspicycrawl: {
         name: "dead spicy?",
         description: "dead spicy?",
-        execute(msg, args) {
+        execute(msg) {
             msg.reply({
                 files: [
                     {
@@ -425,7 +424,7 @@ const botCommands = {
     curseofbelorta: {
         name: "belorta...",
         description: "CURSE OF BELORTA",
-        async execute(msg, args) {
+        async execute(msg) {
             const filePaths = [
                 "./public/images/commands/belorta/belorta_close_up_eyes.png",
                 "./public/images/commands/belorta/belorta_moran_yell.png",
@@ -453,7 +452,7 @@ const botCommands = {
     ccprules: {
         name: "ccp rules...",
         description: "CCP Rules",
-        async execute(msg, args) {
+        async execute(msg) {
             msg.reply({
                 content: "Commander...please review our CCP Guidelines set by El Shafto...",
                 files: [
@@ -467,7 +466,7 @@ const botCommands = {
     bestgirl: {
         name: "best girl?",
         description: "Best Girl Rapi",
-        async execute(msg, args) {
+        async execute(msg) {
             const msgContents = [
                 "Commander, you wouldn't choose anyone else over me, would you...",
                 "Commander, don't tell me you have another girlfriend...",
@@ -495,7 +494,7 @@ const botCommands = {
     gambleradvice: {
         name: "99%",
         description: "Gamblers' Advice",
-        async execute(msg, args) {
+        async execute(msg) {
             const filePaths = [
                 "./public/images/commands/gamblerAdvice/GetShafted.mp4",
                 "./public/images/commands/gamblerAdvice/GetShafted2.mp4",
@@ -518,18 +517,34 @@ const botCommands = {
     ccpNumbahOne: {
         name: "ccp #1",
         description: "CCP LOYALTY",
-        async execute(msg, args) {
+        async execute(msg) {
             // Pick image from folder
             let files = await getFiles("./public/images/commands/ccp/");
             
             // Get Random Image
             let randomMeme = files[Math.floor(Math.random() * files.length)];
 
+            const mantras = [
+                "Strength, Unity, Vision.",
+                "Progress Through Power.",
+                "Unite for the Future.",
+                "Empower, Lead, Excel.",
+                "Solidarity in Strength.",
+                "Visionary Leadership, Collective Success.",
+                "Together, We Achieve.",
+                "Resilience, Growth, Unity.",
+                "Forward with Purpose.",
+                "Innovate, Unify, Succeed."
+            ];
+
+            let randomMantra = mantras[Math.floor(Math.random() * mantras.length)];
+            
             msg.reply({
-                content: "Unite, Progress, Empower.",
+                content: randomMantra,
                 files: [
                     {
-                        attachment: filePath
+                        attachment: randomMeme.path,
+                        name: randomMeme.name,
                     },
                 ],
             });
