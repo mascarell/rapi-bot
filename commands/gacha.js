@@ -63,12 +63,12 @@ module.exports = {
             case "nikke":
                 data = nikkeData;
                 break;
-            case "solo_leveling":
-                data = soloLevelingData;
-                break;
-            case "wuthering_waves":
-                data = wutheringWavesData;
-                break;
+            // case "solo_leveling":
+            //     data = soloLevelingData;
+            //     break;
+            // case "wuthering_waves":
+            //     data = wutheringWavesData;
+            //     break;
             default:
                 await interaction.reply("Selected game is not supported!");
                 return;
