@@ -425,25 +425,17 @@ const botCommands = {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            const filePaths = [
-                "./public/images/commands/belorta/belorta_close_up_eyes.png",
-                "./public/images/commands/belorta/belorta_moran_yell.png",
-                "./public/images/commands/belorta/belorta_multi_shafted.png",
-                "./public/images/commands/belorta/belorta_peek.jpg",
-                "./public/images/commands/belorta/belorta_pilgrim_mold.png",
-                "./public/images/commands/belorta/belorta_pull_rage.png",
-                "./public/images/commands/belorta/belorta_shocked.jpg",
-                "./public/images/commands/belorta/belorta_slapped.png",
-            ];
-
-            let rnd = Math.floor(Math.random() * filePaths.length);
-            let filePath = filePaths[rnd];
-
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/belorta/");
+            
+            // Get Random Image
+            let randomImage = files[Math.floor(Math.random() * files.length)];            
             msg.reply({
                 content: "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨 𓀩 𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊",
                 files: [
                     {
-                        attachment: filePath
+                        attachment: randomImage.path,
+                        name: randomImage.name,
                     },
                 ],
             });
