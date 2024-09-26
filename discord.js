@@ -459,7 +459,13 @@ const botCommands = {
         name: "best girl?",
         description: "Best Girl Rapi",
         async execute(msg) {
-            const msgContents = [
+            // Pick image from folder
+            let files = await getFiles("./public/images/commands/bestGirl/");
+            
+            // Get Random Image
+            let randomFile = files[Math.floor(Math.random() * files.length)];
+
+            const bestGirlPhrases = [
                 "Commander, you wouldn't choose anyone else over me, would you...",
                 "Commander, don't tell me you have another girlfriend...",
                 "Wait, Commander, are you seeing someone else???",
@@ -470,14 +476,14 @@ const botCommands = {
                 "Don't tell me there's someone else, Commander!!!"
             ];
 
-            let rnd = Math.floor(Math.random() * msgContents.length);
-            let msgContent = msgContents[rnd];
-
+            let randomPhrase = bestGirlPhrases[Math.floor(Math.random() * bestGirlPhrases.length)];
+            
             msg.reply({
-                content: msgContent,
+                content: randomPhrase,
                 files: [
                     {
-                        attachment: "./public/images/commands/rapi_secret_girlfriend.jpg",
+                        attachment: randomFile.path,
+                        name: randomFile.name,
                     },
                 ],
             });
