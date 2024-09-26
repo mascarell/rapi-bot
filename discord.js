@@ -518,6 +518,7 @@ const botCommands = {
 
             const mantras = [
                 "Strength, Unity, Vision.",
+                "United, We Bounce.",
                 "Progress Through Power.",
                 "Unite for the Future.",
                 "Empower, Lead, Excel.",
