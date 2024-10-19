@@ -7,7 +7,7 @@ const bosses = [
     "Grave Digger",
 ];
 
-function getBosses() {
+export function getBosses() {
     return bosses;    
 }
 
@@ -20,7 +20,7 @@ const bossesLinks = [
     "https://lootandwaifus.com/guides/special-individual-interception-grave-digger/",
 ];
 
-function getBossesLinks() {
+export function getBossesLinks() {
     return bossesLinks;    
 }
 
@@ -35,12 +35,12 @@ const towerRotation = [
     "all manufacturers",
 ];
 
-function getTribeTowerRotation() {
+export function getTribeTowerRotation() {
     return towerRotation;    
 }
 
 // Get Boss File Name
-function getBossFileName(bossName) {
+export function getBossFileName(bossName: string) {
     switch (bossName) {
         // Hardcode for Thomas The Train
         case "Alteisen MK.VI":

@@ -1,11 +1,8 @@
-// dependencies
-const CronJob = require("cron").CronJob;
-const fetch = require("node-fetch");
-const path = require("path");
-const fs = require("fs");
-const { createReadStream } = require('fs');
-const moment = require("moment-timezone");
-const {
+import path from "path";
+import fs from "fs";
+import schedule from 'node-schedule';
+import 'moment-timezone';
+import {
     REST,
     Routes,
     Client,
@@ -15,126 +12,109 @@ const {
     EmbedBuilder,
     ActivityType,
     PresenceUpdateStatus,
-} = require("discord.js");
-const {
+    TextChannel,
+    VoiceState,
+    ChannelType,
+    Guild,
+} from "discord.js";
+import {
     createAudioPlayer,
     joinVoiceChannel,
     createAudioResource,
     VoiceConnectionStatus,
     AudioPlayerStatus,
-} = require('@discordjs/voice');
+    VoiceConnection,
+    AudioPlayer,
+} from '@discordjs/voice';
 
 // utils
-const {
+import {
     getFiles,
     getIsStreaming,
     getRapiMessages,
     getBosses,
     getTribeTowerRotation,
     getBossFileName,
-} = require("./utils");
+} from "./utils";
+import moment from "moment";
+import axios from "axios";
 
-const TOKEN = process.env.WAIFUTOKEN;
-const CLIENTID = process.env.CLIENTID;
+const TOKEN = process.env.WAIFUTOKEN as string;
+const CLIENTID = process.env.CLIENTID as string;
 const RADIO_FOLDER_PATH = './radio';
 
 // Map to store voice connections and playlists for each server
-const voiceConnections = new Map();
+const voiceConnections: Map<string, { connection: VoiceConnection; playlist: string[], player?: AudioPlayer, currentSongIndex?: number }> = new Map();
 
 const pre = "/"; // what we use for the bot commands (not for all of them tho)
 const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
 const resetEndTime = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
 // Bot Configuration
-const bot = new Client({
+const bot: Client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent, // Needed to receive message content
-        GatewayIntentBits.GuildMembers, // If you use features like welcoming a new member
-        GatewayIntentBits.GuildVoiceStates, // If you use features like voice channels
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates,
     ],
 });
+
 bot.commands = new Collection();
+const commands: Array<object> = [];
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    import(filePath).then(commandModule => {
+        const command = commandModule.default;
+        bot.commands.set(command.data.name, command);
+        commands.push(command.data.toJSON());
+    }).catch(console.error);
+}
+
+// Define a type for your bot commands
+type BotCommand = {
+    name: string;
+    description?: string;
+    execute: (msg: any) => void | Promise<void>;
+};
+
+// Extend Client to include commands
+declare module 'discord.js' {
+    interface Client {
+        commands: Collection<string, any>;
+    }
+}
+
 
 // Bot commands object
 // The name has to be lowercase
-const botCommands = {
+const botCommands: { [key: string]: BotCommand } = {
     booba: {
         name: "booba?",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/booba/");
-            // Get Random
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-
-            msg.reply({
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ],
-            });
+            await sendRandomImage(msg, "./src/public/images/booba/");
         },
     },
     booty: {
         name: "booty?",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/booty/");
-            // Get Random
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-
-            msg.reply({
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ],
-            });
+            await sendRandomImage(msg, "./src/public/images/booty/");
         },
     },
     skillissue: {
         name: "sounds like...",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/skillIssue/");
-            
-            // Get Random Image
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-        
-            msg.reply({
-                content: 'It sounds like you have some skill issues Commander.',
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ]
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/skillIssue/", 'It sounds like you have some skill issues Commander.');
         },
     },
-    // TODO: Check if both commands still necessary???
     skillissueiphone: {
         name: "sounds like…",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/skillIssue/");
-            
-            // Get Random Image
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-        
-            msg.reply({
-                content: 'It sounds like you have some skill issues Commander.',
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ]
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/skillIssue/", 'It sounds like you have some skill issues Commander.');
         },
     },
     seggs: {
@@ -143,7 +123,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/seggs.mp4",
+                        attachment: "./src/public/images/nikke/seggs.mp4",
                         name: "seggs.mp4",
                     },
                 ],
@@ -157,7 +137,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/kindaweird.png",
+                        attachment: "./src/public/images/nikke/kindaweird.png",
                     },
                 ],
                 content: `But why, Commander?...`,
@@ -170,7 +150,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/iswear.png",
+                        attachment: "./src/public/images/nikke/iswear.png",
                         name: "iswear.png",
                     },
                 ],
@@ -184,7 +164,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/12game.png",
+                        attachment: "./src/public/images/nikke/12game.png",
                         name: "12game.png",
                     },
                 ],
@@ -195,20 +175,7 @@ const botCommands = {
     justice: {
         name: "justice for...",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/justice/");
-            // Get Random
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-
-            msg.reply({
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ],
-                content: `Commander, let's take her out of NPC jail.`,
-            });
+            await sendRandomImageWithContent(msg, "./public/images/justice/", `Commander, let's take her out of NPC jail.`);
         },
     },
     whale: {
@@ -217,7 +184,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/whaling.png",
+                        attachment: "./src/public/images/nikke/whaling.png",
                         name: "whaling.jpg",
                     },
                 ],
@@ -229,8 +196,8 @@ const botCommands = {
         name: "lap of discipline.",
         async execute(msg) {
             const filePaths = [
-                "./public/images/nikke/lapOfCounters.webp",
-                "./public/images/nikke/lapOfDiscipline.jpg"
+                "./src/public/images/nikke/lapOfCounters.webp",
+                "./src/public/images/nikke/lapOfDiscipline.jpg"
             ];
 
             msg.reply({
@@ -286,7 +253,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/anis.png",
+                        attachment: "./src/public/images/nikke/anis.png",
                         name: "anis.jpg",
                     },
                 ],
@@ -301,7 +268,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/memes/copium-cn.jpg",
+                        attachment: "./src/public/images/memes/copium-cn.jpg",
                         name: "copium-cn.jpg",
                     },
                 ],
@@ -315,7 +282,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/ready.png",
+                        attachment: "./src/public/images/nikke/ready.png",
                         name: "ready.jpg",
                     },
                 ],
@@ -339,7 +306,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/wrong.gif",
+                        attachment: "./src/public/images/nikke/wrong.gif",
                         name: "wrong.gif",
                     },
                 ],
@@ -353,7 +320,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/nikke/reward.jpg",
+                        attachment: "./src/public/images/nikke/reward.jpg",
                         name: "reward.jpg",
                     },
                 ],
@@ -378,7 +345,7 @@ const botCommands = {
                 content: `Commander...we don't talk about trains here.`,
                 files: [
                     {
-                        attachment: "./public/images/nikke/SmugRapi.jpg",
+                        attachment: "./src/public/images/nikke/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     },
                 ],
@@ -390,8 +357,8 @@ const botCommands = {
         description: "damn gravedigger",
         execute(msg) {
             const filePaths = [
-                "./public/images/nikke/osugravedigger.png",
-                "./public/images/nikke/damngravedigger.gif"
+                "./src/public/images/nikke/osugravedigger.png",
+                "./src/public/images/nikke/damngravedigger.gif"
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
@@ -414,7 +381,7 @@ const botCommands = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./public/images/shifty/shifty_dead_spicy_crawl.gif",
+                        attachment: "./src/public/images/shifty/shifty_dead_spicy_crawl.gif",
                         name: "shifty_dead_spicy_crawl.gif"
                     },
                 ],
@@ -425,20 +392,7 @@ const botCommands = {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/belorta/");
-            
-            // Get Random Image
-            let randomFile = files[Math.floor(Math.random() * files.length)];            
-            msg.reply({
-                content: "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨 𓀩 𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊",
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ],
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨 𓀩 𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
         },
     },
     ccprules: {
@@ -449,7 +403,7 @@ const botCommands = {
                 content: "Commander...please review our CCP Guidelines set by El Shafto...",
                 files: [
                     {
-                        attachment: "./public/images/commands/ccp_rules.png",
+                        attachment: "./src/public/images/commands/ccp_rules.png",
                     },
                 ],
             });
@@ -459,34 +413,7 @@ const botCommands = {
         name: "best girl?",
         description: "Best Girl Rapi",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/bestGirl/");
-            
-            // Get Random Image
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-
-            const bestGirlPhrases = [
-                "Commander, you wouldn't choose anyone else over me, would you...",
-                "Commander, don't tell me you have another girlfriend...",
-                "Wait, Commander, are you seeing someone else???",
-                "No way, Commander! You wouldn't betray me like that...",
-                "Commander, please tell me I'm the only one for you...",
-                "Commander, I can't believe you'd even consider another girl...",
-                "Commander, I thought I was the only one who understood you...",
-                "Don't tell me there's someone else, Commander!!!"
-            ];
-
-            let randomPhrase = bestGirlPhrases[Math.floor(Math.random() * bestGirlPhrases.length)];
-            
-            msg.reply({
-                content: randomPhrase,
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ],
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/bestGirl/", getRandomBestGirlPhrase());
         },
     },
     gambleradvice: {
@@ -494,9 +421,9 @@ const botCommands = {
         description: "Gamblers' Advice",
         async execute(msg) {
             const filePaths = [
-                "./public/images/commands/gamblerAdvice/GetShafted.mp4",
-                "./public/images/commands/gamblerAdvice/GetShafted2.mp4",
-                "./public/images/commands/gamblerAdvice/GetShafted.jpg",
+                "./src/public/images/commands/gamblerAdvice/GetShafted.mp4",
+                "./src/public/images/commands/gamblerAdvice/GetShafted2.mp4",
+                "./src/public/images/commands/gamblerAdvice/GetShafted.jpg",
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
@@ -516,73 +443,77 @@ const botCommands = {
         name: "ccp #1",
         description: "CCP LOYALTY",
         async execute(msg) {
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/ccp/");
-            
-            // Get Random Image
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-
-            const mantras = [
-                "Strength, Unity, Vision.",
-                "United, We Bounce.",
-                "Progress Through Power.",
-                "Unite for the Future.",
-                "Empower, Lead, Excel.",
-                "Solidarity in Strength.",
-                "Visionary Leadership, Collective Success.",
-                "Together, We Achieve.",
-                "Resilience, Growth, Unity.",
-                "Forward with Purpose.",
-                "Innovate, Unify, Succeed."
-            ];
-
-            let randomMantra = mantras[Math.floor(Math.random() * mantras.length)];
-            
-            msg.reply({
-                content: randomMantra,
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ],
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/ccp/", getRandomMantra());
         },
     }
 };
 
+async function sendRandomImage(msg: any, folderPath: string) {
+    let files = await getFiles(folderPath);
+    let randomFile = files[Math.floor(Math.random() * files.length)];
+    msg.reply({
+        files: [
+            {
+                attachment: randomFile.path,
+                name: randomFile.name,
+            },
+        ],
+    });
+}
+
+async function sendRandomImageWithContent(msg: any, folderPath: string, content: string) {
+    let files = await getFiles(folderPath);
+    let randomFile = files[Math.floor(Math.random() * files.length)];
+    msg.reply({
+        content: content,
+        files: [
+            {
+                attachment: randomFile.path,
+                name: randomFile.name,
+            },
+        ],
+    });
+}
+
+function getRandomBestGirlPhrase() {
+    const bestGirlPhrases = [
+        "Commander, you wouldn't choose anyone else over me, would you...",
+        "Commander, don't tell me you have another girlfriend...",
+        "Wait, Commander, are you seeing someone else???",
+        "No way, Commander! You wouldn't betray me like that...",
+        "Commander, please tell me I'm the only one for you...",
+        "Commander, I can't believe you'd even consider another girl...",
+        "Commander, I thought I was the only one who understood you...",
+        "Don't tell me there's someone else, Commander!!!"
+    ];
+    return bestGirlPhrases[Math.floor(Math.random() * bestGirlPhrases.length)];
+}
+
+function getRandomMantra() {
+    const mantras = [
+        "Strength, Unity, Vision.",
+        "United, We Bounce.",
+        "Progress Through Power.",
+        "Unite for the Future.",
+        "Empower, Lead, Excel.",
+        "Solidarity in Strength.",
+        "Visionary Leadership, Collective Success.",
+        "Together, We Achieve.",
+        "Resilience, Growth, Unity.",
+        "Forward with Purpose.",
+        "Innovate, Unify, Succeed."
+    ];
+    return mantras[Math.floor(Math.random() * mantras.length)];
+}
+
 function loadCommands() {
     for (const key in botCommands) {
         console.log(`The following command was loaded successfully: ${key}`);
-        bot.commands.set(botCommands[key].name, botCommands[key]);
+        (bot as any).commands.set(botCommands[key].name, botCommands[key]);
     }
 }
 
-// Slash Commands Configuration
-function loadGlobalSlashCommands() {
-    const commandsPath = path.join(__dirname, "commands");
-    const commandFiles = fs
-        .readdirSync(commandsPath)
-        .filter((file) => file.endsWith(".js"));
-
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
-        // Set a new item in the Collection with the key as the command name and the value as the exported module
-        if ("data" in command && "execute" in command) {
-            bot.commands.set(command.data.name, command);
-            console.log(
-                `The following slash command was loaded successfully: ${command.data.name}`
-            );
-        } else {
-            console.warn(
-                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
-            );
-        }
-    }
-}
-
-function handleTimeout(msg) {
+function handleTimeout(msg: any) {
     const { member, author } = msg;
 
     // Calculating whether to timeout
@@ -595,12 +526,12 @@ function handleTimeout(msg) {
                 msg.reply({
                     content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
                     files: [{
-                        attachment: "./public/images/nikke/SmugRapi.jpg",
+                        attachment: "./src/public/images/nikke/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     }]
                 });
             })
-            .catch(error => {
+            .catch((error: any) => {
                 console.error('Failed to timeout the user:', error);
                 handleTimeoutError(msg, author);
             });
@@ -608,69 +539,26 @@ function handleTimeout(msg) {
         msg.reply({
             content: `Well, I tried to give myself a break from you, Commander ${author}...but maybe I was being too rash. Thank you, Commander...`,
             files: [{
-                attachment: "./public/images/commands/goodGirl/commander_rapi_hug.jpg",
+                attachment: "./src/public/images/commands/goodGirl/commander_rapi_hug.jpg",
                 name: "commander_rapi_hug.jpg",
             }]
         });
     }
 }
 
-function handleTimeoutError(msg, author) {
+function handleTimeoutError(msg: any, author: any) {
     msg.reply({
         content: `Something caught me off guard...Commander ${author}...`,
         files: [{
-            attachment: "./public/images/commands/goodGirl/commander_rapi_hug.jpg",
+            attachment: "./src/public/images/commands/goodGirl/commander_rapi_hug.jpg",
             name: "commander_rapi_hug.jpg",
         }]
     });
 }
 
-
-function registerGlobalSlashCommands() {
-    const commands = [];
-    const commandsPath = path.join(__dirname, "commands");
-    const commandFiles = fs
-        .readdirSync(commandsPath)
-        .filter((file) => file.endsWith(".js"));
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
-        if ("data" in command && "execute" in command) {
-            commands.push(command.data.toJSON());
-        } else {
-            console.log(
-                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
-            );
-        }
-    }
-
-    // Construct and prepare an instance of the REST module
-    const rest = new REST().setToken(TOKEN);
-
-    // and deploy your commands!
-    (async () => {
-        try {
-            console.log(
-                `Started refreshing ${commands.length} application (/) commands.`
-            );
-
-            // Use PUT to fully refresh ALL commands
-            const data = await rest.put(Routes.applicationCommands(CLIENTID), {
-                body: commands,
-            });
-
-            console.log(
-                `Successfully reloaded ${data.length} application (/) commands.`
-            );
-        } catch (error) {
-            console.error(error);
-        }
-    })();
-}
-
-function updateBotActivity(activities) {
+function updateBotActivity(activities: any[]) {
     const activity = activities[Math.floor(Math.random() * activities.length)];
-    bot.user.setPresence({
+    bot.user?.setPresence({
         status: activity.status,
         activities: [
             {
@@ -698,21 +586,11 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: PresenceUpdateStatus.Online,
         },
-        // {
-        //     name: "SOLO RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
         {
             name: "UNION RAID",
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
-        // {
-        //     name: "COOP RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -787,26 +665,19 @@ function setBotActivity() {
 
     updateBotActivity(activities);
 
-    // Create a new cron job to run every 4 hours
-    const job = new CronJob(
-        "0 */4 * * *",
-        function () {
-            if (getIsStreaming()) return; // Skip updating activities if streaming
-            updateBotActivity(activities);
-        },
-        null,
-        true,
-        "UTC"
-    );
-
-    job.start();
+    schedule.scheduleJob('0 */4 * * *', function () {
+        if (getIsStreaming()) return; // Skip updating activities if streaming
+        updateBotActivity(activities);
+    });
+    
+    console.log("Scheduled activity update job to run every 4 hours.");
 }
 
 function greetNewMembers() {
     bot.on("guildMemberAdd", (member) => {
         const channel = member.guild.channels.cache.find(
-            (ch) => ch.name === "welcome"
-        );
+            (ch) => ch.type === ChannelType.GuildText && ch.name === "welcome"
+        ) as TextChannel | undefined;
         if (channel) {
             channel.send(
                 `Welcome Commander ${member}, please take care when going to the surface.`
@@ -816,30 +687,20 @@ function greetNewMembers() {
 }
 
 function sendRandomMessages() {
-    // Create a new cron job to run every 6 hours
-    const cronTime = "0 */6 * * *";
-    const job = new CronJob(
-        cronTime,
-        function () {
-            bot.guilds.cache.forEach((guild) => {
-                const channel = guild.channels.cache.find(
-                    (ch) => ch.name === "nikke"
-                );
-                if (channel) {
-                    const messages = getRapiMessages();
-                    const randomIndex = Math.floor(
-                        Math.random() * messages.length
-                    );
-                    channel.send(messages[randomIndex]);
-                }
-            });
-        },
-        null,
-        true,
-        "UTC"
-    );
-
-    job.start();
+    schedule.scheduleJob('0 */6 * * *', () => {
+        bot.guilds.cache.forEach((guild) => {
+            const channel = guild.channels.cache.find(
+                (ch) => ch.type === ChannelType.GuildText && ch.name === "nikke"
+            ) as TextChannel | undefined;
+            if (channel) {
+                const messages = getRapiMessages();
+                const randomIndex = Math.floor(Math.random() * messages.length);
+                channel.send(messages[randomIndex]);
+            }
+        });
+    });
+    
+    console.log("Scheduled random message job to run every 6 hours.");
 }
 
 // Send daily interception message to NIKKE channel
@@ -847,7 +708,8 @@ async function sendDailyInterceptionMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
 
-    const job = new CronJob(
+    
+    schedule.scheduleJob(
         cronTime,
         async () => {
             try {
@@ -864,17 +726,17 @@ async function sendDailyInterceptionMessage() {
                     // Initialize the state for the guild as false
                     firstResponseHandledMap.set(guild.id, false);
                     const channel = guild.channels.cache.find(
-                        (ch) => ch.name === "nikke"
+                        (ch: any) => ch.name === "nikke"
                     );
                     if (!channel) {
                         console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
                         return; // Continue to next guild
                     }
 
-                    const role = guild.roles.cache.find(role => role.name === "Nikke");
+                    const role = guild.roles.cache.find((role: any) => role.name === "Nikke");
                     // Send the role mention as a separate message before the embed if the role exists
-                    if (role) {
-                        await channel.send(`${role.toString()}, attention!`);
+                    if (role && channel.isTextBased()) {
+                        await (channel as TextChannel).send(`${role.toString()}, attention!`);
                     }
 
                     const embed = new EmbedBuilder()
@@ -888,13 +750,13 @@ async function sendDailyInterceptionMessage() {
                         .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
                     // Send the embed message
-                    const sentMessage = await channel.send({
-                        files: [{ attachment: `./public/images/bosses/${fileName}`, name: fileName }],
+                        const sentMessage = await (channel as TextChannel).send({
+                        files: [{ attachment: `./src/public/images/bosses/${fileName}`, name: fileName }],
                         embeds: [embed]
                     });
 
                     // Setup collector for responses to this message
-                    const filter = (response) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
+                    const filter = (response: any) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
                     const collector = sentMessage.channel.createMessageCollector({ filter, time: 15000 });
 
                     collector.on('collect', async m => {
@@ -944,21 +806,15 @@ async function sendDailyInterceptionMessage() {
                 console.error(`Error sending daily interception message: ${error}`);
             }
         },
-        null,
-        true,
-        "UTC"
     );
-
-    job.start();
 }
-
 
 function handleMessages() {
     // Read command files from the commands directory
     const commandsDir = path.join(__dirname, "commands");
     const commandFiles = fs.readdirSync(commandsDir)
-        .filter(file => file.endsWith('.js'))
-        .map(file => file.slice(0, -3));  // Remove the .js extension
+        .filter(file => file.endsWith('.ts'))
+        .map(file => file.slice(0, -3));  // Remove the .ts extension
 
     const validSlashCommands = new Set(commandFiles);
 
@@ -974,14 +830,14 @@ function handleMessages() {
         }
 
         // Establish arguments
-        let args = [];
+        let args: string[] = [];
         if (message.content[0] === pre) {
             args = message.content.split(/ +/);
         } else {
             args = [message.content];
         }
 
-        const command = args.shift().toLowerCase();
+        const command = args.shift()?.toLowerCase() || "";
         
         // Ignore if the command is part of slash commands
         if (validSlashCommands.has(command)) {
@@ -989,10 +845,10 @@ function handleMessages() {
         }
 
         // Check if we're mentioning the bot and if the message contains a valid command
-        if (message.mentions.has(bot.user.id) && !bot.commands.has(command)) {
+        if (message.mentions.has(bot.user?.id || "") && !(bot as any).commands.has(command)) {
             try {
-                const response = await fetch(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
-                const data = await response.json();
+                const response = await axios.get(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
+                const data = response.data;
                 message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
                 message.channel.send(data[0].url);
             } catch (error) {
@@ -1006,22 +862,7 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const getHimReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
             
-            // Pick image from folder
-            let files = await getFiles("./public/images/commands/getDatNikke/");
-            
-            // Get Random Image
-            let randomFile = files[Math.floor(Math.random() * files.length)];
-        
-            message.reply({
-                content: getHimReply,
-                files: [
-                    {
-                        attachment: randomFile.path,
-                        name: randomFile.name,
-                    },
-                ]
-            });
-
+            await sendRandomImageWithContent(message, "./src/public/images/commands/getDatNikke/", getHimReply);
             return;
         }
 
@@ -1029,8 +870,8 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const brokeboiReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
             const filePaths = [
-                "./public/images/memes/money-empty.gif",
-                "./public/audio/brokeboi.mp3"
+                "./src/public/images/memes/money-empty.gif",
+                "./src/public/audio/brokeboi.mp3"
             ];
         
             const brokeboiMessages = [
@@ -1060,7 +901,7 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
             const filePaths = [
-                "./public/images/commands/boondocks_read.gif",
+                "./src/public/images/commands/boondocks_read.gif",
             ];
         
             const readNikkeMessages = [
@@ -1086,10 +927,8 @@ function handleMessages() {
             return;
         }
 
-
-        
         // If there's no command or it's not a valid bot command, exit early
-        if (!command || !bot.commands.has(command)) return;
+        if (!command || !(bot as any).commands.has(command)) return;
 
         try {
             const guild = message.guild;
@@ -1097,14 +936,14 @@ function handleMessages() {
             const contentCreatorRole = guild.roles.cache.find((role) => role.name === "Content Creator");
 
             if (command == "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
-                bot.commands.get(command).execute(message, args);
+                (bot as any).commands.get(command).execute(message, args);
             } else if (!ignoredRole || !message.member.roles.cache.has(ignoredRole.id)) {
                 // Execute the command if it's not from a user with the ignored role
-                bot.commands.get(command).execute(message, args);
+                (bot as any).commands.get(command).execute(message, args);
             }
         } catch (error) {
             console.error(error);
-            message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)", ephemeral: true });
+            message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" });
         }
     });
 }
@@ -1112,8 +951,8 @@ function handleMessages() {
 function handleAdvice() {
     // Advice Configuration
     // Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
-    let characters = {};
-    const charactersDir = "./advice";
+    let characters: { [key: string]: string[] } = {};
+    const charactersDir = path.join(__dirname, "advice");
     // List of current Lolis in NIKKE
     // TODO: Need to add more lollipops in the future.
     const lollipops = [
@@ -1132,7 +971,7 @@ function handleAdvice() {
         .forEach((file) => {
             try {
                 const characterName = file.split(".")[0];
-                const characterPath = path.join(__dirname, charactersDir, file); // Use __dirname to get the absolute path
+                const characterPath = path.join(charactersDir, file);
                 characters[characterName] = require(characterPath);
             } catch (error) {
                 console.error(
@@ -1158,7 +997,7 @@ function handleAdvice() {
                 return;
             } else {
                 const args = msg.content.slice(pre.length).trim().split(/\s+/);
-                const character = args.shift().toLowerCase();
+                const character = args.shift()?.toLowerCase() || "";
                 const searchQuery = args.join(" ").toLowerCase();
 
                 if (!characters[character]) {
@@ -1239,7 +1078,7 @@ function handleSlashCommands() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
 
-        const command = interaction.client.commands.get(
+        const command = (interaction.client as any).commands.get(
             interaction.commandName
         );
 
@@ -1275,7 +1114,7 @@ function enableAutoComplete() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isAutocomplete()) return;
 
-        const command = bot.commands.get(interaction.commandName);
+        const command = (bot as any).commands.get(interaction.commandName);
         if (command && typeof command.autocomplete === "function") {
             await command.autocomplete(interaction);
         }
@@ -1283,13 +1122,11 @@ function enableAutoComplete() {
 }
 
 async function initDiscordBot() {
-    if (bot) new Error("Bot is already initialized, use getBot()");
+    //if (bot) throw new Error("Bot is already initialized, use getBot()");
 
     loadCommands();
-    loadGlobalSlashCommands();
-    registerGlobalSlashCommands();
-
-    bot.once("ready", async () => {
+    const bot = getDiscordBot();
+    bot.once(Events.ClientReady, (async () => {
         setBotActivity();
         greetNewMembers();
         sendRandomMessages();
@@ -1299,39 +1136,54 @@ async function initDiscordBot() {
         handleAdvice();
         handleSlashCommands();
 
-        console.log("Bot is ready!");
-
-        // try to connec to VC for the Rapi Radio
+        const rest = new REST().setToken(TOKEN);
         try {
+            console.log(commands);
+            console.log(`Client ID: ${CLIENTID}`);
+            console.log('Started refreshing application (/) commands.');
+            await rest.put(
+                Routes.applicationCommands(CLIENTID),
+                { body: commands }
+            );
+            console.log('Successfully reloaded application (/) commands.');
+        } catch (error) {
+            console.error(error);
+        }
+
+        // try to connect to VC for the Rapi Radio
+        try {
+            
             // Loop through each guild (server) the bot is in
-            bot.guilds.cache.forEach(guild => {
+            bot.guilds.cache.forEach(async (guild: Guild) => {
                 // Get a voice channel to connect to (default rapi-radio channel)
                 const voiceChannel = guild.channels.cache.get('1229441264718577734');
 
                 if (voiceChannel) {
-                    connectToVoiceChannel(guild.id, voiceChannel);
+                    await connectToVoiceChannel(guild.id, voiceChannel);
                 }
             });
         } catch (error) {
-            console.error("Failed to connec to VC Chat bot:", error);
+            console.error("Failed to connect to VC Chat bot:", error);
         }
-    });
+    }) as (client: Client<true>) => Promise<void>);
 
-    bot.on('voiceStateUpdate', (oldState, newState) => {
+    bot.on('voiceStateUpdate', (oldState: VoiceState, newState: VoiceState) => {
         const guildId = newState.guild.id;
-        const botId = bot.user.id;
+        const botId = bot.user?.id;
 
-        if (newState.member.id === botId && !newState.channelId) {
+        if (newState.member?.id === botId && !newState.channelId) {
             // Bot left a voice channel
-            voiceConnections.get(guildId)?.destroy();
+            voiceConnections.get(guildId)?.connection.destroy();
             voiceConnections.delete(guildId);
         }
     });
 
-    bot.login(TOKEN).catch(console.error);
+    await bot.login(TOKEN).catch(console.error);
+
+    console.log("Bot is ready!");
 }
 
-async function connectToVoiceChannel(guildId, voiceChannel) {
+async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
     try {
         const connection = joinVoiceChannel({
             channelId: voiceChannel.id,
@@ -1356,11 +1208,14 @@ async function connectToVoiceChannel(guildId, voiceChannel) {
     }
 }
 
-function playNextSong(guildId) {
+function playNextSong(guildId: string) {
     try {
-        const { connection, playlist } = voiceConnections.get(guildId);
-        const currentIndex = connection.currentSongIndex || 0;
-        const nextIndex = (currentIndex + 1) % playlist.length;
+        const voiceConnectionData = voiceConnections.get(guildId);
+        if (!voiceConnectionData) {
+            throw new Error(`No voice connection data found for guild ${guildId}`);
+        }
+        const { connection, playlist, currentSongIndex = 0 } = voiceConnectionData;
+        const nextIndex = (currentSongIndex + 1) % playlist.length;
         const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
         const resource = createAudioResource(songPath);
 
@@ -1372,18 +1227,18 @@ function playNextSong(guildId) {
         // const fileName = path.parse(songPath).name;
         // voiceChannel.setTopic(`🎶 ${fileName} 🎶`);
 
-        if (!connection.player) {
-            connection.player = createAudioPlayer();
-            connection.player.on(AudioPlayerStatus.Idle, () => {
+        if (!voiceConnectionData.player) {
+            voiceConnectionData.player = createAudioPlayer();
+            voiceConnectionData.player.on(AudioPlayerStatus.Idle, () => {
                 playNextSong(guildId);
             });
         }
 
-        connection.subscribe(connection.player);
-        connection.player.play(resource);
+        connection.subscribe(voiceConnectionData.player);
+        voiceConnectionData.player.play(resource);
 
         // Update current song index for next iteration
-        connection.currentSongIndex = nextIndex;
+        voiceConnectionData.currentSongIndex = nextIndex;
     } catch (error) {
         console.error(`Error while playing next song in guild ${guildId}:`, error);
     }
@@ -1393,11 +1248,11 @@ function getDiscordBot() {
     if (bot) {
         return bot;
     } else {
-        new Error("Bot is not initialized");
+        throw new Error("Bot is not initialized");
     }
 }
 
-module.exports = {
+export {
     initDiscordBot,
     getDiscordBot,
 };
