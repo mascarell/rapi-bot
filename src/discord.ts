@@ -123,7 +123,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/seggs.mp4",
+                        attachment: "./src/public/images/commands/chat/seggs.mp4",
                         name: "seggs.mp4",
                     },
                 ],
@@ -137,7 +137,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/kindaweird.png",
+                        attachment: "./src/public/images/commands/chat/kindaweird.png",
                     },
                 ],
                 content: `But why, Commander?...`,
@@ -150,7 +150,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/iswear.png",
+                        attachment: "./src/public/images/commands/chat/iswear.png",
                         name: "iswear.png",
                     },
                 ],
@@ -164,7 +164,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/12game.png",
+                        attachment: "./src/public/images/commands/chat/12game.png",
                         name: "12game.png",
                     },
                 ],
@@ -184,7 +184,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/whaling.png",
+                        attachment: "./src/public/images/commands/chat/whaling.png",
                         name: "whaling.jpg",
                     },
                 ],
@@ -196,8 +196,8 @@ const botCommands: { [key: string]: BotCommand } = {
         name: "lap of discipline.",
         async execute(msg) {
             const filePaths = [
-                "./src/public/images/nikke/lapOfCounters.webp",
-                "./src/public/images/nikke/lapOfDiscipline.jpg"
+                "./src/public/images/commands/chat/lapOfCounters.webp",
+                "./src/public/images/commands/chat/lapOfDiscipline.jpg"
             ];
 
             msg.reply({
@@ -253,7 +253,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/anis.png",
+                        attachment: "./src/public/images/commands/chat/anis.png",
                         name: "anis.jpg",
                     },
                 ],
@@ -282,7 +282,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/ready.png",
+                        attachment: "./src/public/images/commands/chat/ready.png",
                         name: "ready.jpg",
                     },
                 ],
@@ -306,7 +306,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/wrong.gif",
+                        attachment: "./src/public/images/commands/chat/wrong.gif",
                         name: "wrong.gif",
                     },
                 ],
@@ -320,7 +320,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/reward.jpg",
+                        attachment: "./src/public/images/commands/chat/reward.jpg",
                         name: "reward.jpg",
                     },
                 ],
@@ -345,7 +345,7 @@ const botCommands: { [key: string]: BotCommand } = {
                 content: `Commander...we don't talk about trains here.`,
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/SmugRapi.jpg",
+                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     },
                 ],
@@ -357,8 +357,8 @@ const botCommands: { [key: string]: BotCommand } = {
         description: "damn gravedigger",
         execute(msg) {
             const filePaths = [
-                "./src/public/images/nikke/osugravedigger.png",
-                "./src/public/images/nikke/damngravedigger.gif"
+                "./src/public/images/commands/chat/osugravedigger.png",
+                "./src/public/images/commands/chat/damngravedigger.gif"
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
@@ -526,7 +526,7 @@ function handleTimeout(msg: any) {
                 msg.reply({
                     content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
                     files: [{
-                        attachment: "./src/public/images/nikke/SmugRapi.jpg",
+                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     }]
                 });
