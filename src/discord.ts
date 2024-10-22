@@ -1012,7 +1012,6 @@ async function initDiscordBot() {
 
         const rest = new REST().setToken(TOKEN);
         try {
-            console.log(commands);
             console.log(`Client ID: ${CLIENTID}`);
             console.log('Started refreshing application (/) commands.');
             await rest.put(
