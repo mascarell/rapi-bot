@@ -56,4 +56,4 @@ const gamesData = [
     // TODO: Add more games as needed. REF: https://raw.githubusercontent.com/cicerakes/Game-Time-Master/master/game-data.js
 ];
 
-module.exports = gamesData;
+export default gamesData;

@@ -1,36 +1,80 @@
-## Before you run the bot
+# Loot and Waifus Bot
 
-There are a couple functionalities that Rapi BOT will do if you have the proper channels set up
+## Overview
 
-- #nikke channel to send the daily reset message with special interception boss and open tribe tower. This pings the role "Nikke", so you need both the channel and role for it to work. The role IT'S CASE SENSITIVE, "Nikke".
-- #rapi-radio voice channel for the bot to connect and play music 24/7, it's the music on the radio folder, feel free to change it to fit your server
-- "Grounded" role on your server. The bot will ignore everyone with this role and commands will not work for them
+The Loot and Waifus Bot is a Discord bot designed to manage daily resets and provide various utilities for gacha games. It includes features such as sending daily reset messages, playing music in voice channels, and responding to specific commands with images or text.
 
-## How to run the bot locally
+### Key Features
 
-Obviously you need a Discord bot, the official documentation is easy to follow and you can get your API keys there.
+- **Daily Reset Notifications**: Sends messages to a designated channel about daily resets, special interception bosses, and tribe tower alerts.
+- **24/7 Music Playback**: Connects to a voice channel to play music continuously from a specified folder.
+- **Command Responses**: Responds to specific text commands with images, videos, or text messages.
+- **Role and Channel Management**: Interacts with specific roles and channels to provide tailored experiences.
 
-Check the .evn.example for the variables you need to setup
+## Prerequisites
 
-```bash
-# Port of your app
-WAIFUPORT=
-# Token of the discord bot
-WAIFUTOKEN=
-# I use thecatapi.com to send random cats when you mention the bot
-CATAPI=
-# client id from OAuth2 discord dev portal
-CLIENTID=
+- A Discord bot account with the necessary permissions.
+- Node.js and npm installed on your machine.
+- Docker and Docker Compose installed if you plan to run the bot in a container.
+
+## Environment Variables
+
+Create a `.env` file in the root of your project directory with the following variables:
+
+```plaintext
+WAIFUPORT=8080
+WAIFUTOKEN=your_discord_bot_token
+CATAPI=your_catapi_token
+CLIENTID=your_discord_client_id
 ```
 
-To run the bot in dev mode, you only need to install and run
+## Running the Bot Locally
 
-```bash
-# Install npm packages
-npm install
+### Development Mode
 
-# Test in dev ennvironment, you need the bot on your server
-npm run dev
-```
+1. **Install npm packages**:
+   ```bash
+   npm install
+   ```
 
-To run the bot on a server, you can use whatever method you prefer. I personally use PM2 on my server as I think it's probably one of the easiest ways.
+2. **Run the bot in development mode**:
+   ```bash
+   npm run dev
+   ```
+
+### Production Mode
+
+1. **Build the TypeScript project**:
+   ```bash
+   npm run build
+   ```
+
+2. **Run the bot**:
+   ```bash
+   npm run start
+   ```
+
+## Running the Bot with Docker
+
+1. **Build and run the Docker container**:
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Stop the Docker container**:
+   ```bash
+   docker-compose down
+   ```
+
+## Setting Up Discord Channels and Roles
+
+- **#nikke Channel**: Used for daily reset messages. Ensure the "Nikke" role is set up for notifications.
+- **#rapi-radio Voice Channel**: The bot connects here to play music.
+- **"Grounded" Role**: Users with this role will be ignored by the bot.
+
+## Additional Information
+
+- **Music Source**: Customize the music played by the bot by adding files to the `radio` folder.
+- **Command Customization**: Add or modify commands by editing the files in the `src/commands` directory.
+
+For more detailed setup and configuration, refer to the official Discord documentation for bot setup and permissions.

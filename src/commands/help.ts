@@ -1,12 +1,12 @@
-// Dependencies
-const { SlashCommandBuilder } = require('discord.js');
+import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('List of custom commands available for all Commanders'),
-    async execute(msg) {
-			msg.reply({ content: `CUSTOM COMMANDS \n 
+    async execute(interaction: CommandInteraction) {
+        await interaction.reply({
+            content: `CUSTOM COMMANDS \n 
 ➜ **/gacha <type> <game>** : Gamba with rapi bot, you can do singles or multis, works with NIKKE and Solo Leveling: Arise
 ➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
 ➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE
@@ -31,6 +31,7 @@ module.exports = {
 ➜ **seggs?** : shifty?  
 ➜ **Lap of discipline.** : Lap of discipline. 
 `,
-ephemeral: true})
-        }
-}
+            ephemeral: true
+        });
+    }
+};

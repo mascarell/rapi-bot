@@ -36,7 +36,7 @@ const rapiMessages = [
     `Commander, Ade said that I need to try a maid outfit, what do you think?`,
 ];
 
-function getRapiMessages() {
+export function getRapiMessages() {
     return rapiMessages;
 }
 
