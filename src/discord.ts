@@ -123,7 +123,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/seggs.mp4",
+                        attachment: "./src/public/images/commands/chat/seggs.mp4",
                         name: "seggs.mp4",
                     },
                 ],
@@ -137,7 +137,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/kindaweird.png",
+                        attachment: "./src/public/images/commands/chat/kindaweird.png",
                     },
                 ],
                 content: `But why, Commander?...`,
@@ -150,7 +150,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/iswear.png",
+                        attachment: "./src/public/images/commands/chat/iswear.png",
                         name: "iswear.png",
                     },
                 ],
@@ -164,7 +164,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/12game.png",
+                        attachment: "./src/public/images/commands/chat/12game.png",
                         name: "12game.png",
                     },
                 ],
@@ -184,7 +184,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/whaling.png",
+                        attachment: "./src/public/images/commands/chat/whaling.png",
                         name: "whaling.jpg",
                     },
                 ],
@@ -196,8 +196,8 @@ const botCommands: { [key: string]: BotCommand } = {
         name: "lap of discipline.",
         async execute(msg) {
             const filePaths = [
-                "./src/public/images/nikke/lapOfCounters.webp",
-                "./src/public/images/nikke/lapOfDiscipline.jpg"
+                "./src/public/images/commands/chat/lapOfCounters.webp",
+                "./src/public/images/commands/chat/lapOfDiscipline.jpg"
             ];
 
             msg.reply({
@@ -253,7 +253,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/anis.png",
+                        attachment: "./src/public/images/commands/chat/anis.png",
                         name: "anis.jpg",
                     },
                 ],
@@ -268,7 +268,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/memes/copium-cn.jpg",
+                        attachment: "./src/public/images/commands/chat/copium-cn.jpg",
                         name: "copium-cn.jpg",
                     },
                 ],
@@ -282,7 +282,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/ready.png",
+                        attachment: "./src/public/images/commands/chat/ready.png",
                         name: "ready.jpg",
                     },
                 ],
@@ -306,7 +306,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/wrong.gif",
+                        attachment: "./src/public/images/commands/chat/wrong.gif",
                         name: "wrong.gif",
                     },
                 ],
@@ -320,7 +320,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/reward.jpg",
+                        attachment: "./src/public/images/commands/chat/reward.jpg",
                         name: "reward.jpg",
                     },
                 ],
@@ -345,7 +345,7 @@ const botCommands: { [key: string]: BotCommand } = {
                 content: `Commander...we don't talk about trains here.`,
                 files: [
                     {
-                        attachment: "./src/public/images/nikke/SmugRapi.jpg",
+                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     },
                 ],
@@ -357,8 +357,8 @@ const botCommands: { [key: string]: BotCommand } = {
         description: "damn gravedigger",
         execute(msg) {
             const filePaths = [
-                "./src/public/images/nikke/osugravedigger.png",
-                "./src/public/images/nikke/damngravedigger.gif"
+                "./src/public/images/commands/chat/osugravedigger.png",
+                "./src/public/images/commands/chat/damngravedigger.gif"
             ];
 
             let rnd = Math.floor(Math.random() * filePaths.length);
@@ -526,7 +526,7 @@ function handleTimeout(msg: any) {
                 msg.reply({
                     content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
                     files: [{
-                        attachment: "./src/public/images/nikke/SmugRapi.jpg",
+                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     }]
                 });
@@ -870,7 +870,7 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const brokeboiReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
             const filePaths = [
-                "./src/public/images/memes/money-empty.gif",
+                "./src/public/images/commands/chat/money-empty.gif",
                 "./src/public/audio/brokeboi.mp3"
             ];
         
@@ -948,131 +948,6 @@ function handleMessages() {
     });
 }
 
-function handleAdvice() {
-    // Advice Configuration
-    // Dynamically loads all available files under ./advice folder. Just add a new <nikke>.js and it will be automatically added.
-    let characters: { [key: string]: string[] } = {};
-    const charactersDir = path.join(__dirname, "advice");
-    // List of current Lolis in NIKKE
-    // TODO: Need to add more lollipops in the future.
-    const lollipops = [
-        "liter",
-        "signal",
-        "yuni",
-        "miranda",
-        "soline",
-        "guillotine",
-        "admi",
-        "rei",
-        "kilo"
-    ];
-    fs.readdirSync(charactersDir)
-        .filter((file) => file.endsWith(".js"))
-        .forEach((file) => {
-            try {
-                const characterName = file.split(".")[0];
-                const characterPath = path.join(charactersDir, file);
-                characters[characterName] = require(characterPath);
-            } catch (error) {
-                console.error(
-                    `Error loading advice file for character: ${file}`,
-                    error
-                );
-            }
-        });
-
-    // TODO: Register this as a global command so we can utilize Interactions interface for sending ephemeral responses to avoid spam in a channel.
-    // Workaround is to allow users to DM the bot directly since that works as well to avoid spam if desired.
-    // Advice command functionality
-    bot.on("messageCreate", (msg) => {
-        try {
-            // Check if the message doesn't start with the prefix or doesn't include a valid command
-            const userInput = msg.content.trim().toLowerCase();
-            if (
-                !msg.content.toLowerCase().startsWith(pre) ||
-                Object.keys(botCommands).some(
-                    (cmd) => botCommands[cmd].name === userInput
-                )
-            ) {
-                return;
-            } else {
-                const args = msg.content.slice(pre.length).trim().split(/\s+/);
-                const character = args.shift()?.toLowerCase() || "";
-                const searchQuery = args.join(" ").toLowerCase();
-
-                if (!characters[character]) {
-                    return msg.reply(
-                        `Commander...Are you cheating on me? Who is ${character}? Please explain yourself.`
-                    );
-                }
-
-                if (searchQuery === "list") {
-                    // Split each advice into its question and answer parts, then prepend "Q:" and "A:"
-                    const fullList = characters[character]
-                        .map((advice) => {
-                            const parts = advice.split("\n"); // Split the advice into question and answer
-                            return `Q: ${parts[0]}\nA: ${parts[1]}`; // Prepend "Q:" and "A:" to the question and answer, respectively
-                        })
-                        .join("\n\n"); // Join all formatted advices with two newlines for separation
-
-                    const embed = new EmbedBuilder()
-                        .setColor("#a8bffb")
-                        .setTitle(
-                            `Advice List for Nikke ${character
-                                .charAt(0)
-                                .toUpperCase()}${character.slice(1)}`
-                        )
-                        .setDescription(fullList);
-                    return msg.channel.send({ embeds: [embed] });
-                }
-
-                // Find matching advice assuming `characters[character]` is an array of strings
-                const matchingAdvice = characters[character].find(
-                    (adviceString) => {
-                        // Split the string into question and answer parts
-                        const matchingAdviceParts = adviceString.split("\n");
-                        // Check if either part includes the searchQuery
-                        return matchingAdviceParts.some((part) =>
-                            part.toLowerCase().includes(searchQuery)
-                        );
-                    }
-                );
-
-                if (matchingAdvice) {
-                    const adviceParts = matchingAdvice.split("\n");
-                    const question = adviceParts[0] || "Question not found";
-                    const answer = adviceParts[1] || "Answer not found";
-                    const description = lollipops.includes(character)
-                        ? "Shame on you Commander for advising lolis..."
-                        : "Here's the answer you're looking for Commander:";
-                    const embed = new EmbedBuilder()
-                        .setColor("#63ff61")
-                        .setTitle(
-                            `${character
-                                .charAt(0)
-                                .toUpperCase()}${character.slice(1)}`
-                        )
-                        .setDescription(description)
-                        .addFields(
-                            { name: "Question:", value: question },
-                            { name: "Answer:", value: answer }
-                        );
-                    msg.channel.send({ embeds: [embed] });
-                } else {
-                    msg.reply(
-                        `Commander, I was unable to locate the following text: "${searchQuery}". Please try again.`
-                    );
-                }
-            }
-        } catch (error) {
-            console.error("Error processing message:", error);
-            msg.reply(
-                "Sorry Commander, I was unable to answer your question at this time...am I still a good girl?"
-            );
-        }
-    });
-}
-
 // Handles bot slash commands interactions for all available slash commands
 function handleSlashCommands() {
     bot.on(Events.InteractionCreate, async (interaction) => {
@@ -1133,12 +1008,10 @@ async function initDiscordBot() {
         sendDailyInterceptionMessage();
         enableAutoComplete();
         handleMessages();
-        handleAdvice();
         handleSlashCommands();
 
         const rest = new REST().setToken(TOKEN);
         try {
-            console.log(commands);
             console.log(`Client ID: ${CLIENTID}`);
             console.log('Started refreshing application (/) commands.');
             await rest.put(
