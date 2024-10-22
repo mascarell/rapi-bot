@@ -1,42 +1,80 @@
-## Before You Run the Bot
+# Loot and Waifus Bot
 
-There are several functionalities that the Rapi BOT will perform if you have the proper channels and roles set up:
+## Overview
 
-- **#nikke Channel**: This channel is used to send the daily reset message, including special interception boss notifications and open tribe tower alerts. It pings the role "Nikke", so ensure both the channel and role are correctly set up. Note that the role name is case-sensitive: "Nikke".
-- **#rapi-radio Voice Channel**: The bot connects to this channel to play music 24/7. The music is sourced from the radio folder, which you can customize to suit your server's needs.
-- **"Grounded" Role**: Users with this role will be ignored by the bot, and commands will not work for them.
+The Loot and Waifus Bot is a Discord bot designed to manage daily resets and provide various utilities for gacha games. It includes features such as sending daily reset messages, playing music in voice channels, and responding to specific commands with images or text.
 
-## How to Run the Bot Locally
+### Key Features
 
-To run the bot, you need a Discord bot account. The official Discord documentation provides guidance on obtaining your API keys.
+- **Daily Reset Notifications**: Sends messages to a designated channel about daily resets, special interception bosses, and tribe tower alerts.
+- **24/7 Music Playback**: Connects to a voice channel to play music continuously from a specified folder.
+- **Command Responses**: Responds to specific text commands with images, videos, or text messages.
+- **Role and Channel Management**: Interacts with specific roles and channels to provide tailored experiences.
 
-Check the `.env.example` file for the environment variables you need to set up:
+## Prerequisites
 
-```bash
-# Port of your app
-WAIFUPORT=
-# Token of the Discord bot
-WAIFUTOKEN=
-# API key for thecatapi.com to send random cat images when the bot is mentioned
-CATAPI=
-# Client ID from the OAuth2 section of the Discord Developer Portal
-CLIENTID=
+- A Discord bot account with the necessary permissions.
+- Node.js and npm installed on your machine.
+- Docker and Docker Compose installed if you plan to run the bot in a container.
+
+## Environment Variables
+
+Create a `.env` file in the root of your project directory with the following variables:
+
+```plaintext
+WAIFUPORT=8080
+WAIFUTOKEN=your_discord_bot_token
+CATAPI=your_catapi_token
+CLIENTID=your_discord_client_id
 ```
 
-### Running the Bot in Development Mode
+## Running the Bot Locally
 
-To run the bot in development mode, follow these steps:
+### Development Mode
 
 1. **Install npm packages**:
    ```bash
    npm install
    ```
 
-2. **Test in the development environment** (ensure the bot is added to your server):
+2. **Run the bot in development mode**:
    ```bash
    npm run dev
    ```
 
-### Running the Bot on a Server
+### Production Mode
 
-To run the bot on a server, you can use any method you prefer. Personally, I recommend using PM2, as it is one of the easiest ways to manage Node.js applications on a server.
+1. **Build the TypeScript project**:
+   ```bash
+   npm run build
+   ```
+
+2. **Run the bot**:
+   ```bash
+   npm run start
+   ```
+
+## Running the Bot with Docker
+
+1. **Build and run the Docker container**:
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Stop the Docker container**:
+   ```bash
+   docker-compose down
+   ```
+
+## Setting Up Discord Channels and Roles
+
+- **#nikke Channel**: Used for daily reset messages. Ensure the "Nikke" role is set up for notifications.
+- **#rapi-radio Voice Channel**: The bot connects here to play music.
+- **"Grounded" Role**: Users with this role will be ignored by the bot.
+
+## Additional Information
+
+- **Music Source**: Customize the music played by the bot by adding files to the `radio` folder.
+- **Command Customization**: Add or modify commands by editing the files in the `src/commands` directory.
+
+For more detailed setup and configuration, refer to the official Discord documentation for bot setup and permissions.
