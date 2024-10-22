@@ -8,8 +8,7 @@
     "build": "tsc",
     "start": "ts-node src/index.ts",
     "dev": "nodemon --exec npx ts-node src/index.ts",
-    "watch": "tsc -w",
-    "serve": "nodemon dist/index.js"
+    "watch": "tsc -w"
   },
   "author": "Loot and Waifus",
   "license": "MIT",
@@ -24,9 +23,6 @@
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.46",
     "node-schedule": "^2.1.1",
-    "node-telegram-bot-api": "^0.66.0",
-    "pm2": "^5.1.2",
-    "tough-cookie": "^5.0.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
