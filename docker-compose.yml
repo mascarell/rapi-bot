@@ -1,0 +1,16 @@
+services:
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - WAIFUTOKEN=${WAIFUTOKEN}
+      - CLIENTID=${CLIENTID}
+      - WAIFUPORT=${WAIFUPORT}
+      - CATAPI=${CATAPI}
+    ports:
+      - "${WAIFUPORT}:3000"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
