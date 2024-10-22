@@ -63,10 +63,6 @@
             "image": "https://static.dotgg.gg/nikke/characters/c195_00.webp"
         },
         {
-            "name": "Anis: Sparkling Summer",
-            "image": "https://static.dotgg.gg/nikke/characters/c015_00.webp"
-        },
-        {
             "name": "Aria",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Aria.webp"
         },
@@ -148,7 +144,7 @@
         },
         {
             "name": "Frima",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/a/a9/Frima_%28Sea_of_Sloth%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Frima.webp"
         },
         {
             "name": "Guillotine",
@@ -157,10 +153,6 @@
         {
             "name": "Helm",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Helm.webp"
-        },
-        {
-            "name": "Helm: Aquamarine",
-            "image": "https://static.dotgg.gg/nikke/characters/c353_00.webp"
         },
         {
             "name": "Jackal",
@@ -180,7 +172,7 @@
         },
         {
             "name": "Liter",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/5/50/Liter_%28Guardfish%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Liter.webp"
         },
         {
             "name": "Ludmilla",
@@ -188,15 +180,11 @@
         },
         {
             "name": "Maiden",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/b/b9/Maiden_%28Under_the_Sun%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Maiden.webp"
         },
         {
             "name": "Mary",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Mary.webp"
-        },
-        {
-            "name": "Mary: Bay Goddess",
-            "image": "https://static.dotgg.gg/nikke/characters/c132_00.webp"
         },
         {
             "name": "Marciana",
@@ -204,7 +192,7 @@
         },
         {
             "name": "Mast",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/d/d3/Mast_%28Mast_the_Diver%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Mast.webp"
         },
         {
             "name": "Maxwell",
@@ -231,10 +219,6 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Nero.webp"
         },
         {
-            "name": "Neon: Blue Ocean",
-            "image": "https://static.dotgg.gg/nikke/characters/c014_00.webp"
-        },
-        {
             "name": "Noir",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Noir.webp"
         },
@@ -248,7 +232,7 @@
         },
         {
             "name": "Pepper",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/5/53/Pepper_%28Ocean_Vitamin%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Pepper.webp"
         },
         {
             "name": "Poli",
@@ -271,20 +255,12 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Rosanna.webp"
         },
         {
-            "name": "Rosanna: Chic Ocean",
-            "image": "https://static.dotgg.gg/nikke/characters/c283_00.webp"
-        },
-        {
             "name": "Rupee",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Rupee.webp"
         },
         {
             "name": "Sakura",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Sakura.webp"
-        },
-        {
-            "name": "Sakura: Bloom in Summer",
-            "image": "https://static.dotgg.gg/nikke/characters/c284_00.webp"
         },
         {
             "name": "Signal",
@@ -324,7 +300,7 @@
         },
         {
             "name": "Viper",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/0/03/Viper_%28Shine_of_Love%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Viper.webp"
         },
         {
             "name": "Volume",
@@ -332,7 +308,7 @@
         },
         {
             "name": "Yan",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/4/4c/Yan_%28Sunrise_Market%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Yan.webp"
         },
         {
             "name": "Yulha",
@@ -344,10 +320,6 @@
         }
     ],
     "SR": [
-        {
-            "name": "Anchor",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/4/46/Anchor_%28Anchor_the_Diver%29_FB.png"
-        },
         {
             "name": "Anis",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SR/Anis.webp"
@@ -382,7 +354,7 @@
         },
         {
             "name": "Rapi",
-            "image": "https://static.wikia.nocookie.net/nikke-goddess-of-victory-international/images/e/e1/Rapi_%28Classic_Vacation%29_FB.png"
+            "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SR/Rapi.webp"
         }
     ],
     "R": [
