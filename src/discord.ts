@@ -268,7 +268,7 @@ const botCommands: { [key: string]: BotCommand } = {
             msg.reply({
                 files: [
                     {
-                        attachment: "./src/public/images/memes/copium-cn.jpg",
+                        attachment: "./src/public/images/commands/chat/copium-cn.jpg",
                         name: "copium-cn.jpg",
                     },
                 ],
@@ -870,7 +870,7 @@ function handleMessages() {
             const mentionedUser = message.mentions.users.first();
             const brokeboiReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
             const filePaths = [
-                "./src/public/images/memes/money-empty.gif",
+                "./src/public/images/commands/chat/money-empty.gif",
                 "./src/public/audio/brokeboi.mp3"
             ];
         
