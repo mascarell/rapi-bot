@@ -687,7 +687,7 @@ function greetNewMembers() {
 }
 
 function sendRandomMessages() {
-    schedule.scheduleJob('0 */6 * * *', () => {
+    schedule.scheduleJob('0 */4 * * *', () => {
         bot.guilds.cache.forEach((guild) => {
             const channel = guild.channels.cache.find(
                 (ch) => ch.type === ChannelType.GuildText && ch.name === "nikke"
@@ -700,7 +700,7 @@ function sendRandomMessages() {
         });
     });
     
-    console.log("Scheduled random message job to run every 6 hours.");
+    console.log("Scheduled random message job to run every 4 hours.");
 }
 
 // Send daily interception message to NIKKE channel
@@ -807,6 +807,7 @@ async function sendDailyInterceptionMessage() {
             }
         },
     );
+    console.log("Scheduled daily interception message job to run every Nikke reset time.");
 }
 
 function handleMessages() {
