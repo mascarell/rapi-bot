@@ -42,7 +42,7 @@ import axios from "axios";
 
 const TOKEN = process.env.WAIFUTOKEN as string;
 const CLIENTID = process.env.CLIENTID as string;
-const RADIO_FOLDER_PATH = './radio';
+const RADIO_FOLDER_PATH = './src/radio';
 
 // Map to store voice connections and playlists for each server
 const voiceConnections: Map<string, { connection: VoiceConnection; playlist: string[], player?: AudioPlayer, currentSongIndex?: number }> = new Map();
