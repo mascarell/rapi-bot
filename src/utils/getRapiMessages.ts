@@ -39,5 +39,3 @@ const rapiMessages = [
 export function getRapiMessages() {
     return rapiMessages;
 }
-
-module.exports = getRapiMessages;
