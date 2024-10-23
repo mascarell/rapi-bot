@@ -49,10 +49,3 @@ export function getBossFileName(bossName: string) {
             return `${bossName.toLowerCase().replace(/\s+/g, '')}.webp`;
     }
 }
-
-module.exports = {
-    getBosses,
-    getBossesLinks,
-    getTribeTowerRotation,
-    getBossFileName,
-};
