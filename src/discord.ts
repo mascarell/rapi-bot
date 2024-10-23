@@ -16,6 +16,7 @@ import {
     VoiceState,
     ChannelType,
     Guild,
+    Message,
 } from "discord.js";
 import {
     createAudioPlayer,
@@ -690,12 +691,15 @@ function sendRandomMessages() {
     schedule.scheduleJob('0 */4 * * *', () => {
         bot.guilds.cache.forEach((guild) => {
             const channel = guild.channels.cache.find(
-                (ch) => ch.type === ChannelType.GuildText && ch.name === "nikke"
-            ) as TextChannel | undefined;
-            if (channel) {
+                (ch): ch is TextChannel => ch.type === ChannelType.GuildText && ch.name === "nikke"
+            );
+            if (channel && channel.send) {
                 const messages = getRapiMessages();
                 const randomIndex = Math.floor(Math.random() * messages.length);
-                channel.send(messages[randomIndex]);
+                channel.send(messages[randomIndex])
+                    .catch(error => console.error(`Failed to send message to channel ${channel.name} in guild ${guild.name}:`, error));
+            } else {
+                console.log(`Could not find suitable 'nikke' text channel in guild ${guild.name}`);
             }
         });
     });
@@ -708,105 +712,83 @@ async function sendDailyInterceptionMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
 
-    
-    schedule.scheduleJob(
-        cronTime,
-        async () => {
-            try {
-                const currentDayOfYear = moment().dayOfYear();
-                const bosses = getBosses();
-                const bossIndex = currentDayOfYear % bosses.length;
-                const bossName = bosses[bossIndex];
-                const fileName = getBossFileName(bossName);
-                const towerRotation = getTribeTowerRotation();
-                const currentDayOfWeek = new Date().getDay();
-                const firstResponseHandledMap = new Map();
+    schedule.scheduleJob(cronTime, async () => {
+        try {
+            const currentDayOfYear = moment().dayOfYear();
+            const bosses = getBosses();
+            const bossName = bosses[currentDayOfYear % bosses.length];
+            const fileName = getBossFileName(bossName);
+            const towerRotation = getTribeTowerRotation();
+            const currentDayOfWeek = new Date().getDay();
 
-                bot.guilds.cache.forEach(async (guild) => {
-                    // Initialize the state for the guild as false
-                    firstResponseHandledMap.set(guild.id, false);
-                    const channel = guild.channels.cache.find(
-                        (ch: any) => ch.name === "nikke"
-                    );
-                    if (!channel) {
-                        console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
-                        return; // Continue to next guild
-                    }
+            const embed = new EmbedBuilder()
+                .setTitle(`Attention commanders, here's today's schedule:`)
+                .setDescription(
+                    `- We have to fight **${bossName}** in Special Interception\n` +
+                    `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
+                )
+                .setColor(0x00AE86)
+                .setTimestamp()
+                .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
-                    const role = guild.roles.cache.find((role: any) => role.name === "Nikke");
-                    // Send the role mention as a separate message before the embed if the role exists
-                    if (role && channel.isTextBased()) {
-                        await (channel as TextChannel).send(`${role.toString()}, attention!`);
-                    }
+            for (const guild of bot.guilds.cache.values()) {
+                const channel = guild.channels.cache.find(
+                    (ch): ch is TextChannel => ch.type === ChannelType.GuildText && ch.name === "nikke"
+                );
+                if (!channel) {
+                    console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
+                    continue;
+                }
 
-                    const embed = new EmbedBuilder()
-                        .setTitle(`Attention commanders, here's today's schedule:`)
-                        .setDescription(
-                            `- We have to fight **${bossName}** in Special Interception\n` +
-                            `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
-                        )
-                        .setColor(0x00AE86)
-                        .setTimestamp()
-                        .setFooter({ text: 'Stay safe on the surface, Commanders!' });
+                const role = guild.roles.cache.find((role) => role.name === "Nikke");
+                if (role) {
+                    await channel.send(`${role.toString()}, attention!`);
+                }
 
-                    // Send the embed message
-                        const sentMessage = await (channel as TextChannel).send({
-                        files: [{ attachment: `./src/public/images/bosses/${fileName}`, name: fileName }],
-                        embeds: [embed]
-                    });
-
-                    // Setup collector for responses to this message
-                    const filter = (response: any) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
-                    const collector = sentMessage.channel.createMessageCollector({ filter, time: 15000 });
-
-                    collector.on('collect', async m => {
-                        if (!firstResponseHandledMap.get(guild.id)) {
-                            firstResponseHandledMap.set(guild.id, true);
-                            try {
-                                const emoji = "❤️";
-                                await m.react(emoji);
-                            } catch (error) {
-                                console.error("Failed to react with custom emoji:", error);
-                            }
-
-                            const thankYouMessages = [
-                                "Your swiftness is unmatched, Commander ${m.author}. It's impressive.",
-                                "Your alertness honors us all, Commander ${m.author}.",
-                                "Your swift response is commendable, Commander ${m.author}."
-                            ];
-
-                            // Randomly select a thank you message
-                            const randomIndex = Math.floor(Math.random() * thankYouMessages.length);
-                            const thankYouMessage = thankYouMessages[randomIndex];
-
-                            m.reply(eval('`' + thankYouMessage + '`'));
-                        } else {
-                            try {
-                                const emoji = "sefhistare:1124869893880283306"; // Use the correct format 'name:id' for custom emojis
-                                await m.react(emoji);
-                            } catch (error) {
-                                console.error(
-                                    "Failed to react with custom emoji:",
-                                    error
-                                );
-                            }
-                            m.reply(
-                                `Commander ${m.author}... I expected better...`
-                            );
-                        }
-                    });
-
-                    collector.on('end', collected => {
-                        // Reset the first response handler for the guild
-                        firstResponseHandledMap.set(guild.id, false);
-                        console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
-                    });
+                await channel.send({
+                    files: [{ attachment: `./src/public/images/bosses/${fileName}`, name: fileName }],
+                    embeds: [embed]
                 });
-            } catch (error) {
-                console.error(`Error sending daily interception message: ${error}`);
+
+                const filter = (response: Message) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
+                const collector = channel.createMessageCollector({ filter, time: 15000 });
+
+                let firstResponseHandled = false;
+
+                collector.on('collect', async (m: Message) => {
+                    if (!firstResponseHandled) {
+                        firstResponseHandled = true;
+                        try {
+                            await m.react("❤️");
+                        } catch (error) {
+                            console.error("Failed to react with emoji:", error);
+                        }
+
+                        const thankYouMessages = [
+                            `Your swiftness is unmatched, Commander ${m.author}. It's impressive.`,
+                            `Your alertness honors us all, Commander ${m.author}.`,
+                            `Your swift response is commendable, Commander ${m.author}.`
+                        ];
+
+                        m.reply(thankYouMessages[Math.floor(Math.random() * thankYouMessages.length)]);
+                    } else {
+                        try {
+                            await m.react("sefhistare:1124869893880283306");
+                        } catch (error) {
+                            console.error("Failed to react with custom emoji:", error);
+                        }
+                        m.reply(`Commander ${m.author}... I expected better...`);
+                    }
+                });
+
+                collector.on('end', collected => {
+                    console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
+                });
             }
-        },
-    );
+        } catch (error) {
+            console.error(`Error sending daily interception message: ${error}`);
+        }
+    });
     console.log("Scheduled daily interception message job to run every Nikke reset time.");
 }
 
