@@ -713,31 +713,31 @@ async function sendDailyInterceptionMessage() {
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
 
     schedule.scheduleJob(cronTime, async () => {
-        try {
-            const currentDayOfYear = moment().dayOfYear();
-            const bosses = getBosses();
-            const bossName = bosses[currentDayOfYear % bosses.length];
-            const fileName = getBossFileName(bossName);
-            const towerRotation = getTribeTowerRotation();
-            const currentDayOfWeek = new Date().getDay();
+        const currentDayOfYear = moment().dayOfYear();
+        const bosses = getBosses();
+        const bossName = bosses[currentDayOfYear % bosses.length];
+        const fileName = getBossFileName(bossName);
+        const towerRotation = getTribeTowerRotation();
+        const currentDayOfWeek = new Date().getDay();
 
-            const embed = new EmbedBuilder()
-                .setTitle(`Attention commanders, here's today's schedule:`)
-                .setDescription(
-                    `- We have to fight **${bossName}** in Special Interception\n` +
-                    `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
-                )
-                .setColor(0x00AE86)
-                .setTimestamp()
-                .setFooter({ text: 'Stay safe on the surface, Commanders!' });
+        const embed = new EmbedBuilder()
+            .setTitle(`Attention commanders, here's today's schedule:`)
+            .setDescription(
+                `- We have to fight **${bossName}** in Special Interception\n` +
+                `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
+            )
+            .setColor(0x00AE86)
+            .setTimestamp()
+            .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
-            for (const guild of bot.guilds.cache.values()) {
+        const guildPromises = bot.guilds.cache.map(async (guild) => {
+            try {
                 const channel = guild.channels.cache.find(
                     (ch): ch is TextChannel => ch.type === ChannelType.GuildText && ch.name === "nikke"
                 );
                 if (!channel) {
                     console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
-                    continue;
+                    return;
                 }
 
                 const role = guild.roles.cache.find((role) => role.name === "Nikke");
@@ -784,10 +784,12 @@ async function sendDailyInterceptionMessage() {
                 collector.on('end', collected => {
                     console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
                 });
+            } catch (error) {
+                console.error(`Error processing guild ${guild.name}: ${error}`);
             }
-        } catch (error) {
-            console.error(`Error sending daily interception message: ${error}`);
-        }
+        });
+
+        await Promise.allSettled(guildPromises);
     });
     console.log("Scheduled daily interception message job to run every Nikke reset time.");
 }
