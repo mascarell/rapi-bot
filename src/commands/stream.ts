@@ -5,7 +5,7 @@ import {
     PresenceUpdateStatus,
     TextChannel,
 } from 'discord.js';
-import { setIsStreaming } from '../utils';
+import { setIsStreaming } from '../utils/util';
 
 module.exports = {
     data: new SlashCommandBuilder()

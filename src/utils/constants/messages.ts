@@ -1,4 +1,4 @@
-const rapiMessages = [
+export const rapiMessages = [
     `You’re too quiet, Commander, is everything alright?`,
     `Commander, Anis was just joking with the Christmas present…`,
     `Commander! When is the next mission?`,
@@ -36,6 +36,15 @@ const rapiMessages = [
     `Commander, Ade said that I need to try a maid outfit, what do you think?`,
 ];
 
-export function getRapiMessages() {
-    return rapiMessages;
-}
+export const readNikkeMessages = [
+    "skipping the story again? You miss all the good parts...",
+    "maybe try reading the dialogue. It’s not just about the battles!",
+    "you’d enjoy the game more if you actually read the story...",
+    "always skipping content??? You’re missing all the plot twists!",
+    "read the story! There’s more than just shooting!",
+    "what’s the rush? Enjoy the dialogue for once...",
+    "you skip more content than you should. Try reading!!!",
+    "the story is half the fun. Stop skipping it like El Shafto!!!",
+    "always rushing? The dialogue has great moments, you know...",
+    "ever thought about reading? You’re missing out on the lore!"
+];
