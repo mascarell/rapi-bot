@@ -202,20 +202,20 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "wrong girl",
         description: "wrong girl Rapi",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/chat/anis/", `(￢з￢) Well well, so you DO see us that way, interesting!`);
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/wrongGirl/", `(￢з￢) Well well, so you DO see us that way, interesting!`);
         },
     },
     moldRates: {
         name: "mold rates are not that bad",
         description: `Commander, what are you talking about?`,
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/chat/copium-cn/", `Commander, what are you talking about?`);
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/moldRates/", `Commander, what are you talking about?`);
         },
     },
     readyRapi: {
         name: "ready rapi?",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/chat/ready/", `Commander... ready for what?`);
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/ready/", `Commander... ready for what?`);
         },
     },
     contentSquad: {
