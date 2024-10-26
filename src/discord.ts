@@ -119,19 +119,19 @@ const chatCommands: { [key: string]: BotCommand } = {
     kindaweird: {
         name: "kinda weird...",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/kindaweird/", `But why, Commander?...`);    
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/kindaWeird/", `But why, Commander?...`);    
         },
     },
     iswear: {
         name: "i swear she is actually 3000 years old",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/iswear/", `Commander... I'm calling the authorities.`);
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/iSwear/", `Commander... I'm calling the authorities.`);
         },
     },
     teengame: {
         name: "12+ game",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/12game/", `Commander the surface is obviously safe for 12 year old kids.`);
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/12Game/", `Commander the surface is obviously safe for 12 year old kids.`);
         },
     },
     justice: {
