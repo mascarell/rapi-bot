@@ -1,58 +1,43 @@
+import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection } from "discord.js";
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v9';
+import { createAudioPlayer, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus, AudioPlayer } from '@discordjs/voice';
 import path from "path";
 import fs from "fs";
 import schedule from 'node-schedule';
+import moment from "moment";
 import 'moment-timezone';
-import {
-    REST,
-    Routes,
-    Client,
-    Collection,
-    GatewayIntentBits,
-    Events,
-    EmbedBuilder,
-    ActivityType,
-    PresenceUpdateStatus,
-    TextChannel,
-    VoiceState,
-    ChannelType,
-    Guild,
-    Message,
-} from "discord.js";
-import {
-    createAudioPlayer,
-    joinVoiceChannel,
-    createAudioResource,
-    VoiceConnectionStatus,
-    AudioPlayerStatus,
-    VoiceConnection,
-    AudioPlayer,
-} from '@discordjs/voice';
 
-// utils
 import {
     getFiles,
     getIsStreaming,
-    getRapiMessages,
+    getRandomRapiMessage,
+    getRandomReadNikkeMessage,
     getBosses,
     getTribeTowerRotation,
+    findChannelByName,
+    findRoleByName,
+    logError,
+    getVoiceChannel,
     getBossFileName,
-} from "./utils";
-import moment from "moment";
-import axios from "axios";
+    handleTimeout,
+} from "./utils/util";
+import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
 
 const TOKEN = process.env.WAIFUTOKEN as string;
 const CLIENTID = process.env.CLIENTID as string;
 const RADIO_FOLDER_PATH = './src/radio';
-
-// Map to store voice connections and playlists for each server
-const voiceConnections: Map<string, { connection: VoiceConnection; playlist: string[], player?: AudioPlayer, currentSongIndex?: number }> = new Map();
-
-const pre = "/"; // what we use for the bot commands (not for all of them tho)
+const PRE = "/"; // Define the prefix here
 const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
 const resetEndTime = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
-// Bot Configuration
-const bot: Client = new Client({
+const voiceConnections: Map<string, VoiceConnectionData> = new Map();
+
+interface CustomClient extends Client {
+    commands: Collection<string, any>;
+}
+
+const bot: CustomClient = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
@@ -60,21 +45,10 @@ const bot: Client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
     ],
-});
+}) as CustomClient;
 
 bot.commands = new Collection();
 const commands: Array<object> = [];
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
-
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    import(filePath).then(commandModule => {
-        const command = commandModule.default;
-        bot.commands.set(command.data.name, command);
-        commands.push(command.data.toJSON());
-    }).catch(console.error);
-}
 
 // Define a type for your bot commands
 type BotCommand = {
@@ -90,10 +64,28 @@ declare module 'discord.js' {
     }
 }
 
-
 // Bot commands object
 // The name has to be lowercase
-const botCommands: { [key: string]: BotCommand } = {
+const chatCommands: { [key: string]: BotCommand } = {
+    readNikke: {
+        name: "read nikke",
+        async execute(msg) {
+            const mentionedUser = msg.mentions.users.first();
+            const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';        
+            const randomMessage = readNikkeReply + getRandomReadNikkeMessage();
+
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/readNikke/", randomMessage);
+        },
+    },
+    getDatNikke: {
+        name: "rapi get dat nikke",
+        async execute(msg) {
+            const mentionedUser = msg.mentions.users.first();
+            const getHimReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
+            
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/getDatNikke/", getHimReply);
+        },
+    },
     booba: {
         name: "booba?",
         async execute(msg) {
@@ -121,56 +113,25 @@ const botCommands: { [key: string]: BotCommand } = {
     seggs: {
         name: "seggs?",
         async execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/seggs.mp4",
-                        name: "seggs.mp4",
-                    },
-                ],
-                content: `Wait, Shifty, what are you talking about?`,
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/seggs/", `Wait, Shifty, what are you talking about?`);
         },
     },
     kindaweird: {
         name: "kinda weird...",
         async execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/kindaweird.png",
-                    },
-                ],
-                content: `But why, Commander?...`,
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/kindaweird/", `But why, Commander?...`);    
         },
     },
     iswear: {
         name: "i swear she is actually 3000 years old",
         async execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/iswear.png",
-                        name: "iswear.png",
-                    },
-                ],
-                content: `Commander... I'm calling the authorities.`,
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/iswear/", `Commander... I'm calling the authorities.`);
         },
     },
     teengame: {
         name: "12+ game",
         async execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/12game.png",
-                        name: "12game.png",
-                    },
-                ],
-                content: `Commander the surface is obviously safe for 12 year old kids.`,
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/12game/", `Commander the surface is obviously safe for 12 year old kids.`);
         },
     },
     justice: {
@@ -182,15 +143,7 @@ const botCommands: { [key: string]: BotCommand } = {
     whale: {
         name: "whale levels",
         async execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/whaling.png",
-                        name: "whaling.jpg",
-                    },
-                ],
-                content: `Commander, it's fine if you are poor.`,
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/whaling/", `Commander, it's fine if you are poor.`);
         },
     },
     discipline: {
@@ -201,14 +154,15 @@ const botCommands: { [key: string]: BotCommand } = {
                 "./src/public/images/commands/chat/lapOfDiscipline.jpg"
             ];
 
-            msg.reply({
+            await msg.reply({
                 files: [
                     {
                         attachment: filePaths[0],
                     },
                 ]
             });
-            msg.reply({
+
+            await msg.reply({
                 files: [
                     {
                         attachment: filePaths[1],
@@ -221,22 +175,19 @@ const botCommands: { [key: string]: BotCommand } = {
     goodgirl: {
         name: "good girl",
         description: "good girl Rapi",
-        execute(msg) {
-            // Check if the command is in the restricted channel and time window
+        async execute(msg) {
             const isNikkeChannel = msg.channel.name === "nikke";
             const currentTime = moment.tz('UTC');
-            const isWithinTimeWindow = currentTime.isBetween(resetStartTime, resetEndTime);
 
-            if (isNikkeChannel && isWithinTimeWindow) {
+            if (isNikkeChannel && currentTime.isBetween(resetStartTime, resetEndTime)) {
                 console.log("Ignoring 'goodgirl' command in 'nikke' channel within specific time window.");
                 return;
             }
 
-            // Random chance for a timeout action
             if (Math.random() < 0.04) {
-                handleTimeout(msg);
+                await handleTimeout(msg);
             } else {
-                msg.reply(`Thank you Commander ${msg.author}.`);
+                await msg.reply(`Thank you Commander ${msg.author}.`);
             }
         }
     },
@@ -250,49 +201,25 @@ const botCommands: { [key: string]: BotCommand } = {
     wronggirl: {
         name: "wrong girl",
         description: "wrong girl Rapi",
-        execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/anis.png",
-                        name: "anis.jpg",
-                    },
-                ],
-                content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
-            });
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/chat/anis/", `(￢з￢) Well well, so you DO see us that way, interesting!`);
         },
     },
     moldRates: {
         name: "mold rates are not that bad",
         description: `Commander, what are you talking about?`,
-        execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/copium-cn.jpg",
-                        name: "copium-cn.jpg",
-                    },
-                ],
-                content: `Commander, what are you talking about?`,
-            });
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/chat/copium-cn/", `Commander, what are you talking about?`);
         },
     },
     readyRapi: {
         name: "ready rapi?",
         async execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/ready.png",
-                        name: "ready.jpg",
-                    },
-                ],
-                content: `Commander... ready for what?`,
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/chat/ready/", `Commander... ready for what?`);
         },
     },
     contentSquad: {
-        name: pre + "content",
+        name: PRE + "content",
         description: "content squad ping",
         execute(msg) {
             msg.reply(
@@ -303,35 +230,21 @@ const botCommands: { [key: string]: BotCommand } = {
     badgirl: {
         name: "bad girl",
         description: "bad girl",
-        execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/wrong.gif",
-                        name: "wrong.gif",
-                    },
-                ],
-            });
+        async execute(msg) {    
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/wrong/", "Commander...");   
         },
     },
     reward: {
         name: "reward?",
         description: "reward?",
-        execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/reward.jpg",
-                        name: "reward.jpg",
-                    },
-                ],
-            });
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/reward/", "Commander...");
         },
     },
     damntrain: {
         name: "damn train",
         description: "damn train",
-        execute(msg) {
+        async execute(msg) {
             try {
                 const emoji = "❌";
                 msg.react(emoji);
@@ -342,51 +255,21 @@ const botCommands: { [key: string]: BotCommand } = {
                 );
             }
 
-            msg.reply({
-                content: `Commander...we don't talk about trains here.`,
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
-                        name: "SmugRapi.jpg",
-                    },
-                ],
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/damnTrain/", `Commander...we don't talk about trains here.`);
         },
     },
     damngravedigger: {
         name: "damn gravedigger",
         description: "damn gravedigger",
-        execute(msg) {
-            const filePaths = [
-                "./src/public/images/commands/chat/osugravedigger.png",
-                "./src/public/images/commands/chat/damngravedigger.gif"
-            ];
-
-            let rnd = Math.floor(Math.random() * filePaths.length);
-            let filePath = filePaths[rnd];
-
-            msg.reply({
-                content: `Commander...`,
-                files: [
-                    {
-                        attachment: filePath,
-                    },
-                ],
-            });
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, './src/public/images/commands/damnGravedigger/', `Commander...`);
         },
     },
     shiftdeadspicycrawl: {
         name: "dead spicy?",
         description: "dead spicy?",
-        execute(msg) {
-            msg.reply({
-                files: [
-                    {
-                        attachment: "./src/public/images/shifty/shifty_dead_spicy_crawl.gif",
-                        name: "shifty_dead_spicy_crawl.gif"
-                    },
-                ],
-            });
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, './src/public/images/commands/deadSpicy/', `Commander...`);
         },
     },
     curseofbelorta: {
@@ -400,14 +283,7 @@ const botCommands: { [key: string]: BotCommand } = {
         name: "ccp rules...",
         description: "CCP Rules",
         async execute(msg) {
-            msg.reply({
-                content: "Commander...please review our CCP Guidelines set by El Shafto...",
-                files: [
-                    {
-                        attachment: "./src/public/images/commands/ccp_rules.png",
-                    },
-                ],
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/ccpRules/", "Commander...please review our CCP Guidelines set by El Shafto...");
         },
     },
     bestgirl: {
@@ -421,23 +297,7 @@ const botCommands: { [key: string]: BotCommand } = {
         name: "99%",
         description: "Gamblers' Advice",
         async execute(msg) {
-            const filePaths = [
-                "./src/public/images/commands/gamblerAdvice/GetShafted.mp4",
-                "./src/public/images/commands/gamblerAdvice/GetShafted2.mp4",
-                "./src/public/images/commands/gamblerAdvice/GetShafted.jpg",
-            ];
-
-            let rnd = Math.floor(Math.random() * filePaths.length);
-            let filePath = filePaths[rnd];
-
-            msg.reply({
-                content: "Commander...did you know 99% of gamblers quit before hitting it big?",
-                files: [
-                    {
-                        attachment: filePath
-                    },
-                ],
-            });
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/gamblerAdvice/", "Commander...did you know 99% of gamblers quit before hitting it big?");
         },
     },
     ccpNumbahOne: {
@@ -508,53 +368,28 @@ function getRandomMantra() {
 }
 
 function loadCommands() {
-    for (const key in botCommands) {
+    for (const key in chatCommands) {
         console.log(`The following command was loaded successfully: ${key}`);
-        (bot as any).commands.set(botCommands[key].name, botCommands[key]);
+        (bot as any).commands.set(chatCommands[key].name, chatCommands[key]);
     }
-}
+    const commandsPath = path.join(__dirname, 'commands');
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
 
-function handleTimeout(msg: any) {
-    const { member, author } = msg;
-
-    // Calculating whether to timeout
-    if (Math.random() < 0.5) {
-        member.timeout(300000, "Commander, I need a moment of peace away from you!")
-            .then(() => {
-                const emojis = ["sefhistare:1124869893880283306", "❌"];
-                emojis.forEach(emoji => msg.react(emoji).catch(console.error));
-
-                msg.reply({
-                    content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
-                    files: [{
-                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
-                        name: "SmugRapi.jpg",
-                    }]
-                });
-            })
-            .catch((error: any) => {
-                console.error('Failed to timeout the user:', error);
-                handleTimeoutError(msg, author);
-            });
-    } else {
-        msg.reply({
-            content: `Well, I tried to give myself a break from you, Commander ${author}...but maybe I was being too rash. Thank you, Commander...`,
-            files: [{
-                attachment: "./src/public/images/commands/goodGirl/commander_rapi_hug.jpg",
-                name: "commander_rapi_hug.jpg",
-            }]
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        import(filePath).then(commandModule => {
+            const command = commandModule.default;
+            bot.commands.set(command.data.name, command);
+            commands.push(command.data.toJSON());
+            console.log(`Loaded command: ${command.data.name}`);
+        }).catch(error => {
+            if (error instanceof Error) {
+                logError('GLOBAL', 'GLOBAL', error, `Loading command ${file}`);
+            } else {
+                logError('GLOBAL', 'GLOBAL', new Error(String(error)), `Loading command ${file}`);
+            }
         });
     }
-}
-
-function handleTimeoutError(msg: any, author: any) {
-    msg.reply({
-        content: `Something caught me off guard...Commander ${author}...`,
-        files: [{
-            attachment: "./src/public/images/commands/goodGirl/commander_rapi_hug.jpg",
-            name: "commander_rapi_hug.jpg",
-        }]
-    });
 }
 
 function updateBotActivity(activities: any[]) {
@@ -667,8 +502,9 @@ function setBotActivity() {
     updateBotActivity(activities);
 
     schedule.scheduleJob('0 */4 * * *', function () {
-        if (getIsStreaming()) return; // Skip updating activities if streaming
-        updateBotActivity(activities);
+        if (!getIsStreaming()) {
+            updateBotActivity(activities);
+        }
     });
     
     console.log("Scheduled activity update job to run every 4 hours.");
@@ -676,13 +512,18 @@ function setBotActivity() {
 
 function greetNewMembers() {
     bot.on("guildMemberAdd", (member) => {
-        const channel = member.guild.channels.cache.find(
-            (ch) => ch.type === ChannelType.GuildText && ch.name === "welcome"
-        ) as TextChannel | undefined;
+        const channel = findChannelByName(member.guild, "welcome");
         if (channel) {
-            channel.send(
-                `Welcome Commander ${member}, please take care when going to the surface.`
-            );
+            channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
+                .then(() => {
+                    console.log(`Sent welcome message to ${member.user.tag} in guild ${member.guild.name}`);
+                })
+                .catch((error: Error) => {
+                    logError(member.guild.id, member.guild.name, error, 'Greeting new member');
+                    console.error(`Failed to send welcome message to ${member.user.tag} in guild ${member.guild.name}`);
+                });
+        } else {
+            console.warn(`Welcome channel not found in guild ${member.guild.name}`);
         }
     });
 }
@@ -690,14 +531,11 @@ function greetNewMembers() {
 function sendRandomMessages() {
     schedule.scheduleJob('0 */4 * * *', () => {
         bot.guilds.cache.forEach((guild) => {
-            const channel = guild.channels.cache.find(
-                (ch): ch is TextChannel => ch.type === ChannelType.GuildText && ch.name === "nikke"
-            );
-            if (channel && channel.send) {
-                const messages = getRapiMessages();
-                const randomIndex = Math.floor(Math.random() * messages.length);
-                channel.send(messages[randomIndex])
-                    .catch(error => console.error(`Failed to send message to channel ${channel.name} in guild ${guild.name}:`, error));
+            const channel = findChannelByName(guild, "nikke");
+            if (channel) {
+                let message = getRandomRapiMessage();
+                channel.send(message)
+                    .catch((error: Error) => logError(guild.id, guild.name, error, `Sending random message: ${message}`));
             } else {
                 console.log(`Could not find suitable 'nikke' text channel in guild ${guild.name}`);
             }
@@ -707,7 +545,6 @@ function sendRandomMessages() {
     console.log("Scheduled random message job to run every 4 hours.");
 }
 
-// Send daily interception message to NIKKE channel
 async function sendDailyInterceptionMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
@@ -730,17 +567,15 @@ async function sendDailyInterceptionMessage() {
             .setTimestamp()
             .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
-        const guildPromises = bot.guilds.cache.map(async (guild) => {
+        bot.guilds.cache.forEach(async (guild) => {
             try {
-                const channel = guild.channels.cache.find(
-                    (ch): ch is TextChannel => ch.type === ChannelType.GuildText && ch.name === "nikke"
-                );
+                const channel = findChannelByName(guild, "nikke");
                 if (!channel) {
                     console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
                     return;
                 }
 
-                const role = guild.roles.cache.find((role) => role.name === "Nikke");
+                const role = findRoleByName(guild, "Nikke");
                 if (role) {
                     await channel.send(`${role.toString()}, attention!`);
                 }
@@ -750,8 +585,10 @@ async function sendDailyInterceptionMessage() {
                     embeds: [embed]
                 });
 
-                const filter = (response: Message) => response.content.toLowerCase().includes("good girl") && !response.author.bot;
-                const collector = channel.createMessageCollector({ filter, time: 15000 });
+                const collector = channel.createMessageCollector({ 
+                    filter: (response: Message) => response.content.toLowerCase().includes("good girl") && !response.author.bot,
+                    time: 15000 
+                });
 
                 let firstResponseHandled = false;
 
@@ -760,211 +597,123 @@ async function sendDailyInterceptionMessage() {
                         firstResponseHandled = true;
                         try {
                             await m.react("❤️");
+                            const thankYouMessages = [
+                                `Your swiftness is unmatched, Commander ${m.author}. It's impressive.`,
+                                `Your alertness honors us all, Commander ${m.author}.`,
+                                `Your swift response is commendable, Commander ${m.author}.`
+                            ];
+                            await m.reply(thankYouMessages[Math.floor(Math.random() * thankYouMessages.length)]);
                         } catch (error) {
-                            console.error("Failed to react with emoji:", error);
+                            if (error instanceof Error) {
+                                logError(guild.id, guild.name, error, 'Handling first response');
+                            } else {
+                                logError(guild.id, guild.name, new Error(String(error)), 'Handling first response');
+                            }
                         }
-
-                        const thankYouMessages = [
-                            `Your swiftness is unmatched, Commander ${m.author}. It's impressive.`,
-                            `Your alertness honors us all, Commander ${m.author}.`,
-                            `Your swift response is commendable, Commander ${m.author}.`
-                        ];
-
-                        m.reply(thankYouMessages[Math.floor(Math.random() * thankYouMessages.length)]);
                     } else {
                         try {
                             await m.react("sefhistare:1124869893880283306");
+                            m.reply(`Commander ${m.author}... I expected better...`);
                         } catch (error) {
-                            console.error("Failed to react with custom emoji:", error);
+                            if (error instanceof Error) {
+                                logError(guild.id, guild.name, error, 'Handling subsequent responses');
+                            } else {
+                                logError(guild.id, guild.name, new Error(String(error)), 'Handling subsequent responses');
+                            }
                         }
-                        m.reply(`Commander ${m.author}... I expected better...`);
                     }
                 });
 
-                collector.on('end', collected => {
+                collector.on('end', (collected: ReadonlyCollection<string, Message<boolean>>) => {
                     console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
                 });
             } catch (error) {
-                console.error(`Error processing guild ${guild.name}: ${error}`);
+                if (error instanceof Error) {
+                    logError(guild.id, guild.name, error, 'Sending daily interception message');
+                } else {
+                    logError(guild.id, guild.name, new Error(String(error)), 'Sending daily interception message');
+                }
             }
         });
-
-        await Promise.allSettled(guildPromises);
     });
     console.log("Scheduled daily interception message job to run every Nikke reset time.");
 }
 
 function handleMessages() {
-    // Read command files from the commands directory
-    const commandsDir = path.join(__dirname, "commands");
-    const commandFiles = fs.readdirSync(commandsDir)
-        .filter(file => file.endsWith('.ts'))
-        .map(file => file.slice(0, -3));  // Remove the .ts extension
-
-    const validSlashCommands = new Set(commandFiles);
-
     bot.on("messageCreate", async (message) => {
-        // Ignore messages that mention @everyone
-        if (message.mentions.everyone) {
-            return;
-        }
+        if (message.mentions.everyone || !message.guild || !message.member) return;
 
-        // If guild or member is not defined, ignore the message
-        if (!message.guild || !message.member) {
-            return;
-        }
+        const args = message.content.startsWith(PRE) ? message.content.slice(PRE.length).trim().split(/ +/) : [message.content];
+        const command = args.shift()?.toLowerCase();
 
-        // Establish arguments
-        let args: string[] = [];
-        if (message.content[0] === pre) {
-            args = message.content.split(/ +/);
-        } else {
-            args = [message.content];
-        }
-
-        const command = args.shift()?.toLowerCase() || "";
-        
-        // Ignore if the command is part of slash commands
-        if (validSlashCommands.has(command)) {
-            return;  
-        }
-
-        // Check if we're mentioning the bot and if the message contains a valid command
-        if (message.mentions.has(bot.user?.id || "") && !(bot as any).commands.has(command)) {
-            try {
-                const response = await axios.get(`https://api.thecatapi.com/v1/images/search?api_key=${process.env.CATAPI}`);
-                const data = response.data;
-                message.channel.send(`I'm busy Commander ${message.author}, but here's a cat.`);
-                message.channel.send(data[0].url);
-            } catch (error) {
-                console.error(error);
-                message.channel.send(`Did you mention me, Commander ${message.author}?`);
-            }
-            return;
-        }
-
-        if (message.content.trim().toLowerCase().startsWith("rapi get dat nikke")){
-            const mentionedUser = message.mentions.users.first();
-            const getHimReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
-            
-            await sendRandomImageWithContent(message, "./src/public/images/commands/getDatNikke/", getHimReply);
-            return;
-        }
-
-        if (message.content.trim().toLowerCase().startsWith("broke boi")){
-            const mentionedUser = message.mentions.users.first();
-            const brokeboiReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
-            const filePaths = [
-                "./src/public/images/commands/chat/money-empty.gif",
-                "./src/public/audio/brokeboi.mp3"
-            ];
-        
-            const brokeboiMessages = [
-                "it looks like your wallet is as empty as your promises.",
-                "running low on funds again? Maybe you should try saving for once.",
-                "looks like you need a lesson in budgeting. How much is left in the treasury, broke boy?",
-                "I think it's time to reconsider your spending habits. You're practically broke.",
-                "planning to lead us into battle with an empty wallet? Classic move.",
-                "another day, another dollar... missing from your account.",
-                "your financial situation is more dire than our latest mission.",
-                "guess we'll have to tighten our belts again. Your funds are looking pretty thin.",
-                "even the enemy seems to have more resources than you. What's your excuse this time?",
-                "seems like you need a bailout. Broke boy, what's the plan now?"
-            ];
-        
-            const randomMessage = brokeboiMessages[Math.floor(Math.random() * brokeboiMessages.length)];
-        
-            message.reply({
-                content: brokeboiReply + randomMessage,
-                files: filePaths.map(filePath => ({ attachment: filePath })),
-            });
-
-            return;
-        }
-
-        if (message.content.trim().toLowerCase().startsWith("read nikke")){
-            const mentionedUser = message.mentions.users.first();
-            const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';
-            const filePaths = [
-                "./src/public/images/commands/boondocks_read.gif",
-            ];
-        
-            const readNikkeMessages = [
-                "skipping the story again? You miss all the good parts...",
-                "maybe try reading the dialogue. It’s not just about the battles!",
-                "you’d enjoy the game more if you actually read the story...",
-                "always skipping content??? You’re missing all the plot twists!",
-                "read the story! There’s more than just shooting!",
-                "what’s the rush? Enjoy the dialogue for once...",
-                "you skip more content than you should. Try reading!!!",
-                "the story is half the fun. Stop skipping it like El Shafto!!!",
-                "always rushing? The dialogue has great moments, you know...",
-                "ever thought about reading? You’re missing out on the lore!"
-            ];
-        
-            const randomMessage = readNikkeMessages[Math.floor(Math.random() * readNikkeMessages.length)];
-        
-            message.reply({
-                content: readNikkeReply + randomMessage,
-                files: filePaths.map(filePath => ({ attachment: filePath })),
-            });
-
-            return;
-        }
-
-        // If there's no command or it's not a valid bot command, exit early
-        if (!command || !(bot as any).commands.has(command)) return;
+        if (!command || !bot.commands.has(command)) return;
 
         try {
-            const guild = message.guild;
-            const ignoredRole = guild.roles.cache.find((role) => role.name === "Grounded");
-            const contentCreatorRole = guild.roles.cache.find((role) => role.name === "Content Creator");
+            const ignoredRole = findRoleByName(message.guild, "Grounded");
+            const contentCreatorRole = findRoleByName(message.guild, "Content Creator");
 
-            if (command == "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
-                (bot as any).commands.get(command).execute(message, args);
+            if (command === "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
+                await bot.commands.get(command)?.execute(message, args);
             } else if (!ignoredRole || !message.member.roles.cache.has(ignoredRole.id)) {
-                // Execute the command if it's not from a user with the ignored role
-                (bot as any).commands.get(command).execute(message, args);
+                await bot.commands.get(command)?.execute(message, args);
             }
         } catch (error) {
-            console.error(error);
-            message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" });
+            if (error instanceof Error) {
+                logError(message.guild.id, message.guild.name, error, `Executing command: ${command}`);
+            } else {
+                logError(message.guild.id, message.guild.name, new Error(String(error)), `Executing command: ${command}`);
+            }
+            message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" })
+                .catch(replyError => {
+                    const guildId = message.guild?.id || 'UNKNOWN';
+                    if (replyError instanceof Error) {
+                        logError(guildId, message.guild?.name || 'UNKNOWN', replyError, 'Sending error message');
+                    } else {
+                        logError(guildId, message.guild?.name || 'UNKNOWN', new Error(String(replyError)), 'Sending error message');
+                    }
+                });
         }
     });
 }
 
-// Handles bot slash commands interactions for all available slash commands
 function handleSlashCommands() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
 
-        const command = (interaction.client as any).commands.get(
-            interaction.commandName
-        );
+        const command = bot.commands.get(interaction.commandName);
 
         if (!command) {
-            console.error(
-                `No command matching ${interaction.commandName} was found.`
-            );
+            console.error(`No command matching ${interaction.commandName} was found.`);
             return;
         }
 
         try {
             await command.execute(interaction);
         } catch (error) {
-            console.error(error);
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
-                    content:
-                        "Sorry Commander, there was an error while executing this command!",
-                    ephemeral: true,
-                });
+            if (error instanceof Error) {
+                logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, `Executing slash command: ${interaction.commandName}`);
             } else {
-                await interaction.reply({
-                    content:
-                        "Sorry Commander, there was an error while executing this command!",
-                    ephemeral: true,
-                });
+                logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), `Executing slash command: ${interaction.commandName}`);
+            }
+            const errorMessage = "Sorry Commander, there was an error while executing this command!";
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ content: errorMessage, ephemeral: true })
+                    .catch(replyError => {
+                        if (replyError instanceof Error) {
+                            logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', replyError, 'Sending error followUp');
+                        } else {
+                            logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(replyError)), 'Sending error followUp');
+                        }
+                    });
+            } else {
+                await interaction.reply({ content: errorMessage, ephemeral: true })
+                    .catch(replyError => {
+                        if (replyError instanceof Error) {
+                            logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', replyError, 'Sending error reply');
+                        } else {
+                            logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(replyError)), 'Sending error reply');
+                        }
+                    });
             }
         }
     });
@@ -974,18 +723,84 @@ function enableAutoComplete() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isAutocomplete()) return;
 
-        const command = (bot as any).commands.get(interaction.commandName);
+        const command = bot.commands.get(interaction.commandName);
         if (command && typeof command.autocomplete === "function") {
-            await command.autocomplete(interaction);
+            try {
+                await command.autocomplete(interaction);
+            } catch (error) {
+                if (error instanceof Error) {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, `Autocomplete for command: ${interaction.commandName}`);
+                } else {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), `Autocomplete for command: ${interaction.commandName}`);
+                }
+            }
         }
     });
 }
 
-async function initDiscordBot() {
-    //if (bot) throw new Error("Bot is already initialized, use getBot()");
+async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
+    try {
+        const connection = joinVoiceChannel({
+            channelId: voiceChannel.id,
+            guildId: voiceChannel.guild.id,
+            adapterCreator: voiceChannel.guild.voiceAdapterCreator
+        });
 
+        connection.on('error', error => {
+            logError(guildId, 'UNKNOWN', error, 'Voice connection');
+        });
+
+        const playlist = fs.readdirSync(RADIO_FOLDER_PATH);
+
+        voiceConnections.set(guildId, { connection, playlist });
+
+        connection.on(VoiceConnectionStatus.Ready, () => {
+            console.log(`Bot connected to voice channel in guild ${guildId}`);
+            playNextSong(guildId);
+        });
+    } catch (error) {
+        if (error instanceof Error) {
+            logError(guildId, 'UNKNOWN', error, 'Connecting to voice channel');
+        } else {
+            logError(guildId, 'UNKNOWN', new Error(String(error)), 'Connecting to voice channel');
+        }
+    }
+}
+
+function playNextSong(guildId: string) {
+    try {
+        const voiceConnectionData = voiceConnections.get(guildId);
+        if (!voiceConnectionData) {
+            throw new Error(`No voice connection data found for guild ${guildId}`);
+        }
+        const { connection, playlist, currentSongIndex = 0 } = voiceConnectionData;
+        const nextIndex = (currentSongIndex + 1) % playlist.length;
+        const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
+        const resource = createAudioResource(songPath);
+
+        if (!voiceConnectionData.player) {
+            voiceConnectionData.player = createAudioPlayer();
+            voiceConnectionData.player.on(AudioPlayerStatus.Idle, () => {
+                playNextSong(guildId);
+            });
+        }
+
+        connection.subscribe(voiceConnectionData.player);
+        voiceConnectionData.player.play(resource);
+
+        voiceConnectionData.currentSongIndex = nextIndex;
+    } catch (error) {
+        if (error instanceof Error) {
+            logError(guildId, 'RADIO', error, 'Playing next song');
+        } else {
+            logError(guildId, 'RADIO', new Error(String(error)), 'Playing next song');
+        }
+    }
+}
+
+async function initDiscordBot() {
     loadCommands();
-    const bot = getDiscordBot();
+
     bot.once(Events.ClientReady, (async () => {
         setBotActivity();
         greetNewMembers();
@@ -1005,112 +820,44 @@ async function initDiscordBot() {
             );
             console.log('Successfully reloaded application (/) commands.');
         } catch (error) {
-            console.error(error);
+            if (error instanceof Error) {
+                logError('GLOBAL', 'GLOBAL', error, 'Refreshing application commands');
+            } else {
+                logError('GLOBAL', 'GLOBAL', new Error(String(error)), 'Refreshing application commands');
+            }
         }
 
-        // try to connect to VC for the Rapi Radio
-        try {
-            
-            // Loop through each guild (server) the bot is in
-            bot.guilds.cache.forEach(async (guild: Guild) => {
-                // Get a voice channel to connect to (default rapi-radio channel)
-                const voiceChannel = guild.channels.cache.get('1229441264718577734');
-
-                if (voiceChannel) {
-                    await connectToVoiceChannel(guild.id, voiceChannel);
-                }
-            });
-        } catch (error) {
-            console.error("Failed to connect to VC Chat bot:", error);
-        }
+        bot.guilds.cache.forEach(async (guild: Guild) => {
+            const voiceChannel = getVoiceChannel(guild, '1229441264718577734');
+            if (voiceChannel) {
+                await connectToVoiceChannel(guild.id, voiceChannel);
+            }
+        });
     }) as (client: Client<true>) => Promise<void>);
 
-    bot.on('voiceStateUpdate', (oldState: VoiceState, newState: VoiceState) => {
+    bot.on('voiceStateUpdate', (oldState, newState) => {
         const guildId = newState.guild.id;
         const botId = bot.user?.id;
 
         if (newState.member?.id === botId && !newState.channelId) {
-            // Bot left a voice channel
             voiceConnections.get(guildId)?.connection.destroy();
             voiceConnections.delete(guildId);
         }
     });
 
-    await bot.login(TOKEN).catch(console.error);
-
-    console.log("Bot is ready!");
-}
-
-async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
     try {
-        const connection = joinVoiceChannel({
-            channelId: voiceChannel.id,
-            guildId: voiceChannel.guild.id,
-            adapterCreator: voiceChannel.guild.voiceAdapterCreator
-        });
-
-        connection.on('error', error => {
-            console.error(`Voice connection error in guild ${guildId}:`, error);
-        });
-
-        const playlist = fs.readdirSync(RADIO_FOLDER_PATH);
-
-        voiceConnections.set(guildId, { connection, playlist });
-
-        connection.on(VoiceConnectionStatus.Ready, () => {
-            console.log(`Bot connected to voice channel in guild ${guildId}`);
-            playNextSong(guildId);
-        });
+        await bot.login(TOKEN);
+        console.log("Bot is ready!");
     } catch (error) {
-        console.error(`Failed to connect to voice channel in guild ${guildId}:`, error);
-    }
-}
-
-function playNextSong(guildId: string) {
-    try {
-        const voiceConnectionData = voiceConnections.get(guildId);
-        if (!voiceConnectionData) {
-            throw new Error(`No voice connection data found for guild ${guildId}`);
+        if (error instanceof Error) {
+            logError('GLOBAL', 'GLOBAL', error, 'Bot login');
+        } else {
+            logError('GLOBAL', 'GLOBAL', new Error(String(error)), 'Bot login');
         }
-        const { connection, playlist, currentSongIndex = 0 } = voiceConnectionData;
-        const nextIndex = (currentSongIndex + 1) % playlist.length;
-        const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
-        const resource = createAudioResource(songPath);
-
-        // TODO
-        // this is not available yet on discord.js, setting up the VC status to the current song name
-        // only works for text channels for now, when it's updated i'll change it
-        // const guild = bot.guilds.cache.get(guildId);
-        // const voiceChannel = guild.channels.cache.get('1229441264718577734');
-        // const fileName = path.parse(songPath).name;
-        // voiceChannel.setTopic(`🎶 ${fileName} 🎶`);
-
-        if (!voiceConnectionData.player) {
-            voiceConnectionData.player = createAudioPlayer();
-            voiceConnectionData.player.on(AudioPlayerStatus.Idle, () => {
-                playNextSong(guildId);
-            });
-        }
-
-        connection.subscribe(voiceConnectionData.player);
-        voiceConnectionData.player.play(resource);
-
-        // Update current song index for next iteration
-        voiceConnectionData.currentSongIndex = nextIndex;
-    } catch (error) {
-        console.error(`Error while playing next song in guild ${guildId}:`, error);
-    }
-}
-
-function getDiscordBot() {
-    if (bot) {
-        return bot;
-    } else {
-        throw new Error("Bot is not initialized");
     }
 }
 
 export {
     initDiscordBot,
-    getDiscordBot,
+    bot as getDiscordBot,
 };
