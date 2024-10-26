@@ -91,7 +91,7 @@ export function handleTimeout(msg: any) {
                 msg.reply({
                     content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
                     files: [{
-                        attachment: "./src/public/images/commands/chat/SmugRapi.jpg",
+                        attachment: "./src/public/images/commands/damnTrain/SmugRapi.jpg",
                         name: "SmugRapi.jpg",
                     }]
                 });
