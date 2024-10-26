@@ -235,6 +235,10 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Pepper.webp"
         },
         {
+            "name": "Phantom",
+            "image": "https://static.dotgg.gg/nikke/characters/c580_00.webp"
+        },
+        {
             "name": "Poli",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Poli.webp"
         },
@@ -247,12 +251,20 @@
             "image": "https://static.dotgg.gg/nikke/characters/c313_00.webp"
         },
         {
+            "name": "Quency: Escape Queen",
+            "image": "https://static.dotgg.gg/nikke/characters/c403_00.webp"
+        },
+        {
             "name": "Quiry",
             "image": "https://static.dotgg.gg/nikke/characters/c033_00.webp"
         },
         {
             "name": "Rosanna",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Rosanna.webp"
+        },
+        {
+            "name": "Rumani",
+            "image": "https://static.dotgg.gg/nikke/characters/c240_00.webp"
         },
         {
             "name": "Rupee",
