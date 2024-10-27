@@ -23,6 +23,7 @@ import {
     handleTimeout,
 } from "./utils/util";
 import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
+import { ccpMessage } from "./utils/constants/messages";
 
 const TOKEN = process.env.WAIFUTOKEN as string;
 const CLIENTID = process.env.CLIENTID as string;
@@ -643,6 +644,18 @@ function handleMessages() {
     bot.on("messageCreate", async (message) => {
         if (message.mentions.everyone || !message.guild || !message.member) return;
 
+        // Check for sensitive terms
+        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong'];
+        const messageContent = message.content.toLowerCase();
+        if (sensitiveTerms.some(term => messageContent.includes(term))) {
+            try {
+                await message.reply(ccpMessage);
+            } catch (error) {
+                logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within handleMessages');
+            }
+            return;
+        }
+
         const args = message.content.startsWith(PRE) ? message.content.slice(PRE.length).trim().split(/ +/) : [message.content];
         const command = args.shift()?.toLowerCase();
 
@@ -658,19 +671,10 @@ function handleMessages() {
                 await bot.commands.get(command)?.execute(message, args);
             }
         } catch (error) {
-            if (error instanceof Error) {
-                logError(message.guild.id, message.guild.name, error, `Executing command: ${command}`);
-            } else {
-                logError(message.guild.id, message.guild.name, new Error(String(error)), `Executing command: ${command}`);
-            }
+            logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
             message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" })
                 .catch(replyError => {
-                    const guildId = message.guild?.id || 'UNKNOWN';
-                    if (replyError instanceof Error) {
-                        logError(guildId, message.guild?.name || 'UNKNOWN', replyError, 'Sending error message');
-                    } else {
-                        logError(guildId, message.guild?.name || 'UNKNOWN', new Error(String(replyError)), 'Sending error message');
-                    }
+                    logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', replyError instanceof Error ? replyError : new Error(String(replyError)), 'Sending error message');
                 });
         }
     });
