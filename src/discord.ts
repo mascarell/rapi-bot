@@ -410,6 +410,11 @@ function setBotActivity() {
     const activities = [
         {
             name: "SIMULATION ROOM",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "SIMULATION ROOM: OVERCLOCK",
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
@@ -424,10 +429,15 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "UNION RAID",
+            name: "Dragon Ball: Sparking! Zero",
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
+        // {
+        //     name: "UNION RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -484,17 +494,17 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Lost Ark",
+            name: "Terraria",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Terraria",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
         {
             name: "Trickal RE:VIVE",
-            type: ActivityType.Playing,
-            status: PresenceUpdateStatus.Online,
-        },
-        {
-            name: "Sword of Convallaria",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
