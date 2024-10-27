@@ -7,7 +7,6 @@ import {
     CommandInteraction,
 } from 'discord.js';
 import nikkeData from '../utils/data/characters/nikke.json';
-import soloLevelingData from '../utils/data/characters/soloLeveling.json';
 import wutheringWavesData from '../utils/data/characters/wutheringWaves.json';
 
 const userCommandUsage: Record<string, number[]> = {};
@@ -38,7 +37,6 @@ module.exports = {
                 .setRequired(true)
                 .addChoices(
                     { name: 'GODDESS OF VICTORY: NIKKE', value: 'nikke' },
-                    { name: 'Solo Leveling', value: 'solo_leveling' },
                     { name: 'Wuthering Waves', value: 'wuthering_waves' }
                 )),
 
@@ -60,9 +58,6 @@ module.exports = {
         switch (game) {
             case 'nikke':
                 data = nikkeData;
-                break;
-            case 'solo_leveling':
-                data = soloLevelingData;
                 break;
             case 'wuthering_waves':
                 data = wutheringWavesData;
@@ -120,7 +115,6 @@ function generateEmbeds(characters: any[], game: string) {
 function getColorByRarity(rarity: string, game: string, itemType?: string) {
     const baseColors: Record<string, any> = {
         nikke: { "Pilgrim": "#FFA500", "SSR": "#FFD700", "SR": "#800080", "R": "#ADD8E6" },
-        solo_leveling: { "SSR": "#FF4500", "SR": "#4682B4", "R": "#778899" },
         wuthering_waves: { 
             "5-Star": "#FFD700", 
             "4-Star": { "character": "#800080", "weapon": "#34eb6b" }, 
@@ -138,11 +132,6 @@ function getFooterTextByRarity(rarity: string, game: string) {
             "SSR": "Wow! A SSR? That's incredibly lucky, Commander!",
             "SR": "An SR! You're on the right track, Commander!",
             "R": "It's just an R, but every squad member counts!"
-        },
-        solo_leveling: {
-            "SSR": "A legendary find, Commander! Are we dreaming?",
-            "SR": "An SR! You're on the right track, Commander!",
-            "R": "It's just an R, but every member counts!"
         },
         wuthering_waves: {
             "5-Star": "Commander, you've struck gold with a 5-Star!",
