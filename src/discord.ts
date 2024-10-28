@@ -655,7 +655,7 @@ function handleMessages() {
         if (message.mentions.everyone || !message.guild || !message.member) return;
 
         // Check for sensitive terms
-        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong'];
+        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen'];
         const messageContent = message.content.toLowerCase();
         if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
