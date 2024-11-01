@@ -324,17 +324,26 @@ async function sendRandomImage(msg: any, folderPath: string) {
 }
 
 async function sendRandomImageWithContent(msg: any, folderPath: string, content: string) {
-    let files = await getFiles(folderPath);
-    let randomFile = files[Math.floor(Math.random() * files.length)];
-    msg.reply({
-        content: content,
-        files: [
-            {
-                attachment: randomFile.path,
-                name: randomFile.name,
-            },
-        ],
-    });
+    try {
+        console.log(`Fetching files from folder: ${folderPath}`);
+        let files = await getFiles(folderPath);
+        let randomFile = files[Math.floor(Math.random() * files.length)];
+        console.log(`Selected random file: ${randomFile.name}`);
+        
+        await msg.reply({
+            content: content,
+            files: [
+                {
+                    attachment: randomFile.path,
+                    name: randomFile.name,
+                },
+            ],
+        });
+        console.log(`Successfully sent message with content: ${content}`);
+    } catch (error) {
+        console.error(`Failed to send message with content: ${content}`, error);
+        logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContent');
+    }
 }
 
 function getRandomBestGirlPhrase() {
@@ -540,19 +549,24 @@ function greetNewMembers() {
 }
 
 function sendRandomMessages() {
-    schedule.scheduleJob('0 */4 * * *', () => {
-        bot.guilds.cache.forEach((guild) => {
+    schedule.scheduleJob('0 */4 * * *', async () => {
+        const guilds = bot.guilds.cache.values();
+        for (const guild of guilds) {
             const channel = findChannelByName(guild, "nikke");
-            if (channel) {
-                let message = getRandomRapiMessage();
-                channel.send(message)
-                    .catch((error: Error) => logError(guild.id, guild.name, error, `Sending random message: ${message}`));
-            } else {
+            if (!channel) {
                 console.log(`Could not find suitable 'nikke' text channel in guild ${guild.name}`);
+                continue;
             }
-        });
+
+            try {
+                const message = getRandomRapiMessage();
+                await channel.send(message);
+            } catch (error) {
+                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending random message');
+            }
+        }
     });
-    
+
     console.log("Scheduled random message job to run every 4 hours.");
 }
 
@@ -654,9 +668,9 @@ function handleMessages() {
     bot.on("messageCreate", async (message) => {
         if (message.mentions.everyone || !message.guild || !message.member) return;
 
-        // Check for sensitive terms
         const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
         const messageContent = message.content.toLowerCase();
+
         if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
                 await message.reply(ccpMessage);
@@ -666,19 +680,25 @@ function handleMessages() {
             return;
         }
 
-        const args = message.content.startsWith(PRE) ? message.content.slice(PRE.length).trim().split(/ +/) : [message.content];
+        const strippedContent = messageContent.replace(/<@!?\d+>/g, '').trim();
+        const args = message.content.startsWith(PRE) 
+            ? message.content.slice(PRE.length).trim().split(/ +/) 
+            : [strippedContent];
         const command = args.shift()?.toLowerCase();
 
-        if (!command || !bot.commands.has(command)) return;
+        if (!command) return;
+
+        const matchedCommand = bot.commands.get(command);
+        if (!matchedCommand) return;
 
         try {
             const ignoredRole = findRoleByName(message.guild, "Grounded");
             const contentCreatorRole = findRoleByName(message.guild, "Content Creator");
 
             if (command === "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
-                await bot.commands.get(command)?.execute(message, args);
+                await matchedCommand.execute(message, args);
             } else if (!ignoredRole || !message.member.roles.cache.has(ignoredRole.id)) {
-                await bot.commands.get(command)?.execute(message, args);
+                await matchedCommand.execute(message, args);
             }
         } catch (error) {
             logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
