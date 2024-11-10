@@ -666,7 +666,7 @@ async function sendDailyInterceptionMessage() {
 
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
-        if (message.mentions.everyone || !message.guild || !message.member) return;
+        if (message.mentions.everyone || !message.guild || !message.member || message.author.bot) return;
 
         const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
         const messageContent = message.content.toLowerCase();
