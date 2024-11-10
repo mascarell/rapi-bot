@@ -668,10 +668,10 @@ function handleMessages() {
     bot.on("messageCreate", async (message) => {
         if (message.mentions.everyone || !message.guild || !message.member || message.author.bot) return;
 
-        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
+        const sensitiveTerms = new Set(['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989']);
         const messageContent = message.content.toLowerCase();
 
-        if ((message.channel as TextChannel).name === "welcome" || sensitiveTerms.some(term => messageContent.includes(term))) {
+        if ((message.channel as TextChannel).name === "welcome" || [...sensitiveTerms].some(term => messageContent.includes(term))) {
             try {
                 await message.reply(ccpMessage);
             } catch (error) {
@@ -682,7 +682,7 @@ function handleMessages() {
 
         const strippedContent = messageContent.replace(/<@!?\d+>/g, '').trim();
         const args = message.content.startsWith(PRE) 
-            ? message.content.slice(PRE.length).trim().split(/ +/) 
+            ? message.content.slice(PRE.length).trim().split(/\s+/) 
             : [strippedContent];
         const command = args.shift()?.toLowerCase();
 
@@ -695,9 +695,12 @@ function handleMessages() {
             const ignoredRole = findRoleByName(message.guild, "Grounded");
             const contentCreatorRole = findRoleByName(message.guild, "Content Creator");
 
-            if (command === "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
+            const hasIgnoredRole = ignoredRole && message.member.roles.cache.has(ignoredRole.id);
+            const hasContentCreatorRole = contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id);
+
+            if (command === "content" && hasContentCreatorRole) {
                 await matchedCommand.execute(message, args);
-            } else if (!ignoredRole || !message.member.roles.cache.has(ignoredRole.id)) {
+            } else if (!hasIgnoredRole) {
                 await matchedCommand.execute(message, args);
             }
         } catch (error) {
