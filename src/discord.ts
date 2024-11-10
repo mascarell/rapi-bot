@@ -1,4 +1,4 @@
-import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection, TextChannel } from "discord.js";
+import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection, TextChannel, ChannelType } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
 import { createAudioPlayer, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus, AudioPlayer } from '@discordjs/voice';
@@ -667,11 +667,16 @@ async function sendDailyInterceptionMessage() {
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
         if (message.mentions.everyone || !message.guild || !message.member || message.author.bot) return;
+        const welcomeChannel = message.guild.channels.cache.find(channel => channel.type === ChannelType.GuildText && channel.name.toLowerCase() === 'welcome') as TextChannel | undefined;
+        if (welcomeChannel?.id === message.channel.id) {
+            console.warn(`Ignoring message in welcome channel. Guild: ${message.guild.name}, Channel: ${welcomeChannel.name}, Author: ${message.author.tag}, Content: ${message.content}`);
+            return;
+        }
 
-        const sensitiveTerms = new Set(['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989']);
         const messageContent = message.content.toLowerCase();
+        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
 
-        if ((message.channel as TextChannel).name === "welcome" || [...sensitiveTerms].some(term => messageContent.includes(term))) {
+        if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
                 await message.reply(ccpMessage);
             } catch (error) {
