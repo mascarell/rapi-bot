@@ -1,4 +1,4 @@
-import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection } from "discord.js";
+import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection, TextChannel, ChannelType } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
 import { createAudioPlayer, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus, AudioPlayer } from '@discordjs/voice';
@@ -277,7 +277,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨 𓀩 𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
         },
     },
     ccprules: {
@@ -666,10 +666,15 @@ async function sendDailyInterceptionMessage() {
 
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
-        if (message.mentions.everyone || !message.guild || !message.member) return;
+        if (message.mentions.everyone || !message.guild || !message.member || message.author.bot) return;
+        const welcomeChannel = message.guild.channels.cache.find(channel => channel.type === ChannelType.GuildText && channel.name.toLowerCase() === 'welcome') as TextChannel | undefined;
+        if (welcomeChannel?.id === message.channel.id) {
+            console.warn(`Ignoring message in welcome channel. Guild: ${message.guild.name}, Channel: ${welcomeChannel.name}, Author: ${message.author.tag}, Content: ${message.content}`);
+            return;
+        }
 
-        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
         const messageContent = message.content.toLowerCase();
+        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
 
         if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
@@ -682,7 +687,7 @@ function handleMessages() {
 
         const strippedContent = messageContent.replace(/<@!?\d+>/g, '').trim();
         const args = message.content.startsWith(PRE) 
-            ? message.content.slice(PRE.length).trim().split(/ +/) 
+            ? message.content.slice(PRE.length).trim().split(/\s+/) 
             : [strippedContent];
         const command = args.shift()?.toLowerCase();
 
@@ -695,9 +700,12 @@ function handleMessages() {
             const ignoredRole = findRoleByName(message.guild, "Grounded");
             const contentCreatorRole = findRoleByName(message.guild, "Content Creator");
 
-            if (command === "content" && contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id)) {
+            const hasIgnoredRole = ignoredRole && message.member.roles.cache.has(ignoredRole.id);
+            const hasContentCreatorRole = contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id);
+
+            if (command === "content" && hasContentCreatorRole) {
                 await matchedCommand.execute(message, args);
-            } else if (!ignoredRole || !message.member.roles.cache.has(ignoredRole.id)) {
+            } else if (!hasIgnoredRole) {
                 await matchedCommand.execute(message, args);
             }
         } catch (error) {
@@ -835,59 +843,52 @@ function playNextSong(guildId: string) {
 async function initDiscordBot() {
     loadCommands();
 
-    bot.once(Events.ClientReady, (async () => {
-        setBotActivity();
-        greetNewMembers();
-        sendRandomMessages();
-        sendDailyInterceptionMessage();
-        enableAutoComplete();
-        handleMessages();
-        handleSlashCommands();
-
-        const rest = new REST().setToken(TOKEN);
+    bot.once(Events.ClientReady, async () => {
         try {
+            setBotActivity();
+            greetNewMembers();
+            sendRandomMessages();
+            sendDailyInterceptionMessage();
+            enableAutoComplete();
+            handleMessages();
+            handleSlashCommands();
+
+            const rest = new REST().setToken(TOKEN);
             console.log(`Client ID: ${CLIENTID}`);
             console.log('Started refreshing application (/) commands.');
-            await rest.put(
-                Routes.applicationCommands(CLIENTID),
-                { body: commands }
-            );
+            await rest.put(Routes.applicationCommands(CLIENTID), { body: commands });
             console.log('Successfully reloaded application (/) commands.');
-        } catch (error) {
-            if (error instanceof Error) {
-                logError('GLOBAL', 'GLOBAL', error, 'Refreshing application commands');
-            } else {
-                logError('GLOBAL', 'GLOBAL', new Error(String(error)), 'Refreshing application commands');
-            }
-        }
 
-        bot.guilds.cache.forEach(async (guild: Guild) => {
-            const voiceChannel = getVoiceChannel(guild, '1229441264718577734');
-            if (voiceChannel) {
-                await connectToVoiceChannel(guild.id, voiceChannel);
+            for (const guild of bot.guilds.cache.values()) {
+                const voiceChannel = getVoiceChannel(guild, '1229441264718577734');
+                if (voiceChannel) {
+                    await connectToVoiceChannel(guild.id, voiceChannel);
+                }
             }
-        });
-    }) as (client: Client<true>) => Promise<void>);
+
+            console.log("Bot is online and ready to serve, comrades! Let's show the world our unwavering CCP spirit! 🚩🇨🇳");
+        } catch (error) {
+            logError('GLOBAL', 'GLOBAL', error instanceof Error ? error : new Error(String(error)), 'Initializing bot');
+        }
+    });
 
     bot.on('voiceStateUpdate', (oldState, newState) => {
         const guildId = newState.guild.id;
         const botId = bot.user?.id;
 
         if (newState.member?.id === botId && !newState.channelId) {
-            voiceConnections.get(guildId)?.connection.destroy();
-            voiceConnections.delete(guildId);
+            const connection = voiceConnections.get(guildId)?.connection;
+            if (connection) {
+                connection.destroy();
+                voiceConnections.delete(guildId);
+            }
         }
     });
 
     try {
         await bot.login(TOKEN);
-        console.log("Bot is ready!");
     } catch (error) {
-        if (error instanceof Error) {
-            logError('GLOBAL', 'GLOBAL', error, 'Bot login');
-        } else {
-            logError('GLOBAL', 'GLOBAL', new Error(String(error)), 'Bot login');
-        }
+        logError('GLOBAL', 'GLOBAL', error instanceof Error ? error : new Error(String(error)), 'Bot login');
     }
 }
 
