@@ -314,6 +314,13 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             await sendRandomImageWithContent(msg, "./src/public/images/commands/dorover/", "Commander....ITS DOROVER");
         },
+    },
+    cinema: {
+        name: "absolute...",
+        description: "CINEMA",
+        async execute(msg) {
+            await sendRandomImage(msg, "./src/public/images/commands/cinema/");
+        },
     }
 };
 
