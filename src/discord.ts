@@ -307,6 +307,13 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             await sendRandomImageWithContent(msg, "./src/public/images/commands/ccp/", getRandomMantra());
         },
+    },
+    dorover: {
+        name: "is it over?",
+        description: "ITS DOROVER",
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/dorover/", "Commander....ITS DOROVER");
+        },
     }
 };
 
@@ -499,11 +506,6 @@ function setBotActivity() {
         },
         {
             name: "Brown Dust 2",
-            type: ActivityType.Playing,
-            status: PresenceUpdateStatus.Online,
-        },
-        {
-            name: "Terraria",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
