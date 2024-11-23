@@ -78,18 +78,18 @@ export function handleTimeoutError(msg: any, author: any) {
     });
 }
 
-export function handleTimeout(msg: any) {
+export function handleTimeout(msg: any, duration: number = 300000) {
     const { member, author } = msg;
 
     // Calculating whether to timeout
     if (Math.random() < 0.5) {
-        member.timeout(300000, "Commander, I need a moment of peace away from you!")
+        member.timeout(duration, "Commander, I need a moment of peace away from you!")
             .then(() => {
                 const emojis = ["sefhistare:1124869893880283306", "❌"];
                 emojis.forEach(emoji => msg.react(emoji).catch(console.error));
 
                 msg.reply({
-                    content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your 5 minutes of quiet time!`,
+                    content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your ${duration / 60000} minutes of quiet time!`,
                     files: [{
                         attachment: "./src/public/images/commands/damnTrain/SmugRapi.jpg",
                         name: "SmugRapi.jpg",

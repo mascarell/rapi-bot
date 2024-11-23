@@ -703,6 +703,7 @@ function handleMessages() {
         if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
                 await message.reply(ccpMessage);
+                await message.member?.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
             } catch (error) {
                 logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within handleMessages');
             }
