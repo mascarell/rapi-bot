@@ -1,12 +1,20 @@
 {
     "Pilgrim": [
         {
+            "name": "Cinderella",
+            "image": "https://static.dotgg.gg/nikke/characters/c511_00.webp"
+        },
+        {
             "name": "Crown",
             "image": "https://static.dotgg.gg/nikke/characters/c330_00.webp"
         },
         {
             "name": "Dorothy",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/Pilgrim/Dorothy.webp"
+        },
+        {
+            "name": "Grave",
+            "image": "https://static.dotgg.gg/nikke/characters/c514_00.webp"
         },
         {
             "name": "Harran",
@@ -257,6 +265,10 @@
         {
             "name": "Quiry",
             "image": "https://static.dotgg.gg/nikke/characters/c033_00.webp"
+        },
+        {
+            "name": "Rouge",
+            "image": "https://static.dotgg.gg/nikke/characters/c272_00.webp"
         },
         {
             "name": "Rosanna",
