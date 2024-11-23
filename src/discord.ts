@@ -328,7 +328,16 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             await sendRandomImageWithContent(msg, "./src/public/images/commands/plan/", getRandomPlanPhrase());
         },
-    }
+    },
+    sucks: {
+        name: "ccp leadership",
+        description: "CCP LEADERSHIP",
+        async execute(msg) {
+            const emoji = msg.guild.emojis.cache.get('1298977385068236852');
+            const message = `Commander...i have no words for this...${emoji ? ` ${emoji}` : ''}`;
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/sucks/", message);
+        },
+    },
 };
 
 async function sendRandomImage(msg: any, folderPath: string) {
@@ -515,11 +524,6 @@ function setBotActivity() {
             name: "ELYSION TOWER",
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
-        },
-        {
-            name: "WUTHERING WAVES",
-            type: ActivityType.Playing,
-            status: PresenceUpdateStatus.Online,
         },
         {
             name: "Honkai: Star Rail",
