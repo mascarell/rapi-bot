@@ -28,7 +28,7 @@ import { ccpMessage } from "./utils/constants/messages";
 const TOKEN = process.env.WAIFUTOKEN as string;
 const CLIENTID = process.env.CLIENTID as string;
 const RADIO_FOLDER_PATH = './src/radio';
-const PRE = "/"; // Define the prefix here
+const PRE = "/";
 const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
 const resetEndTime = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
@@ -305,7 +305,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "ccp #1",
         description: "CCP LOYALTY",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/ccp/", getRandomMantra());
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/ccp/", getRandomMantraPhrase());
         },
     },
     dorover: {
@@ -320,6 +320,13 @@ const chatCommands: { [key: string]: BotCommand } = {
         description: "CINEMA",
         async execute(msg) {
             await sendRandomImage(msg, "./src/public/images/commands/cinema/");
+        },
+    },
+    plan: {
+        name: "we had a plan!",
+        description: "WE HAD A PLAN!",
+        async execute(msg) {
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/plan/", getRandomPlanPhrase());
         },
     }
 };
@@ -374,7 +381,7 @@ function getRandomBestGirlPhrase() {
     return bestGirlPhrases[Math.floor(Math.random() * bestGirlPhrases.length)];
 }
 
-function getRandomMantra() {
+function getRandomMantraPhrase() {
     const mantras = [
         "Strength, Unity, Vision.",
         "United, We Bounce.",
@@ -389,6 +396,14 @@ function getRandomMantra() {
         "Innovate, Unify, Succeed."
     ];
     return mantras[Math.floor(Math.random() * mantras.length)];
+}
+
+function getRandomPlanPhrase() {
+    const planPhrases = [
+        "Commander...what plan?",
+        "Commander...we had a plan!",
+    ];
+    return planPhrases[Math.floor(Math.random() * planPhrases.length)];
 }
 
 function loadCommands() {
