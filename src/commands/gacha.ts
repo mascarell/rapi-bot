@@ -7,7 +7,6 @@ import {
     CommandInteraction,
 } from 'discord.js';
 import nikkeData from '../utils/data/characters/nikke.json';
-import wutheringWavesData from '../utils/data/characters/wutheringWaves.json';
 
 const userCommandUsage: Record<string, number[]> = {};
 
@@ -36,8 +35,7 @@ module.exports = {
                 .setDescription('Select the game')
                 .setRequired(true)
                 .addChoices(
-                    { name: 'GODDESS OF VICTORY: NIKKE', value: 'nikke' },
-                    { name: 'Wuthering Waves', value: 'wuthering_waves' }
+                    { name: 'GODDESS OF VICTORY: NIKKE', value: 'nikke' }
                 )),
 
     async execute(interaction: CommandInteraction) {
@@ -58,9 +56,6 @@ module.exports = {
         switch (game) {
             case 'nikke':
                 data = nikkeData;
-                break;
-            case 'wuthering_waves':
-                data = wutheringWavesData;
                 break;
             default:
                 await interaction.reply('Selected game is not supported!');
@@ -114,12 +109,7 @@ function generateEmbeds(characters: any[], game: string) {
 
 function getColorByRarity(rarity: string, game: string, itemType?: string) {
     const baseColors: Record<string, any> = {
-        nikke: { "Pilgrim": "#FFA500", "SSR": "#FFD700", "SR": "#800080", "R": "#ADD8E6" },
-        wuthering_waves: { 
-            "5-Star": "#FFD700", 
-            "4-Star": { "character": "#800080", "weapon": "#34eb6b" }, 
-            "3-Star": "#34a8eb" 
-        }
+        nikke: { "Pilgrim": "#FFA500", "SSR": "#FFD700", "SR": "#800080", "R": "#ADD8E6" }
     };
     const colors = baseColors[game];
     return (itemType ? colors[rarity][itemType] : colors[rarity]) || "#FFFFFF";
@@ -132,11 +122,6 @@ function getFooterTextByRarity(rarity: string, game: string) {
             "SSR": "Wow! A SSR? That's incredibly lucky, Commander!",
             "SR": "An SR! You're on the right track, Commander!",
             "R": "It's just an R, but every squad member counts!"
-        },
-        wuthering_waves: {
-            "5-Star": "Commander, you've struck gold with a 5-Star!",
-            "4-Star": "Solid find, Commander! A 4-Star!",
-            "3-Star": "It's a common 3-Star, but it's a start!"
         }
     };
     return messages[game][rarity] || "Keep pulling, Commander! Victory awaits!";
