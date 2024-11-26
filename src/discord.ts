@@ -697,12 +697,13 @@ function handleMessages() {
             return;
         }
 
-        const messageContent = message.content.toLowerCase();
+        // Remove URLs from the message content
+        const messageContent = message.content.toLowerCase().replace(/https?:\/\/[^\s]+/g, '');
         const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
 
         if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
-                await message.reply(ccpMessage);
+                await sendRandomImageWithContent(message, "./src/public/images/commands/ccp/", ccpMessage);
                 await message.member?.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
             } catch (error) {
                 logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within handleMessages');
