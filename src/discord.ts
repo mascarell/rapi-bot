@@ -277,7 +277,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 ��� 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
         },
     },
     ccprules: {
@@ -411,6 +411,14 @@ function getRandomPlanPhrase() {
     const planPhrases = [
         "Commander...what plan?",
         "Commander...we had a plan!",
+        "Commander, did you forget the plan again?",
+        "Commander, our plan was flawless... until it wasn't.",
+        "Commander, I thought we agreed on a strategy.",
+        "Commander, let's stick to the plan this time.",
+        "Commander, improvisation wasn't part of the plan.",
+        "Commander, I hope you have a backup plan.",
+        "Commander, our plan needs a little more... planning.",
+        "Commander, let's not deviate from the plan.",
     ];
     return planPhrases[Math.floor(Math.random() * planPhrases.length)];
 }
@@ -701,12 +709,13 @@ function handleMessages() {
             return;
         }
 
-        const messageContent = message.content.toLowerCase();
+        // Remove URLs from the message content
+        const messageContent = message.content.toLowerCase().replace(/https?:\/\/[^\s]+/g, '');
         const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
 
         if (sensitiveTerms.some(term => messageContent.includes(term))) {
             try {
-                await message.reply(ccpMessage);
+                await sendRandomImageWithContent(message, "./src/public/images/commands/ccp/", ccpMessage);
                 await message.member?.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
             } catch (error) {
                 logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within handleMessages');
