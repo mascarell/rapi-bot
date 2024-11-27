@@ -277,7 +277,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 ��� 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈  𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
         },
     },
     ccprules: {
@@ -334,7 +334,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         description: "CCP LEADERSHIP",
         async execute(msg) {
             const emoji = msg.guild.emojis.cache.get('1298977385068236852');
-            const message = `Commander...i have no words for this...${emoji ? ` ${emoji}` : ''}`;
+            const message = getRandomLeadershipPhrase(emoji);
             await sendRandomImageWithContent(msg, "./src/public/images/commands/leadership/", message);
         },
     },
@@ -421,6 +421,23 @@ function getRandomPlanPhrase() {
         "Commander, let's not deviate from the plan.",
     ];
     return planPhrases[Math.floor(Math.random() * planPhrases.length)];
+}
+
+function getRandomLeadershipPhrase(emoji: string | undefined) {
+    const leadershipPhrases = [
+        "Commander... I can't believe you just did that...",
+        "Commander, are you sure about this? I'm speechless...",
+        "Commander, your decision... it's unexpected...",
+        "Commander, I didn't see that coming... truly shocking...",
+        "Commander, I'm at a loss for words... what a move...",
+        "Commander, your leadership... it's something else...",
+        "Commander, I'm stunned... what are you thinking?",
+        "Commander, that was... unexpected, to say the least...",
+        "Commander, I'm... not sure what to say about that...",
+        "Commander, your choice... it's left me speechless...",
+    ];
+    const phrase = leadershipPhrases[Math.floor(Math.random() * leadershipPhrases.length)];
+    return `${phrase}${emoji ? ` ${emoji}` : ''}`;
 }
 
 function loadCommands() {
