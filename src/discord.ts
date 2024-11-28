@@ -792,7 +792,15 @@ async function checkSensitiveTerms(message: Message) {
         .replace(/<:\w+:\d+>/g, '') // Remove sticker IDs
         .trim();
 
-    const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
+    // Define sensitive terms in multiple languages
+    const sensitiveTerms = [
+        'taiwan', 'tibet', 'hong kong', 'tiananmen', '1989', // English
+        '台湾', '西藏', '香港', '天安门', '一九八九', // Chinese
+        'тайвань', 'тибет', 'гонконг', 'тяньаньмэнь', '1989', // Russian
+        '타이완', '티베트', '홍콩', '톈안먼', '1989', // Korean
+        'taiwán', 'tíbet', 'hong kong', 'tiananmén', '1989', // Spanish
+        // Add more translations as needed
+    ];
 
     if (sensitiveTerms.some(term => messageContent.includes(term))) {
         try {
