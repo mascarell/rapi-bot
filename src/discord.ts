@@ -674,7 +674,7 @@ async function sendDailyInterceptionMessage() {
                     if (!firstResponseHandled) {
                         firstResponseHandled = true;
                         try {
-                            await m.react("❤️");
+                            await m.react("❤");
                             const thankYouMessages = [
                                 `Your swiftness is unmatched, Commander ${m.author}. It's impressive.`,
                                 `Your alertness honors us all, Commander ${m.author}.`,
@@ -726,21 +726,10 @@ function handleMessages() {
             return;
         }
 
-        // Remove URLs from the message content
-        const messageContent = message.content.toLowerCase().replace(/https?:\/\/[^\s]+/g, '');
-        const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
+        // Check for sensitive terms in the message
+        await checkSensitiveTerms(message);
 
-        if (sensitiveTerms.some(term => messageContent.includes(term))) {
-            try {
-                await sendRandomImageWithContent(message, "./src/public/images/commands/ccp/", ccpMessage);
-                await message.member?.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
-            } catch (error) {
-                logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within handleMessages');
-            }
-            return;
-        }
-
-        const strippedContent = messageContent.replace(/<@!?\d+>/g, '').trim();
+        const strippedContent = message.content.toLowerCase().replace(/https?:\/\/[^\s]+/g, '').replace(/<@!?\d+>/g, '').trim();
         const args = message.content.startsWith(PRE) 
             ? message.content.slice(PRE.length).trim().split(/\s+/) 
             : [strippedContent];
@@ -764,13 +753,55 @@ function handleMessages() {
                 await matchedCommand.execute(message, args);
             }
         } catch (error) {
-            logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
+            logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
             message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" })
                 .catch(replyError => {
                     logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', replyError instanceof Error ? replyError : new Error(String(replyError)), 'Sending error message');
                 });
         }
     });
+
+    bot.on("messageUpdate", async (oldMessage, newMessage) => {
+        try {
+            if (newMessage.partial) {
+                console.log("Fetching partial message...");
+                await newMessage.fetch(); // Fetch the full message if it's a partial
+            }
+            if (!newMessage.guild || !newMessage.member || newMessage.author?.bot) {
+                console.warn("Message update ignored due to missing guild, member, or author is a bot.");
+                return;
+            }
+
+            console.log(`Message updated in guild: ${newMessage.guild.name}, Content: ${newMessage.content}`);
+            await checkSensitiveTerms(newMessage as Message);
+        } catch (error) {
+            console.error("Error handling message update:", error);
+        }
+    });
+}
+
+async function checkSensitiveTerms(message: Message) {
+    if (!message.guild || !message.member) return;
+    
+    const messageContent = message.content
+        .toLowerCase()
+        .replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
+        .replace(/<@!?\d+>/g, '') // Remove user mentions
+        .replace(/<a?:\w+:\d+>/g, '') // Remove custom emoji IDs
+        .replace(/<:\w+:\d+>/g, '') // Remove animated emoji IDs
+        .replace(/<:\w+:\d+>/g, '') // Remove sticker IDs
+        .trim();
+
+    const sensitiveTerms = ['taiwan', 'tibet', 'hong kong', 'tiananmen', '1989'];
+
+    if (sensitiveTerms.some(term => messageContent.includes(term))) {
+        try {
+            await sendRandomImageWithContent(message, "./src/public/images/commands/ccp/", ccpMessage);
+            await message.member.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
+        } catch (error) {
+            logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within checkSensitiveTerms');
+        }
+    }
 }
 
 function handleSlashCommands() {
