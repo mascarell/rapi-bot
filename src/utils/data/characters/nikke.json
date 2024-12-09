@@ -187,8 +187,16 @@
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Ludmilla.webp"
         },
         {
+            "name": "Ludmilla: Winter Owner",
+            "image": "https://static.dotgg.gg/nikke/characters/c194_00.webp"
+        },
+        {
             "name": "Maiden",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Maiden.webp"
+        },
+        {
+            "name": "Maiden: Ice Rose",
+            "image": "https://lootandwaifus.com/wp-content/uploads/2024/12/maiden-gyat-alt-full.webp"
         },
         {
             "name": "Mary",
@@ -205,6 +213,10 @@
         {
             "name": "Maxwell",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Maxwell.webp"
+        },
+        {
+            "name": "Mica: Snow Buddy",
+            "image": "https://static.dotgg.gg/nikke/characters/c062_00.webp"
         },
         {
             "name": "Milk",
@@ -375,6 +387,10 @@
         {
             "name": "Neon",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SR/Neon.webp"
+        },
+        {
+            "name": "Neve",
+            "image": "https://lootandwaifus.com/wp-content/uploads/2023/02/neve.png"
         },
         {
             "name": "Rapi",
