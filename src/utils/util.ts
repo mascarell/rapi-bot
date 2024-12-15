@@ -113,34 +113,43 @@ export function handleTimeout(msg: any, duration: number = 300000) {
 
 const usedImages = new Map();
 
-export function getRandomImageUrl(imageUrls: string[]) {
+export function getRandomImageUrl(imageUrls: string[], guildId: string) {
     const now = Date.now();
     const oneWeek = 7 * 24 * 60 * 60 * 1000;
 
     // Clean up old entries
-    usedImages.forEach((timestamp, url) => {
-        if (now - timestamp > oneWeek) {
-            usedImages.delete(url);
-            console.log(`Deleted old image: ${url}`);
+    usedImages.forEach((guildMap, url) => {
+        if (guildMap.has(guildId)) {
+            const { timestamp } = guildMap.get(guildId);
+            if (now - timestamp > oneWeek) {
+                guildMap.delete(guildId);
+                console.log(`Deleted old image for guild ${guildId}: ${url}`);
+            }
+            if (guildMap.size === 0) {
+                usedImages.delete(url);
+            }
         }
     });
 
     // Get available images
-    const availableImages = imageUrls.filter(url => !usedImages.has(url));
+    const availableImages = imageUrls.filter(url => !usedImages.has(url) || !usedImages.get(url).has(guildId));
 
     // Reset if all images are used
     if (availableImages.length === 0) {
         usedImages.clear();
-        console.log(`All images are used, resetting...`);
-        return getRandomImageUrl(imageUrls);
+        console.log(`All images are used for guild ${guildId}, resetting...`);
+        return getRandomImageUrl(imageUrls, guildId);
     }
 
     // Select a random image
     const selectedImage = availableImages[Math.floor(Math.random() * availableImages.length)];
 
     // Record usage
-    usedImages.set(selectedImage, now);
-    console.log(`Selected image: ${selectedImage}`);
+    if (!usedImages.has(selectedImage)) {
+        usedImages.set(selectedImage, new Map());
+    }
+    usedImages.get(selectedImage).set(guildId, { timestamp: now });
+    console.log(`Selected image for guild ${guildId}: ${selectedImage}`);
 
     return selectedImage;
 }

@@ -701,33 +701,7 @@ async function sendDailyResetMessageForGFL2() {
     const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
     const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
 
-    schedule.scheduleJob(cronTime, async () => {
-        const embed = new EmbedBuilder()
-            .setAuthor({ 
-                name: 'Rapi BOT', 
-                iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
-            })
-            .setThumbnail(`https://iopwiki.com/images/thumb/e/ea/GFL2_Logo_Main.png/300px-GFL2_Logo_Main.png`)
-            .setImage(getRandomImageUrl(gfl2ImageUrls))
-            .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
-            .setDescription(
-                `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`
-            )
-            .addFields(
-                { name: '**Daily Free Gift Pack**', value: 'Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**' },
-                { name: '**Daily Sign-in**', value: 'Complete Daily Sign-in' },
-                { name: '**Dormitory**', value: 'Enter The Dormitory And **Check on Your WAIFU**' },
-                { name: '**Supply Mission**', value: 'Clear 1 Supply Mission' },
-                { name: '**Combat Simulation**', value: 'Clear 1 Combat Simulation (Don\'t Forgot about Combat Exercise!)' },
-                { name: '**Intelligence Puzzles**', value: 'Consume 120 Intelligence Puzzles (Sweep your desired supply mission if you have the stamina to do so)' }
-            )
-            .setColor(0xE67E22)
-            .setTimestamp()
-            .setFooter({   
-                text: 'Commander, ready for the next mission?',
-                iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
-            });
-            
+    schedule.scheduleJob(cronTime, async () => {            
         bot.guilds.cache.forEach(async (guild) => {
             const channel = findChannelByName(guild, "girls-frontline-2");
             if (!channel) {
@@ -736,6 +710,31 @@ async function sendDailyResetMessageForGFL2() {
             }
     
             try {
+                const embed = new EmbedBuilder()
+                    .setAuthor({ 
+                        name: 'Rapi BOT', 
+                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+                    })
+                    .setThumbnail(`https://iopwiki.com/images/thumb/e/ea/GFL2_Logo_Main.png/300px-GFL2_Logo_Main.png`)
+                    .setImage(getRandomImageUrl(gfl2ImageUrls, guild.id))
+                    .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
+                    .setDescription(
+                        `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`
+                    )
+                    .addFields(
+                        { name: '**Daily Free Gift Pack**', value: 'Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**' },
+                        { name: '**Daily Sign-in**', value: 'Complete Daily Sign-in' },
+                        { name: '**Dormitory**', value: 'Enter The Dormitory And **Check on Your WAIFU**' },
+                        { name: '**Supply Mission**', value: 'Clear 1 Supply Mission' },
+                        { name: '**Combat Simulation**', value: 'Clear 1 Combat Simulation (Don\'t Forgot about Combat Exercise!)' },
+                        { name: '**Intelligence Puzzles**', value: 'Consume 120 Intelligence Puzzles (Sweep your desired supply mission if you have the stamina to do so)' }
+                    )
+                    .setColor(0xE67E22)
+                    .setTimestamp()
+                    .setFooter({   
+                        text: 'Commander, ready for the next mission?',
+                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+                    });
                 await channel.send({ 
                     embeds: [embed],
                 });
@@ -746,6 +745,31 @@ async function sendDailyResetMessageForGFL2() {
     });
 }
 
+// Please avoid using Story/Lore Spoiler Images.
+const nikkeImageUrls = [
+    // Doro CCP March
+    'https://media1.tenor.com/m/lES4JPVHMhsAAAAd/doro-dorothy.gif',
+    // Doro Dance
+    'https://media1.tenor.com/m/u1xuL961rcsAAAAd/doro-vapus-dance.gif',
+    // Doro Parachute
+    'https://media1.tenor.com/m/SR0cZxcIzE4AAAAd/doro-war.gif',
+    // Mustang
+    'https://media1.tenor.com/m/5o2yGsRLeGYAAAAd/mustang-nikke.gif',
+    // Rapi
+    'https://media1.tenor.com/m/2R2wPQlxadIAAAAC/rapi-nikke.gif',
+    // Shifty
+    'https://media1.tenor.com/m/k2iamu0-uaUAAAAC/shifty-nikke.gif',
+    // Summer Anis
+    'https://media1.tenor.com/m/Fs64xWyCYOcAAAAd/nikke-anis.gif',
+    // Syuen Screaming
+    'https://media1.tenor.com/m/0HBUr7WQXa0AAAAd/syuen-nikke.gif',
+    // Syuen Jumped
+    'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDQ2bnAzZG82d3NwM2w2dTN3dnpleWhhbmo4ZzVsdnRzeXp6NmEwMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/7Al7PAPhXhT6spse6j/giphy.gif',
+    // TV Ad
+    'https://i.makeagif.com/media/1-12-2023/BRYJ4m.gif',
+    
+];
+
 async function sendDailyInterceptionMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
@@ -754,19 +778,8 @@ async function sendDailyInterceptionMessage() {
         const currentDayOfYear = moment().dayOfYear();
         const bosses = getBosses();
         const bossName = bosses[currentDayOfYear % bosses.length];
-        const fileName = getBossFileName(bossName);
         const towerRotation = getTribeTowerRotation();
         const currentDayOfWeek = new Date().getDay();
-
-        const embed = new EmbedBuilder()
-            .setTitle(`Attention commanders, here's today's schedule:`)
-            .setDescription(
-                `- We have to fight **${bossName}** in Special Interception\n` +
-                `- Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**`
-            )
-            .setColor(0x00AE86)
-            .setTimestamp()
-            .setFooter({ text: 'Stay safe on the surface, Commanders!' });
 
         bot.guilds.cache.forEach(async (guild) => {
             try {
@@ -778,11 +791,40 @@ async function sendDailyInterceptionMessage() {
 
                 const role = findRoleByName(guild, "Nikke");
                 if (role) {
-                    await channel.send(`${role.toString()}, attention!`);
+                    await channel.send(`${role.toString()}`);
                 }
-
+                const embed = new EmbedBuilder()
+                    .setAuthor({ 
+                        name: 'Rapi BOT', 
+                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+                    })
+                    .setThumbnail(`https://cdn2.steamgriddb.com/logo/ec0654ecb4284e98366b7596a15c5e1b.png`)
+                    .setImage(getRandomImageUrl(nikkeImageUrls, guild.id))
+                    .setTitle('ATTENTION COMMANDERS!')
+                    .setDescription(
+                        `Server has been reset! Here's some of Today's **Daily Missions** Checklist:\n`
+                    )
+                    .addFields(
+                        { name: '**Daily Free Package**', value: `Check **Cash Shop** and under **Oridinary Package Tab** under **Daily** For **Daily Free Package**` },
+                        { name: '**Advise Nikkes**', value: 'Go Talk To Your **WAIFUS**. Advise Nikkes 2 Time(s)'},
+                        { name: '**Social**', value: 'Send Social Points 1 Time(s). Support your **FRIENDS**'},
+                        { name: '**Tribe Tower**', value: `Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**.`},
+                        { name: '**Anomaly Interception**', value: '**Prioritize this over Special Interception**\n Clear Anomaly Interception 1 Time(s) if unlocked\n' },
+                        { name: '**Special Interception**', value: `Clear Special Interception 1 Time(s). We have to fight **${bossName}**` },
+                        { name: '**Simulation Room**', value: 'Challenge Simulation Room 1 Time(s)' },
+                        { name: '**Simulation Room: Overclock**', value: 'Clear Simulation Room: Overclock if you have not already' },
+                        { name: '**Outpost Bulletin Board**', value: 'Dispatch 3 Time(s)' },
+                        { name: '**Outpost Defense**', value: 'Claim Outpost Defense Rewards Twice' },
+                        { name: '**Outpost Defense**', value: 'Wipe Out 1 Time(s)' },                
+                    )
+                    .setColor(0x3498DB)
+                    .setTimestamp()
+                    .setFooter({   
+                        text: 'Stay safe on the surface, Commanders!',
+                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+                    });
+                    
                 await channel.send({
-                    files: [{ attachment: `./src/public/images/bosses/${fileName}`, name: fileName }],
                     embeds: [embed]
                 });
 
