@@ -845,8 +845,13 @@ function handleMessages() {
 
         if (!command) return;
 
+        // Check if the command is a registered bot command
         const matchedCommand = bot.commands.get(command);
-        if (!matchedCommand) return;
+        const chatCommand = Object.values(chatCommands).find(cmd => cmd.name.toLowerCase() === command);
+        if (!matchedCommand || !chatCommand || chatCommand.name.toLowerCase() !== command) {
+            console.log(`Ignoring message: The command is either a registered slash command or not recognized as a chat command. Guild: ${message.guild.name}, Author: ${message.author.tag}, Command: ${command}`);
+            return;
+        }
 
         try {
             const ignoredRole = findRoleByName(message.guild, "Grounded");
