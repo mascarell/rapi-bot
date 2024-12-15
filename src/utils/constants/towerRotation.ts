@@ -5,5 +5,5 @@ export const towerRotation = [
     "Tetra",
     "Elysion",
     "Missilis",
-    "all manufacturers",
+    "All Manufacturers",
 ];
