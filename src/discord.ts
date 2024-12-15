@@ -501,16 +501,16 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: PresenceUpdateStatus.Online,
         },
-        {
-            name: "Dragon Ball: Sparking! Zero",
-            type: ActivityType.Competing,
-            status: PresenceUpdateStatus.DoNotDisturb,
-        },
         // {
         //     name: "UNION RAID",
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
+        {
+            name: "SOLO RAID",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
+        },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -570,6 +570,21 @@ function setBotActivity() {
             name: "Trickal RE:VIVE",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Girls' Frontline 2: Exilium",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Path of Exile 2",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Dragon Ball: Sparking! Zero",
+            type: ActivityType.Competing,
+            status: PresenceUpdateStatus.DoNotDisturb,
         },
     ];
 
