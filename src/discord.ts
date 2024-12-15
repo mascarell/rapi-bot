@@ -21,6 +21,7 @@ import {
     getVoiceChannel,
     getBossFileName,
     handleTimeout,
+    getRandomImageUrl,
 } from "./utils/util";
 import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
 import { ccpMessage } from "./utils/constants/messages";
@@ -623,12 +624,67 @@ function sendRandomMessages() {
     console.log("Scheduled random message job to run every 4 hours.");
 }
 
-//TODO: Add HaoPlay Daily Reset Message
+const gfl2ImageUrls = [
+    // Daiyan
+    'https://media1.tenor.com/m/qVmTo9bcvdQAAAAC/gfl-2-girls-frontline-2.gif',
+    // Dushevnaya
+    'https://media1.tenor.com/m/FLZ5MZwbnr8AAAAC/dushevnaya-ksvk.gif',
+    // Groza
+    'https://media1.tenor.com/m/El8zTuEn1lUAAAAC/girls-frontline-2-groza.gif',
+    'https://media1.tenor.com/m/YQBHl_3eCPsAAAAC/gfl-gfl2.gif',
+    'https://media1.tenor.com/m/JEgY7dLxRJMAAAAC/girls-frontline-2-groza.gif',
+    // Jiangyu
+    'https://media1.tenor.com/m/wZvi0KK2XhoAAAAC/girls-frontline-2-gfl.gif',
+    // Klukay
+    'https://media1.tenor.com/m/w0IRslEmgzcAAAAC/clukay-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/J-vSIeoKfHcAAAAC/girls-frontline-2-gfl2.gif',
+    // Lenna
+    'https://media1.tenor.com/m/4eczmEXJp3EAAAAC/girls-frontline-2-girls-frontline.gif',
+    'https://media1.tenor.com/m/aUyh4aUoVVgAAAAd/girls-frontline-2-gfl.gif',
+    // Lotta
+    'https://media1.tenor.com/m/ckx0NFyCF9MAAAAC/gfl2-girl%27s-frontline-2.gif',
+    // Mayling
+    'https://media1.tenor.com/m/zLImTf1sMosAAAAd/mayling-gfl.gif',
+    // Mechy
+    'https://media1.tenor.com/m/1Ms6L41Iy-sAAAAC/girls-frontline-2-gfl2.gif',
+    // Mosin Nagant
+    'https://media1.tenor.com/m/j9zJ-CfzxtQAAAAC/gfl2-gf2.gif',
+    // Nemesis
+    'https://media1.tenor.com/m/g4N56L6hXEsAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/Xs7i2hKop6UAAAAC/gfl2-nemesis.gif',
+    // Qiongjiu
+    'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/AW0niLgozNIAAAAd/qiongjiu-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/2THLR25in5kAAAAC/girls-frontline-2-gfl2.gif',
+    // Sabrina
+    'https://media1.tenor.com/m/MDH5PSWUCMUAAAAC/girls-frontline-girls-frontline-2.gif',
+    // Sharkry
+    'https://media1.tenor.com/m/YJ7PQddEchYAAAAC/sharkry-wink-wink.gif',
+    'https://media1.tenor.com/m/xOPspfvUuMcAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/AMMmDnzEpA8AAAAC/sharkry-bang-bang.gif',
+    // Springfield
+    'https://media1.tenor.com/m/Au_EtYXaURAAAAAC/springfield-lap-pillow.gif',
+    'https://media1.tenor.com/m/XmQRoySfZeoAAAAC/girls-frontline-2-hug.gif',
+    // Suomi
+    'https://media1.tenor.com/m/HuYCNz9vWw8AAAAC/suomi-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/n8zuaYmXIcIAAAAC/gfl2-suomi.gif',
+    'https://media1.tenor.com/m/RrkTdmZcWxUAAAAC/gfl2-suomi.gif',
+    'https://media1.tenor.com/m/yZgeunzs6VQAAAAC/suomi-girls-frontline-2.gif',
+    // Tololo
+    'https://media1.tenor.com/m/SvINK5PJKeoAAAAC/ak-alfa-totolo.gif',
+    // Ullrid
+    'https://media1.tenor.com/m/ValoHGcVpLcAAAAC/girls-frontline-2-gfl2.gif',
+    // Vector
+    'https://media1.tenor.com/m/f-B8bTSc6mwAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/7gvJxpat_5MAAAAC/vector-incendiary-grenade.gif',
+    'https://media1.tenor.com/m/QG8VdIyYR6IAAAAC/girls-frontline-2-gfl.gif',
+    // Vepley
+    'https://media1.tenor.com/m/xPn8r5HfH44AAAAC/vepley-girls-frontline.gif',
+];
+
 async function sendDailyResetMessageForGFL2() {
     const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
     const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
-    //const haoPlayDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    //const haoPlayCronTime = `${haoPlayDailyResetTime.minute()} ${haoPlayDailyResetTime.hour()} * * *`;
 
     schedule.scheduleJob(cronTime, async () => {
         const embed = new EmbedBuilder()
@@ -637,7 +693,7 @@ async function sendDailyResetMessageForGFL2() {
                 iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
             })
             .setThumbnail(`https://iopwiki.com/images/thumb/e/ea/GFL2_Logo_Main.png/300px-GFL2_Logo_Main.png`)
-            .setImage(getRandomGFL2ImageUrl())
+            .setImage(getRandomImageUrl(gfl2ImageUrls))
             .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
             .setDescription(
                 `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`
@@ -673,59 +729,6 @@ async function sendDailyResetMessageForGFL2() {
             }
         });
     });
-}
-
-//TODO: Make this into a more structured image list to tell which image is who
-const imageUrls = [
-    'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/xPn8r5HfH44AAAAC/vepley-girls-frontline.gif',
-    'https://media1.tenor.com/m/w0IRslEmgzcAAAAC/clukay-girls-frontline-2.gif',
-    'https://media1.tenor.com/m/f-B8bTSc6mwAAAAC/girls-frontline-2-gfl.gif',
-    'https://media1.tenor.com/m/ckx0NFyCF9MAAAAC/gfl2-girl%27s-frontline-2.gif',
-    'https://media1.tenor.com/m/1Ms6L41Iy-sAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/g4N56L6hXEsAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/ValoHGcVpLcAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/wZvi0KK2XhoAAAAC/girls-frontline-2-gfl.gif',
-    'https://media1.tenor.com/m/YJ7PQddEchYAAAAC/sharkry-wink-wink.gif',
-    'https://media1.tenor.com/m/xOPspfvUuMcAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/AW0niLgozNIAAAAd/qiongjiu-girls-frontline-2.gif',
-    'https://media1.tenor.com/m/El8zTuEn1lUAAAAC/girls-frontline-2-groza.gif',
-    'https://media1.tenor.com/m/J-vSIeoKfHcAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/2THLR25in5kAAAAC/girls-frontline-2-gfl2.gif',
-    'https://media1.tenor.com/m/AMMmDnzEpA8AAAAC/sharkry-bang-bang.gif',
-    'https://media1.tenor.com/m/7gvJxpat_5MAAAAC/vector-incendiary-grenade.gif',
-];
-
-const usedImages = new Map();
-
-function getRandomGFL2ImageUrl() {
-    const now = Date.now();
-    const seventyTwoHours = 72 * 60 * 60 * 1000;
-
-    // Clean up old entries
-    usedImages.forEach((timestamp, url) => {
-        if (now - timestamp > seventyTwoHours) {
-            usedImages.delete(url);
-        }
-    });
-
-    // Get available images
-    const availableImages = imageUrls.filter(url => !usedImages.has(url));
-
-    // Reset if all images are used
-    if (availableImages.length === 0) {
-        usedImages.clear();
-        return getRandomGFL2ImageUrl();
-    }
-
-    // Select a random image
-    const selectedImage = availableImages[Math.floor(Math.random() * availableImages.length)];
-
-    // Record usage
-    usedImages.set(selectedImage, now);
-
-    return selectedImage;
 }
 
 async function sendDailyInterceptionMessage() {
