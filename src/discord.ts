@@ -623,6 +623,111 @@ function sendRandomMessages() {
     console.log("Scheduled random message job to run every 4 hours.");
 }
 
+//TODO: Add HaoPlay Daily Reset Message
+async function sendDailyResetMessageForGFL2() {
+    const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
+    const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
+    //const haoPlayDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
+    //const haoPlayCronTime = `${haoPlayDailyResetTime.minute()} ${haoPlayDailyResetTime.hour()} * * *`;
+
+    schedule.scheduleJob(cronTime, async () => {
+        const embed = new EmbedBuilder()
+            .setAuthor({ 
+                name: 'Rapi BOT', 
+                iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+            })
+            .setThumbnail(`https://iopwiki.com/images/thumb/e/ea/GFL2_Logo_Main.png/300px-GFL2_Logo_Main.png`)
+            .setImage(getRandomGFL2ImageUrl())
+            .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
+            .setDescription(
+                `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`
+            )
+            .addFields(
+                { name: '**Daily Free Gift Pack**', value: 'Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**' },
+                { name: '**Daily Sign-in**', value: 'Complete Daily Sign-in' },
+                { name: '**Dormitory**', value: 'Enter The Dormitory And **Check on Your WAIFU**' },
+                { name: '**Supply Mission**', value: 'Clear 1 Supply Mission' },
+                { name: '**Combat Simulation**', value: 'Clear 1 Combat Simulation (Don\'t Forgot about Combat Exercise!)' },
+                { name: '**Intelligence Puzzles**', value: 'Consume 120 Intelligence Puzzles (Sweep your desired supply mission if you have the stamina to do so)' }
+            )
+            .setColor(0xE67E22)
+            .setTimestamp()
+            .setFooter({   
+                text: 'Commander, ready for the next mission?',
+                iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+            });
+            
+        bot.guilds.cache.forEach(async (guild) => {
+            const channel = findChannelByName(guild, "girls-frontline-2");
+            if (!channel) {
+                console.log(`Channel 'girls-frontline-2' not found in server: ${guild.name}.`);
+                return;
+            }
+    
+            try {
+                await channel.send({ 
+                    embeds: [embed],
+                });
+            } catch (error) {
+                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending GFL2 daily reset message');
+            }
+        });
+    });
+}
+
+//TODO: Make this into a more structured image list to tell which image is who
+const imageUrls = [
+    'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/xPn8r5HfH44AAAAC/vepley-girls-frontline.gif',
+    'https://media1.tenor.com/m/w0IRslEmgzcAAAAC/clukay-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/f-B8bTSc6mwAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/ckx0NFyCF9MAAAAC/gfl2-girl%27s-frontline-2.gif',
+    'https://media1.tenor.com/m/1Ms6L41Iy-sAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/g4N56L6hXEsAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/ValoHGcVpLcAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/wZvi0KK2XhoAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/YJ7PQddEchYAAAAC/sharkry-wink-wink.gif',
+    'https://media1.tenor.com/m/xOPspfvUuMcAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/AW0niLgozNIAAAAd/qiongjiu-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/El8zTuEn1lUAAAAC/girls-frontline-2-groza.gif',
+    'https://media1.tenor.com/m/J-vSIeoKfHcAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/2THLR25in5kAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/AMMmDnzEpA8AAAAC/sharkry-bang-bang.gif',
+    'https://media1.tenor.com/m/7gvJxpat_5MAAAAC/vector-incendiary-grenade.gif',
+];
+
+const usedImages = new Map();
+
+function getRandomGFL2ImageUrl() {
+    const now = Date.now();
+    const seventyTwoHours = 72 * 60 * 60 * 1000;
+
+    // Clean up old entries
+    usedImages.forEach((timestamp, url) => {
+        if (now - timestamp > seventyTwoHours) {
+            usedImages.delete(url);
+        }
+    });
+
+    // Get available images
+    const availableImages = imageUrls.filter(url => !usedImages.has(url));
+
+    // Reset if all images are used
+    if (availableImages.length === 0) {
+        usedImages.clear();
+        return getRandomGFL2ImageUrl();
+    }
+
+    // Select a random image
+    const selectedImage = availableImages[Math.floor(Math.random() * availableImages.length)];
+
+    // Record usage
+    usedImages.set(selectedImage, now);
+
+    return selectedImage;
+}
+
 async function sendDailyInterceptionMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
@@ -943,6 +1048,7 @@ async function initDiscordBot() {
             greetNewMembers();
             sendRandomMessages();
             sendDailyInterceptionMessage();
+            sendDailyResetMessageForGFL2();
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
