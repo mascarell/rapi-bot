@@ -639,6 +639,85 @@ function sendRandomMessages() {
     console.log("Scheduled random message job to run every 4 hours.");
 }
 
+const blueArchiveImageUrls = [
+    // Aris
+    "https://media1.tenor.com/m/J9AcLGClOlIAAAAC/blue-archive-aris.gif",
+    // Aru
+    "https://media1.tenor.com/m/LgTRLvOmp9oAAAAd/blue-archive-aru.gif",
+    // Hanako
+    "https://media1.tenor.com/m/XxPrNv1TYAwAAAAC/blue-archive-hanako.gif",
+    // Hikari
+    "https://media1.tenor.com/m/8PGtPfLaDTkAAAAC/blue-archive-tachibana-hikari.gif",
+    // Iroha
+    "https://media1.tenor.com/m/iOCE3qQr8W8AAAAC/blue-archive-168.gif",
+    // Kazusa
+    "https://media1.tenor.com/m/LWeuVHW7dlkAAAAd/kazusa-blue-archive.gif",
+    "https://media1.tenor.com/m/AKLkyYWAB5cAAAAC/kazusa-blue-archive.gif",
+    // Kokona
+    "https://media1.tenor.com/m/6NZBdsNCbEwAAAAd/kokona-blue-archive.gif",
+    // Sakurako
+    "https://media1.tenor.com/m/XQJVw8Gt8OgAAAAC/blue-archive-utazumi-sakurako.gif",
+    // Shiroko
+    "https://media1.tenor.com/m/jgEyvtk8GBIAAAAd/blue-archive.gif",
+    // Shiromi
+    "https://media1.tenor.com/m/mvsnju_xuQwAAAAC/black-anime-girl.gif",
+    // Sumire
+    "https://media1.tenor.com/m/KCNHiwTd1k4AAAAC/sumire-sumire-poggers.gif",
+    // Ushio
+    "https://media1.tenor.com/m/qOK0Ua-Z7TkAAAAd/ushio-noa-noa.gif",
+    // Yuuka
+    "https://media1.tenor.com/m/ATKGYKvM0h4AAAAd/yuuka-blue.gif"
+
+];
+
+async function sendBlueArchiveDailyResetMessage() {
+    const blueArchiveResetTime = moment.tz({ hour: 19, minute: 0 }, "UTC");
+    const cronTime = `${blueArchiveResetTime.minute()} ${blueArchiveResetTime.hour()} * * *`;
+
+    schedule.scheduleJob(cronTime, async () => {            
+        bot.guilds.cache.forEach(async (guild) => {
+            const channel = findChannelByName(guild, "blue-archive");
+            if (!channel) {
+                console.log(`Channel 'blue-archive' not found in server: ${guild.name}.`);
+                return;
+            }
+    
+            try {
+                const embed = new EmbedBuilder()
+                    .setAuthor({ 
+                        name: 'Rapi BOT', 
+                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+                    })
+                    .setThumbnail(`https://static.wikia.nocookie.net/blue-archive/images/b/b8/BA_Logo_1.png`)
+                    .setImage(getRandomImageUrl(blueArchiveImageUrls, guild.id))
+                    .setTitle(`ATTENTION SENSEIS!`)
+                    .setDescription(
+                        `Server has been reset! Here's some of Today's **Daily Assignments** Checklist:\n`
+                    )
+                    .addFields(
+                        { name: '**Hard Mode**', value: 'Farm Hard Mode **If You Have Stamina**.' },
+                        { name: '**Stamina Usage**', value: 'Ensure you are **Burning ALL Your Stamina**.' },
+                        { name: '**Bounty Reward**', value: 'Clear the Bounty for the Rewards.' },
+                        { name: '**Be A Good Sensei**', value: 'Check on your **Students** at the Cafe.' },
+                        { name: '**Tactical Challenge Shop**', value: 'Buy Stamina from the Tactical Challenge Shop **If There are Double Rewards**.' },
+                        { name: '**Normal Shop**', value: 'Buy Materials and Balls from the Normal Shop.' },
+                    )
+                    .setColor(0x3498DB)
+                    .setTimestamp()
+                    .setFooter({   
+                        text: 'Sensei, please help me with my homework?',
+                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+                    });
+                await channel.send({ 
+                    embeds: [embed],
+                });
+            } catch (error) {
+                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending Blue Archive daily reset message');
+            }
+        });
+    });
+}
+
 const gfl2ImageUrls = [
     // Daiyan
     'https://media1.tenor.com/m/qVmTo9bcvdQAAAAC/gfl-2-girls-frontline-2.gif',
@@ -697,7 +776,7 @@ const gfl2ImageUrls = [
     'https://media1.tenor.com/m/xPn8r5HfH44AAAAC/vepley-girls-frontline.gif',
 ];
 
-async function sendDailyResetMessageForGFL2() {
+async function sendGFL2DailyResetMessage() {
     const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
     const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
 
@@ -770,7 +849,7 @@ const nikkeImageUrls = [
     
 ];
 
-async function sendDailyInterceptionMessage() {
+async function sendNikkeDailyResetMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
 
@@ -1112,8 +1191,9 @@ async function initDiscordBot() {
             setBotActivity();
             greetNewMembers();
             sendRandomMessages();
-            sendDailyInterceptionMessage();
-            sendDailyResetMessageForGFL2();
+            sendNikkeDailyResetMessage();
+            sendBlueArchiveDailyResetMessage();
+            sendGFL2DailyResetMessage();
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
