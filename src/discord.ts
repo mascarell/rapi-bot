@@ -618,7 +618,7 @@ function greetNewMembers() {
 }
 
 function sendRandomMessages() {
-    schedule.scheduleJob('0 */4 * * *', async () => {
+    schedule.scheduleJob('0 */6 * * *', async () => {
         const guilds = bot.guilds.cache.values();
         for (const guild of guilds) {
             const channel = findChannelByName(guild, "nikke");
@@ -630,6 +630,12 @@ function sendRandomMessages() {
             try {
                 const message = getRandomRapiMessage();
                 await channel.send(message);
+                const sticker = channel.guild.stickers.cache.find(sticker => sticker.name === 'rapidd');
+                if (sticker) {
+                    await channel.send({ stickers: [sticker.id] });
+                } else {
+                    console.warn(`Sticker 'rapidd' not found in guild ${guild.name}`);
+                }
             } catch (error) {
                 logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending random message');
             }
