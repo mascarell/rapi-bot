@@ -629,12 +629,12 @@ function sendRandomMessages() {
 
             try {
                 const message = getRandomRapiMessage();
-                await channel.send(message);
-                const sticker = channel.guild.stickers.cache.find(sticker => sticker.name === 'rapidd');
-                if (sticker) {
-                    await channel.send({ stickers: [sticker.id] });
+                const sentMessage = await channel.send(message);
+                const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
+                if (emoji) {
+                    await sentMessage.react(emoji);
                 } else {
-                    console.warn(`Sticker 'rapidd' not found in guild ${guild.name}`);
+                    console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
                 }
             } catch (error) {
                 logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending random message');
@@ -642,7 +642,7 @@ function sendRandomMessages() {
         }
     });
 
-    console.log("Scheduled random message job to run every 4 hours.");
+    console.log("Scheduled random message job to run every 6 hours.");
 }
 
 const blueArchiveImageUrls = [
