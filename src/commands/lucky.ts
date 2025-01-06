@@ -66,6 +66,27 @@ module.exports = {
                 `Commander, **${luck}%** luck is quite low. Let's hope for better days.`,
                 `Only **${luck}%** luck, Commander? We might need a miracle.`
             ],
+            mold20: [
+                `Commander, **20%** luck? Just like the Mid-Quality Mold...where SSRs are a fairy tale.`,
+                `With **20%** luck, Commander, it's as slim as the Mid-Quality Mold...where dreams go to die.`,
+                `Commander, **20%** luck is like the Mid-Quality Mold...where SSRs are as rare as unicorns.`,
+                `**20%** luck, Commander? Just like the Mid-Quality Mold...where SSRs are a distant fantasy.`,
+                `Commander, **20%** luck? It's like the Mid-Quality Mold...where the only thing guaranteed is disappointment.`
+            ],
+            mold50: [
+                `Commander, **50%** luck? It's like the Manufacturer Mold...where a coin flip feels more reliable.`,
+                `With **50%** luck, Commander, it's as balanced as the Manufacturer Mold...half chance, full letdown.`,
+                `Commander, **50%** luck is like the Manufacturer Mold...where the odds are as clear as mud.`,
+                `**50%** luck, Commander? Just like the Manufacturer Mold...where SSRs are a myth.`,
+                `Commander, **50%** luck? It's like the Manufacturer Mold...where hope springs eternal... and falls flat.`
+            ],
+            mold61: [
+                `Commander, **61%** luck? Just like the High Quality Mold...where dreams of SSRs go to... well, not happen.`,
+                `With **61%** luck, Commander, it's like the High Quality Mold...full of hope and... disappointment.`,
+                `Commander, **61%** luck is like the High Quality Mold...promises of SSRs that never quite materialize.`,
+                `**61%** luck, Commander? Just like the High Quality Mold...where SSRs are as elusive as ever.`,
+                `Commander, **61%** luck? It's like the High Quality Mold...great on paper, not so much in reality.`
+            ],
             special69: [
                 `Commander... **69%** luck? That's... quite suggestive. Let's keep it together.`,
                 `Oh my, Commander... **69%**? That's... um, interesting. Let's stay focused.`,
@@ -93,17 +114,29 @@ module.exports = {
         const reactions = ['rapidd'];
 
         switch (true) {
-            case (luck < 3):
+            case (luck <= 3):
                 replyContent = phrases.low[Math.floor(Math.random() * phrases.low.length)];
-                reactions.push('HAH', 'ICANT', 'wecant');
+                reactions.push('sefhistare', 'gachaOver', 'HAH', 'ICANT', 'wecant');
+                break;
+            case (luck === 20):
+                replyContent = phrases.mold20[Math.floor(Math.random() * phrases.mold20.length)];
+                reactions.push('moldRates', 'SIShafted', 'gachaOver', 'ICANT', 'HAH');
+                break;
+            case (luck === 50):
+                replyContent = phrases.mold50[Math.floor(Math.random() * phrases.mold50.length)];
+                reactions.push('moldRates', 'SIShafted', 'shrugde');
+                break;
+            case (luck === 61):
+                replyContent = phrases.mold61[Math.floor(Math.random() * phrases.mold61.length)];
+                reactions.push('moldRates', 'SIShafted', 'shrugde');
                 break;
             case (luck === 69):
                 replyContent = phrases.special69[Math.floor(Math.random() * phrases.special69.length)];
-                reactions.push('KirbyS', 'sajcum');
+                reactions.push('KirbyS', 'sajcum', 'rapiHUH');
                 break;
             case (luck === 100):
                 replyContent = phrases.perfect[Math.floor(Math.random() * phrases.perfect.length)];
-                reactions.push('Gamer', 'GachaFlex');
+                reactions.push('rapiHUH', 'Gamer', 'gachaFlex', 'gigaStare');
                 break;
             default:
                 replyContent = phrases.default[Math.floor(Math.random() * phrases.default.length)];
