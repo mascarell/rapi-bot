@@ -37,7 +37,7 @@ module.exports = {
     async execute(interaction: CommandInteraction) {
         const userID = interaction.user.id;
         const currentTime = Date.now();
-        const oneDay = 86400000;
+        const oneDay = 43200000; // UPDATED to be 12 hours instead of 1 full day
 
         if (this.lastUsage[userID]) {
             const lastTime = this.lastUsage[userID].lastTime;
