@@ -339,6 +339,24 @@ const chatCommands: { [key: string]: BotCommand } = {
             await sendRandomImageWithContent(msg, "./src/public/images/commands/leadership/", message);
         },
     },
+    goodIdea: {
+        name: "good idea!",
+        description: "GOOD IDEA",
+        async execute(msg) {
+            const message = getRandomGoodIdeaPhrase();
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/goodIdea/", message);
+            
+            const reactions = ['wecant', 'HAH'];
+            for (const reaction of reactions) {
+                const emoji = msg.guild?.emojis.cache.find((e: any) => e.name === reaction);
+                if (emoji) {
+                    await msg.react(emoji);
+                } else {
+                    console.warn(`Emoji '${reaction}' not found in guild ${msg.guild?.name}`);
+                }
+            }
+        },
+    },
 };
 
 async function sendRandomImage(msg: any, folderPath: string) {
@@ -439,6 +457,22 @@ function getRandomLeadershipPhrase(emoji: string | undefined) {
     ];
     const phrase = leadershipPhrases[Math.floor(Math.random() * leadershipPhrases.length)];
     return `${phrase}${emoji ? ` ${emoji}` : ''}`;
+}
+
+function getRandomGoodIdeaPhrase() {
+    const goodIdeaPhrases = [
+        "Commander, are you sure about this?",
+        "Commander, is this really a good idea?",
+        "Commander, are you certain this is wise?",
+        "Commander, I'm not sure this is the best course of action...",
+        "Commander, do you really think this will work?",
+        "Commander, this idea... are you confident about it?",
+        "Commander, are you positive this is a good idea?",
+        "Commander, is this truly the best strategy?",
+        "Commander, are you sure about this?",
+    ];
+    const phrase = goodIdeaPhrases[Math.floor(Math.random() * goodIdeaPhrases.length)];
+    return phrase;
 }
 
 function loadCommands() {
