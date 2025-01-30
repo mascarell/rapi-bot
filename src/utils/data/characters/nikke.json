@@ -75,6 +75,10 @@
             "image": "https://static.dotgg.gg/nikke/characters/c195_00.webp"
         },
         {
+            "name": "Anchor: Innocent Maid",
+            "image": "https://static.dotgg.gg/nikke/characters/c355_00.webp"
+        },
+        {
             "name": "Aria",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Aria.webp"
         },
@@ -213,6 +217,10 @@
         {
             "name": "Mast",
             "image": "https://raw.githubusercontent.com/Spelljinxer/nikke-gacha-sim/main/characters/SSR/Mast.webp"
+        },
+        {
+            "name": "Mast: Romantic Maid",
+            "image": "https://static.dotgg.gg/nikke/characters/c354_00.webp"
         },
         {
             "name": "Maxwell",
