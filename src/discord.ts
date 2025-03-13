@@ -699,12 +699,19 @@ const blueArchiveImageUrls = [
     "https://media1.tenor.com/m/J9AcLGClOlIAAAAC/blue-archive-aris.gif",
     // Aru
     "https://media1.tenor.com/m/LgTRLvOmp9oAAAAd/blue-archive-aru.gif",
+    // Asuna
+    "https://media1.tenor.com/m/H2WNwimb78gAAAAC/asuna-ichinose-blue-archive.gif",
+    "https://media1.tenor.com/m/HTMHygJPtkoAAAAC/asuna-blue-archive.gif",
+    "https://media1.tenor.com/m/fY8EztVeNx0AAAAC/bunny-asuna-blue-archive.gif",
     // Hanako
     "https://media1.tenor.com/m/XxPrNv1TYAwAAAAC/blue-archive-hanako.gif",
     // Hikari
     "https://media1.tenor.com/m/8PGtPfLaDTkAAAAC/blue-archive-tachibana-hikari.gif",
     // Iroha
     "https://media1.tenor.com/m/iOCE3qQr8W8AAAAC/blue-archive-168.gif",
+    // Karin
+    "https://media1.tenor.com/m/lVEtG4VsuAUAAAAC/blue-archive-karin-blue-archive.gif",
+    "https://media1.tenor.com/m/gfRdS_GIyYkAAAAC/karin-blue-archive.gif",
     // Kazusa
     "https://media1.tenor.com/m/LWeuVHW7dlkAAAAd/kazusa-blue-archive.gif",
     "https://media1.tenor.com/m/AKLkyYWAB5cAAAAC/kazusa-blue-archive.gif",
@@ -721,7 +728,10 @@ const blueArchiveImageUrls = [
     // Ushio
     "https://media1.tenor.com/m/qOK0Ua-Z7TkAAAAd/ushio-noa-noa.gif",
     // Yuuka
-    "https://media1.tenor.com/m/ATKGYKvM0h4AAAAd/yuuka-blue.gif"
+    "https://media1.tenor.com/m/ATKGYKvM0h4AAAAd/yuuka-blue.gif",
+    // Other
+    "https://media1.tenor.com/m/xfHTI3YVHlQAAAAC/cleaningandclearing-blue-archive.gif",
+    "https://media1.tenor.com/m/KVF42I8zL-gAAAAC/bunny-asuna-bunny-karin.gif",
 
 ];
 
