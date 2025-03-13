@@ -454,6 +454,16 @@ function getRandomLeadershipPhrase(emoji: string | undefined) {
         "Commander, that was... unexpected, to say the least...",
         "Commander, I'm... not sure what to say about that...",
         "Commander, your choice... it's left me speechless...",
+        "Commander, that was a bold move...",
+        "Commander, your strategy is... unconventional...",
+        "Commander, I didn't expect that... impressive...",
+        "Commander, your tactics are... surprising...",
+        "Commander, that was a risky decision...",
+        "Commander, your leadership style is... unique...",
+        "Commander, I'm amazed by your decision...",
+        "Commander, that was a daring move...",
+        "Commander, your choice was... unpredictable...",
+        "Commander, I'm in awe of your leadership...",
     ];
     const phrase = leadershipPhrases[Math.floor(Math.random() * leadershipPhrases.length)];
     return `${phrase}${emoji ? ` ${emoji}` : ''}`;
@@ -540,11 +550,11 @@ function setBotActivity() {
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
-        {
-            name: "SOLO RAID",
-            type: ActivityType.Competing,
-            status: PresenceUpdateStatus.DoNotDisturb,
-        },
+        // {
+        //     name: "SOLO RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -616,7 +626,12 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Dragon Ball: Sparking! Zero",
+            name: "Monster Hunter Wilds",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Marvel Rivals",
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
