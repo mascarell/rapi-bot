@@ -336,7 +336,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             const emoji = msg.guild.emojis.cache.get('1298977385068236852');
             const message = getRandomLeadershipPhrase(emoji);
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/leadership/", message);
+            await sendRandomImageWithContentNoRepeat(msg, "./src/public/images/commands/leadership/", message);
         },
     },
     goodIdea: {
@@ -392,6 +392,82 @@ async function sendRandomImageWithContent(msg: any, folderPath: string, content:
     } catch (error) {
         console.error(`Failed to send message with content: ${content}`, error);
         logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContent');
+    }
+}
+
+// Track recently sent images for each folder, per guild
+const recentlySentImages: Map<string, Map<string, string[]>> = new Map();
+const MAX_RECENT_IMAGES = 10;
+
+async function sendRandomImageWithContentNoRepeat(msg: any, folderPath: string, content: string) {
+    try {
+        if (!msg.guild?.id) {
+            console.error('No guild ID found in message');
+            return sendRandomImageWithContent(msg, folderPath, content);
+        }
+
+        const guildId = msg.guild.id;
+        console.log(`Processing request for guild: ${msg.guild.name} (${guildId})`);
+        
+        // Initialize guild tracking if not exists
+        if (!recentlySentImages.has(guildId)) {
+            console.log(`Initializing tracking for new guild: ${msg.guild.name}`);
+            recentlySentImages.set(guildId, new Map());
+        }
+
+        // Initialize folder tracking for this guild if not exists
+        const guildTracking = recentlySentImages.get(guildId)!;
+        if (!guildTracking.has(folderPath)) {
+            console.log(`Initializing tracking for folder: ${folderPath} in guild: ${msg.guild.name}`);
+            guildTracking.set(folderPath, []);
+        }
+
+        console.log(`Fetching files from folder: ${folderPath}`);
+        let files = await getFiles(folderPath);
+        
+        const recentImages = guildTracking.get(folderPath)!;
+        console.log(`Currently tracking ${recentImages.length} recent images for ${folderPath} in guild: ${msg.guild.name}`);
+
+        // Filter out recently sent images
+        const availableFiles = files.filter(file => 
+            !recentImages.includes(file.path)
+        );
+
+        console.log(`Found ${availableFiles.length} available images out of ${files.length} total images in guild: ${msg.guild.name}`);
+
+        // If all images have been recently sent, reset the tracking
+        if (availableFiles.length === 0) {
+            console.log(`All ${files.length} images have been recently sent in guild: ${msg.guild.name}. Resetting tracking for ${folderPath}`);
+            guildTracking.set(folderPath, []);
+            return sendRandomImageWithContentNoRepeat(msg, folderPath, content);
+        }
+
+        // Select a random file from available files
+        let randomFile = availableFiles[Math.floor(Math.random() * availableFiles.length)];
+        console.log(`Selected random file: ${randomFile.name} (not in recent history) for guild: ${msg.guild.name}`);
+        
+        // Add the selected file to recently sent images
+        recentImages.push(randomFile.path);
+        
+        // Keep only the last MAX_RECENT_IMAGES
+        if (recentImages.length > MAX_RECENT_IMAGES) {
+            const removedFile = recentImages.shift();
+            console.log(`Removed ${removedFile} from tracking history (reached max of ${MAX_RECENT_IMAGES}) in guild: ${msg.guild.name}`);
+        }
+        
+        await msg.reply({
+            content: content,
+            files: [
+                {
+                    attachment: randomFile.path,
+                    name: randomFile.name,
+                },
+            ],
+        });
+        console.log(`Successfully sent message with content: ${content} in guild: ${msg.guild.name}`);
+    } catch (error) {
+        console.error(`Failed to send message with content: ${content}`, error);
+        logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContentNoRepeat');
     }
 }
 
