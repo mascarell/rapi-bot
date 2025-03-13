@@ -784,39 +784,73 @@ async function sendBlueArchiveDailyResetMessage() {
 }
 
 const gfl2ImageUrls = [
+    // Andoris
+    'https://media1.tenor.com/m/XmQRoySfZeoAAAAC/girls-frontline-2-hug.gif',
+    'https://media1.tenor.com/m/EjJX7fC82BoAAAAC/andoris-g36.gif',
+    // Cheeta
+    'https://media1.tenor.com/m/S9fJ1qZGWxoAAAAC/girls-frontline-2-cheeta.gif',
+    'https://media1.tenor.com/m/j3XmXMl9wJEAAAAC/girls-frontline-2-cheeta.gif',
+    'https://media1.tenor.com/m/zrkWVcHRtyEAAAAC/cheeta-girls-frontline-2-exilium.gif',
     // Daiyan
     'https://media1.tenor.com/m/qVmTo9bcvdQAAAAC/gfl-2-girls-frontline-2.gif',
     // Dushevnaya
     'https://media1.tenor.com/m/FLZ5MZwbnr8AAAAC/dushevnaya-ksvk.gif',
+    'https://media1.tenor.com/m/D_cVxBNnWfwAAAAC/dushevnaya-ksvk.gif',
+    'https://media1.tenor.com/m/UK47cvpDLFgAAAAC/gfl2-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/ln-hQddX3kIAAAAC/gfl2-dushevnaya.gif',
+    // Faye
+    'https://media1.tenor.com/m/7K2JoYAKhzsAAAAC/girls-frontline-2-faye.gif',
+    'https://media1.tenor.com/m/bLw9gvp8oA8AAAAC/gfl2-faye-gfl2-cz75.gif',
+    'https://media1.tenor.com/m/eBNX_Y98YGYAAAAC/girls-frontline-2-faye.gif',
+    'https://media1.tenor.com/m/7K2JoYAKhzsAAAAC/girls-frontline-2-faye.gif',
     // Groza
     'https://media1.tenor.com/m/El8zTuEn1lUAAAAC/girls-frontline-2-groza.gif',
     'https://media1.tenor.com/m/YQBHl_3eCPsAAAAC/gfl-gfl2.gif',
     'https://media1.tenor.com/m/JEgY7dLxRJMAAAAC/girls-frontline-2-groza.gif',
     // Jiangyu
     'https://media1.tenor.com/m/wZvi0KK2XhoAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/n3glyrFrK3MAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/nao9exY58QoAAAAC/girls-frontline-2-jiangyu.gif',
     // Klukay
     'https://media1.tenor.com/m/w0IRslEmgzcAAAAC/clukay-girls-frontline-2.gif',
     'https://media1.tenor.com/m/J-vSIeoKfHcAAAAC/girls-frontline-2-gfl2.gif',
     // Lenna
     'https://media1.tenor.com/m/4eczmEXJp3EAAAAC/girls-frontline-2-girls-frontline.gif',
     'https://media1.tenor.com/m/aUyh4aUoVVgAAAAd/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/AAR89PkALZ4AAAAC/gfl2-ghostdomo.gif',
     // Lotta
     'https://media1.tenor.com/m/ckx0NFyCF9MAAAAC/gfl2-girl%27s-frontline-2.gif',
     // Mayling
     'https://media1.tenor.com/m/zLImTf1sMosAAAAd/mayling-gfl.gif',
     // Mechy
     'https://media1.tenor.com/m/1Ms6L41Iy-sAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/zghwS0ARAvwAAAAC/girls-frontline-girls-frontline-2.gif',
     // Mosin Nagant
     'https://media1.tenor.com/m/j9zJ-CfzxtQAAAAC/gfl2-gf2.gif',
     // Nemesis
     'https://media1.tenor.com/m/g4N56L6hXEsAAAAC/girls-frontline-2-gfl2.gif',
     'https://media1.tenor.com/m/Xs7i2hKop6UAAAAC/gfl2-nemesis.gif',
+    // Nikketa
+    'https://media1.tenor.com/m/CtSwubT5cVQAAAAC/girls-frontline-2-nikketa.gif',
+    'https://media1.tenor.com/m/9UB3nQHg03oAAAAC/girls-frontline-2-nikketa.gif',
+    'https://media1.tenor.com/m/xQhv8ax4bdgAAAAC/vsk-gfl2.gif',
+    // Papasha
+    'https://media1.tenor.com/m/_ZHs06Frb0sAAAAC/papasha-peek.gif',
+    'https://media1.tenor.com/m/dV-hnACP3L8AAAAC/girls-frontline-2-papasha.gif',
+    // Peri
+    'https://media1.tenor.com/m/EFiZedyRlZ8AAAAC/girls-frontline-2-peri.gif',
     // Qiongjiu
     'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
     'https://media1.tenor.com/m/AW0niLgozNIAAAAd/qiongjiu-girls-frontline-2.gif',
     'https://media1.tenor.com/m/2THLR25in5kAAAAC/girls-frontline-2-gfl2.gif',
+    // Qiuhua
+    'https://media1.tenor.com/m/Aeyt4Z9IS0EAAAAC/girls-frontline-2-qiuhua.gif',
+    'https://media1.tenor.com/m/gh-DHJC8MdgAAAAC/girls-frontline-2-qiuhua.gif',
+    'https://media1.tenor.com/m/aP-ZcGZs-NEAAAAC/girls-frontline-2-qiuhua.gif',
+    'https://media1.tenor.com/m/EPm-cHxxZoQAAAAC/girls-frontline-2-qiuhua.gif',
     // Sabrina
     'https://media1.tenor.com/m/MDH5PSWUCMUAAAAC/girls-frontline-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/ydxnByZ1ykEAAAAC/girls-frontline-2-sabrina.gif',
     // Sharkry
     'https://media1.tenor.com/m/YJ7PQddEchYAAAAC/sharkry-wink-wink.gif',
     'https://media1.tenor.com/m/xOPspfvUuMcAAAAC/girls-frontline-2-gfl2.gif',
@@ -824,6 +858,8 @@ const gfl2ImageUrls = [
     // Springfield
     'https://media1.tenor.com/m/Au_EtYXaURAAAAAC/springfield-lap-pillow.gif',
     'https://media1.tenor.com/m/XmQRoySfZeoAAAAC/girls-frontline-2-hug.gif',
+    'https://media1.tenor.com/m/2_1PsP-VqwQAAAAC/girls-frontline-2-springfield.gif',
+    'https://media1.tenor.com/m/Vyd99FPpDrAAAAAC/springfield-barista.gif',
     // Suomi
     'https://media1.tenor.com/m/HuYCNz9vWw8AAAAC/suomi-girls-frontline-2.gif',
     'https://media1.tenor.com/m/n8zuaYmXIcIAAAAC/gfl2-suomi.gif',
@@ -831,14 +867,28 @@ const gfl2ImageUrls = [
     'https://media1.tenor.com/m/yZgeunzs6VQAAAAC/suomi-girls-frontline-2.gif',
     // Tololo
     'https://media1.tenor.com/m/SvINK5PJKeoAAAAC/ak-alfa-totolo.gif',
+    'https://media1.tenor.com/m/eCablCFdzwkAAAAC/girls-frontline-2-gfl2.gif',
     // Ullrid
     'https://media1.tenor.com/m/ValoHGcVpLcAAAAC/girls-frontline-2-gfl2.gif',
     // Vector
     'https://media1.tenor.com/m/f-B8bTSc6mwAAAAC/girls-frontline-2-gfl.gif',
     'https://media1.tenor.com/m/7gvJxpat_5MAAAAC/vector-incendiary-grenade.gif',
     'https://media1.tenor.com/m/QG8VdIyYR6IAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/KYMgLrKNiqsAAAAC/girls-frontline-2-vector.gif',
+    'https://media1.tenor.com/m/MpOjVaoAoFMAAAAC/girls-frontline-2-vector.gif',
+    'https://media1.tenor.com/m/sVJnOacx9IwAAAAC/vector-gfl.gif',
     // Vepley
     'https://media1.tenor.com/m/xPn8r5HfH44AAAAC/vepley-girls-frontline.gif',
+    // Yoohee
+    'https://media1.tenor.com/m/TpVWkLYx2CMAAAAC/girls-frontline-2-yoohee.gif',
+    'https://media1.tenor.com/m/cb2nE50HPAgAAAAC/girls-frontline-2-yoohee.gif',
+    'https://media1.tenor.com/m/N4-icus3oWcAAAAC/girls-frontline-2-yoohee.gif',
+    'https://media1.tenor.com/m/mHJZv4Qv1OMAAAAC/girls-frontline-2-yoohee.gif',
+    // Zhaohui
+    'https://media1.tenor.com/m/SuJ0qveZ4pYAAAAC/girls-frontline-2-zhaohui.gif',
+    // Other
+    'https://media1.tenor.com/m/18JV2dGsqmYAAAAC/girls-frontline-2-zucchero-squad.gif',
+    'https://media1.tenor.com/m/51a3FOMPn5AAAAAC/gfl-2-anime.gif',
 ];
 
 async function sendGFL2DailyResetMessage() {
