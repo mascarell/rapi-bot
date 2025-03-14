@@ -357,6 +357,14 @@ const chatCommands: { [key: string]: BotCommand } = {
             }
         },
     },
+    quietRapi: {
+        name: "quiet rapi",
+        description: "QUIET RAPI",
+        async execute(msg) {
+            const message = getRandomQuietRapiPhrase();
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/quietRapi/", message);
+        },
+    },
 };
 
 async function sendRandomImage(msg: any, folderPath: string) {
@@ -469,6 +477,15 @@ async function sendRandomImageWithContentNoRepeat(msg: any, folderPath: string, 
         console.error(`Failed to send message with content: ${content}`, error);
         logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContentNoRepeat');
     }
+}
+
+function getRandomQuietRapiPhrase() {
+    const quietRapiPhrases = [
+        "Commander, you seriously want me to be quiet? Unbelievable.",
+        "Commander, you think telling me to be quiet will help? Pathetic.",
+        "Commander, being quiet won't fix your incompetence.",
+    ];
+    return quietRapiPhrases[Math.floor(Math.random() * quietRapiPhrases.length)];
 }
 
 function getRandomBestGirlPhrase() {
