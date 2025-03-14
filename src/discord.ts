@@ -46,6 +46,7 @@ const bot: CustomClient = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions,
     ],
 }) as CustomClient;
 
@@ -1096,7 +1097,8 @@ const nikkeImageUrls = [
 
 async function sendNikkeDailyResetMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
+    // const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
+    const cronTime = "0 * * * * *";
 
     schedule.scheduleJob(cronTime, async () => {
         const currentDayOfYear = moment().dayOfYear();
@@ -1148,18 +1150,48 @@ async function sendNikkeDailyResetMessage() {
                         iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
                     });
                     
-                await channel.send({
+                const sentEmbed = await channel.send({
                     embeds: [embed]
                 });
 
-                const collector = channel.createMessageCollector({ 
+                // Create reaction collector for the embed message
+                const reactionFilter = (reaction: any, user: any) => {
+                    return ['🤢', '🤮', '🤒', '😷'].includes(reaction.emoji.name) && !user.bot;
+                };
+
+                const reactionCollector = sentEmbed.createReactionCollector({
+                    filter: reactionFilter,
+                    time: 15 * 1000 // 15 seconds
+                });
+
+                reactionCollector.on('collect', async (reaction, user) => {
+                    console.log(`Collected ${reaction.emoji.name} reaction from ${user.tag} on daily reset message in guild: ${guild.name}`);
+                    try {
+                        const message = getRandomQuietRapiPhrase();
+                        await channel.send({
+                            content: `<@${user.id}>, ${message}`,
+                            files: [{
+                                attachment: (await getFiles("./src/public/images/commands/quietRapi/"))[Math.floor(Math.random() * (await getFiles("./src/public/images/commands/quietRapi/")).length)].path
+                            }]
+                        });
+                    } catch (error) {
+                        logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Handling nauseated reaction');
+                    }
+                });
+
+                reactionCollector.on('end', collected => {
+                    console.log(`Reaction collector ended. Collected ${collected.size} reactions in guild: ${guild.name}`);
+                });
+
+                // Existing good girl collector
+                const messageCollector = channel.createMessageCollector({ 
                     filter: (response: Message) => response.content.toLowerCase().includes("good girl") && !response.author.bot,
-                    time: 15000 
+                    time: 15 * 1000 // 15 seconds
                 });
 
                 let firstResponseHandled = false;
 
-                collector.on('collect', async (m: Message) => {
+                messageCollector.on('collect', async (m: Message) => {
                     if (!firstResponseHandled) {
                         firstResponseHandled = true;
                         try {
@@ -1191,15 +1223,11 @@ async function sendNikkeDailyResetMessage() {
                     }
                 });
 
-                collector.on('end', (collected: ReadonlyCollection<string, Message<boolean>>) => {
+                messageCollector.on('end', (collected: ReadonlyCollection<string, Message<boolean>>) => {
                     console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
                 });
             } catch (error) {
-                if (error instanceof Error) {
-                    logError(guild.id, guild.name, error, 'Sending daily interception message');
-                } else {
-                    logError(guild.id, guild.name, new Error(String(error)), 'Sending daily interception message');
-                }
+                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending daily interception message');
             }
         });
     });
