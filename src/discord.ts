@@ -1097,8 +1097,7 @@ const nikkeImageUrls = [
 
 async function sendNikkeDailyResetMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    // const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
-    const cronTime = "0 * * * * *";
+    const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
 
     schedule.scheduleJob(cronTime, async () => {
         const currentDayOfYear = moment().dayOfYear();
