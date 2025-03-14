@@ -46,6 +46,7 @@ const bot: CustomClient = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions,
     ],
 }) as CustomClient;
 
@@ -336,7 +337,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             const emoji = msg.guild.emojis.cache.get('1298977385068236852');
             const message = getRandomLeadershipPhrase(emoji);
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/leadership/", message);
+            await sendRandomImageWithContentNoRepeat(msg, "./src/public/images/commands/leadership/", message);
         },
     },
     goodIdea: {
@@ -355,6 +356,14 @@ const chatCommands: { [key: string]: BotCommand } = {
                     console.warn(`Emoji '${reaction}' not found in guild ${msg.guild?.name}`);
                 }
             }
+        },
+    },
+    quietRapi: {
+        name: "quiet rapi",
+        description: "QUIET RAPI",
+        async execute(msg) {
+            const message = `${msg.author}, ${getRandomQuietRapiPhrase()}`;
+            await sendRandomImageWithContent(msg, "./src/public/images/commands/quietRapi/", message);
         },
     },
 };
@@ -393,6 +402,91 @@ async function sendRandomImageWithContent(msg: any, folderPath: string, content:
         console.error(`Failed to send message with content: ${content}`, error);
         logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContent');
     }
+}
+
+// Track recently sent images for each folder, per guild
+const recentlySentImages: Map<string, Map<string, string[]>> = new Map();
+const MAX_RECENT_IMAGES = 10;
+
+async function sendRandomImageWithContentNoRepeat(msg: any, folderPath: string, content: string) {
+    try {
+        if (!msg.guild?.id) {
+            console.error('No guild ID found in message');
+            return sendRandomImageWithContent(msg, folderPath, content);
+        }
+
+        const guildId = msg.guild.id;
+        console.log(`Processing request for guild: ${msg.guild.name} (${guildId})`);
+        
+        // Initialize guild tracking if not exists
+        if (!recentlySentImages.has(guildId)) {
+            console.log(`Initializing tracking for new guild: ${msg.guild.name}`);
+            recentlySentImages.set(guildId, new Map());
+        }
+
+        // Initialize folder tracking for this guild if not exists
+        const guildTracking = recentlySentImages.get(guildId)!;
+        if (!guildTracking.has(folderPath)) {
+            console.log(`Initializing tracking for folder: ${folderPath} in guild: ${msg.guild.name}`);
+            guildTracking.set(folderPath, []);
+        }
+
+        console.log(`Fetching files from folder: ${folderPath}`);
+        let files = await getFiles(folderPath);
+        
+        const recentImages = guildTracking.get(folderPath)!;
+        console.log(`Currently tracking ${recentImages.length} recent images for ${folderPath} in guild: ${msg.guild.name}`);
+
+        // Filter out recently sent images
+        const availableFiles = files.filter(file => 
+            !recentImages.includes(file.path)
+        );
+
+        console.log(`Found ${availableFiles.length} available images out of ${files.length} total images in guild: ${msg.guild.name}`);
+
+        // If all images have been recently sent, reset the tracking
+        if (availableFiles.length === 0) {
+            console.log(`All ${files.length} images have been recently sent in guild: ${msg.guild.name}. Resetting tracking for ${folderPath}`);
+            guildTracking.set(folderPath, []);
+            return sendRandomImageWithContentNoRepeat(msg, folderPath, content);
+        }
+
+        // Select a random file from available files
+        let randomFile = availableFiles[Math.floor(Math.random() * availableFiles.length)];
+        console.log(`Selected random file: ${randomFile.name} (not in recent history) for guild: ${msg.guild.name}`);
+        
+        // Add the selected file to recently sent images
+        recentImages.push(randomFile.path);
+        
+        // Keep only the last MAX_RECENT_IMAGES
+        if (recentImages.length > MAX_RECENT_IMAGES) {
+            const removedFile = recentImages.shift();
+            console.log(`Removed ${removedFile} from tracking history (reached max of ${MAX_RECENT_IMAGES}) in guild: ${msg.guild.name}`);
+        }
+        
+        await msg.reply({
+            content: content,
+            files: [
+                {
+                    attachment: randomFile.path,
+                    name: randomFile.name,
+                },
+            ],
+        });
+        console.log(`Successfully sent message with content: ${content} in guild: ${msg.guild.name}`);
+    } catch (error) {
+        console.error(`Failed to send message with content: ${content}`, error);
+        logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContentNoRepeat');
+    }
+}
+
+function getRandomQuietRapiPhrase() {
+    const quietRapiPhrases = [
+        "You seriously want me to be quiet? Unbelievable.",
+        "You think telling me to be quiet will help? Pathetic.",
+        "Being quiet won't fix your incompetence.",
+    ];
+    return quietRapiPhrases[Math.floor(Math.random() * quietRapiPhrases.length)];
 }
 
 function getRandomBestGirlPhrase() {
@@ -454,6 +548,16 @@ function getRandomLeadershipPhrase(emoji: string | undefined) {
         "Commander, that was... unexpected, to say the least...",
         "Commander, I'm... not sure what to say about that...",
         "Commander, your choice... it's left me speechless...",
+        "Commander, that was a bold move...",
+        "Commander, your strategy is... unconventional...",
+        "Commander, I didn't expect that... impressive...",
+        "Commander, your tactics are... surprising...",
+        "Commander, that was a risky decision...",
+        "Commander, your leadership style is... unique...",
+        "Commander, I'm amazed by your decision...",
+        "Commander, that was a daring move...",
+        "Commander, your choice was... unpredictable...",
+        "Commander, I'm in awe of your leadership...",
     ];
     const phrase = leadershipPhrases[Math.floor(Math.random() * leadershipPhrases.length)];
     return `${phrase}${emoji ? ` ${emoji}` : ''}`;
@@ -540,11 +644,11 @@ function setBotActivity() {
         //     type: ActivityType.Competing,
         //     status: PresenceUpdateStatus.DoNotDisturb,
         // },
-        {
-            name: "SOLO RAID",
-            type: ActivityType.Competing,
-            status: PresenceUpdateStatus.DoNotDisturb,
-        },
+        // {
+        //     name: "SOLO RAID",
+        //     type: ActivityType.Competing,
+        //     status: PresenceUpdateStatus.DoNotDisturb,
+        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -616,7 +720,12 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Dragon Ball: Sparking! Zero",
+            name: "Monster Hunter Wilds",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
+        {
+            name: "Marvel Rivals",
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
@@ -684,12 +793,19 @@ const blueArchiveImageUrls = [
     "https://media1.tenor.com/m/J9AcLGClOlIAAAAC/blue-archive-aris.gif",
     // Aru
     "https://media1.tenor.com/m/LgTRLvOmp9oAAAAd/blue-archive-aru.gif",
+    // Asuna
+    "https://media1.tenor.com/m/H2WNwimb78gAAAAC/asuna-ichinose-blue-archive.gif",
+    "https://media1.tenor.com/m/HTMHygJPtkoAAAAC/asuna-blue-archive.gif",
+    "https://media1.tenor.com/m/fY8EztVeNx0AAAAC/bunny-asuna-blue-archive.gif",
     // Hanako
     "https://media1.tenor.com/m/XxPrNv1TYAwAAAAC/blue-archive-hanako.gif",
     // Hikari
     "https://media1.tenor.com/m/8PGtPfLaDTkAAAAC/blue-archive-tachibana-hikari.gif",
     // Iroha
     "https://media1.tenor.com/m/iOCE3qQr8W8AAAAC/blue-archive-168.gif",
+    // Karin
+    "https://media1.tenor.com/m/lVEtG4VsuAUAAAAC/blue-archive-karin-blue-archive.gif",
+    "https://media1.tenor.com/m/gfRdS_GIyYkAAAAC/karin-blue-archive.gif",
     // Kazusa
     "https://media1.tenor.com/m/LWeuVHW7dlkAAAAd/kazusa-blue-archive.gif",
     "https://media1.tenor.com/m/AKLkyYWAB5cAAAAC/kazusa-blue-archive.gif",
@@ -706,7 +822,10 @@ const blueArchiveImageUrls = [
     // Ushio
     "https://media1.tenor.com/m/qOK0Ua-Z7TkAAAAd/ushio-noa-noa.gif",
     // Yuuka
-    "https://media1.tenor.com/m/ATKGYKvM0h4AAAAd/yuuka-blue.gif"
+    "https://media1.tenor.com/m/ATKGYKvM0h4AAAAd/yuuka-blue.gif",
+    // Other
+    "https://media1.tenor.com/m/xfHTI3YVHlQAAAAC/cleaningandclearing-blue-archive.gif",
+    "https://media1.tenor.com/m/KVF42I8zL-gAAAAC/bunny-asuna-bunny-karin.gif",
 
 ];
 
@@ -759,39 +878,73 @@ async function sendBlueArchiveDailyResetMessage() {
 }
 
 const gfl2ImageUrls = [
+    // Andoris
+    'https://media1.tenor.com/m/XmQRoySfZeoAAAAC/girls-frontline-2-hug.gif',
+    'https://media1.tenor.com/m/EjJX7fC82BoAAAAC/andoris-g36.gif',
+    // Cheeta
+    'https://media1.tenor.com/m/S9fJ1qZGWxoAAAAC/girls-frontline-2-cheeta.gif',
+    'https://media1.tenor.com/m/j3XmXMl9wJEAAAAC/girls-frontline-2-cheeta.gif',
+    'https://media1.tenor.com/m/zrkWVcHRtyEAAAAC/cheeta-girls-frontline-2-exilium.gif',
     // Daiyan
     'https://media1.tenor.com/m/qVmTo9bcvdQAAAAC/gfl-2-girls-frontline-2.gif',
     // Dushevnaya
     'https://media1.tenor.com/m/FLZ5MZwbnr8AAAAC/dushevnaya-ksvk.gif',
+    'https://media1.tenor.com/m/D_cVxBNnWfwAAAAC/dushevnaya-ksvk.gif',
+    'https://media1.tenor.com/m/UK47cvpDLFgAAAAC/gfl2-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/ln-hQddX3kIAAAAC/gfl2-dushevnaya.gif',
+    // Faye
+    'https://media1.tenor.com/m/7K2JoYAKhzsAAAAC/girls-frontline-2-faye.gif',
+    'https://media1.tenor.com/m/bLw9gvp8oA8AAAAC/gfl2-faye-gfl2-cz75.gif',
+    'https://media1.tenor.com/m/eBNX_Y98YGYAAAAC/girls-frontline-2-faye.gif',
+    'https://media1.tenor.com/m/7K2JoYAKhzsAAAAC/girls-frontline-2-faye.gif',
     // Groza
     'https://media1.tenor.com/m/El8zTuEn1lUAAAAC/girls-frontline-2-groza.gif',
     'https://media1.tenor.com/m/YQBHl_3eCPsAAAAC/gfl-gfl2.gif',
     'https://media1.tenor.com/m/JEgY7dLxRJMAAAAC/girls-frontline-2-groza.gif',
     // Jiangyu
     'https://media1.tenor.com/m/wZvi0KK2XhoAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/n3glyrFrK3MAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/nao9exY58QoAAAAC/girls-frontline-2-jiangyu.gif',
     // Klukay
     'https://media1.tenor.com/m/w0IRslEmgzcAAAAC/clukay-girls-frontline-2.gif',
     'https://media1.tenor.com/m/J-vSIeoKfHcAAAAC/girls-frontline-2-gfl2.gif',
     // Lenna
     'https://media1.tenor.com/m/4eczmEXJp3EAAAAC/girls-frontline-2-girls-frontline.gif',
     'https://media1.tenor.com/m/aUyh4aUoVVgAAAAd/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/AAR89PkALZ4AAAAC/gfl2-ghostdomo.gif',
     // Lotta
     'https://media1.tenor.com/m/ckx0NFyCF9MAAAAC/gfl2-girl%27s-frontline-2.gif',
     // Mayling
     'https://media1.tenor.com/m/zLImTf1sMosAAAAd/mayling-gfl.gif',
     // Mechy
     'https://media1.tenor.com/m/1Ms6L41Iy-sAAAAC/girls-frontline-2-gfl2.gif',
+    'https://media1.tenor.com/m/zghwS0ARAvwAAAAC/girls-frontline-girls-frontline-2.gif',
     // Mosin Nagant
     'https://media1.tenor.com/m/j9zJ-CfzxtQAAAAC/gfl2-gf2.gif',
     // Nemesis
     'https://media1.tenor.com/m/g4N56L6hXEsAAAAC/girls-frontline-2-gfl2.gif',
     'https://media1.tenor.com/m/Xs7i2hKop6UAAAAC/gfl2-nemesis.gif',
+    // Nikketa
+    'https://media1.tenor.com/m/CtSwubT5cVQAAAAC/girls-frontline-2-nikketa.gif',
+    'https://media1.tenor.com/m/9UB3nQHg03oAAAAC/girls-frontline-2-nikketa.gif',
+    'https://media1.tenor.com/m/xQhv8ax4bdgAAAAC/vsk-gfl2.gif',
+    // Papasha
+    'https://media1.tenor.com/m/_ZHs06Frb0sAAAAC/papasha-peek.gif',
+    'https://media1.tenor.com/m/dV-hnACP3L8AAAAC/girls-frontline-2-papasha.gif',
+    // Peri
+    'https://media1.tenor.com/m/EFiZedyRlZ8AAAAC/girls-frontline-2-peri.gif',
     // Qiongjiu
     'https://media1.tenor.com/m/IXusDCqBEFAAAAAC/girls-frontline-2-gfl2.gif',
     'https://media1.tenor.com/m/AW0niLgozNIAAAAd/qiongjiu-girls-frontline-2.gif',
     'https://media1.tenor.com/m/2THLR25in5kAAAAC/girls-frontline-2-gfl2.gif',
+    // Qiuhua
+    'https://media1.tenor.com/m/Aeyt4Z9IS0EAAAAC/girls-frontline-2-qiuhua.gif',
+    'https://media1.tenor.com/m/gh-DHJC8MdgAAAAC/girls-frontline-2-qiuhua.gif',
+    'https://media1.tenor.com/m/aP-ZcGZs-NEAAAAC/girls-frontline-2-qiuhua.gif',
+    'https://media1.tenor.com/m/EPm-cHxxZoQAAAAC/girls-frontline-2-qiuhua.gif',
     // Sabrina
     'https://media1.tenor.com/m/MDH5PSWUCMUAAAAC/girls-frontline-girls-frontline-2.gif',
+    'https://media1.tenor.com/m/ydxnByZ1ykEAAAAC/girls-frontline-2-sabrina.gif',
     // Sharkry
     'https://media1.tenor.com/m/YJ7PQddEchYAAAAC/sharkry-wink-wink.gif',
     'https://media1.tenor.com/m/xOPspfvUuMcAAAAC/girls-frontline-2-gfl2.gif',
@@ -799,6 +952,8 @@ const gfl2ImageUrls = [
     // Springfield
     'https://media1.tenor.com/m/Au_EtYXaURAAAAAC/springfield-lap-pillow.gif',
     'https://media1.tenor.com/m/XmQRoySfZeoAAAAC/girls-frontline-2-hug.gif',
+    'https://media1.tenor.com/m/2_1PsP-VqwQAAAAC/girls-frontline-2-springfield.gif',
+    'https://media1.tenor.com/m/Vyd99FPpDrAAAAAC/springfield-barista.gif',
     // Suomi
     'https://media1.tenor.com/m/HuYCNz9vWw8AAAAC/suomi-girls-frontline-2.gif',
     'https://media1.tenor.com/m/n8zuaYmXIcIAAAAC/gfl2-suomi.gif',
@@ -806,14 +961,28 @@ const gfl2ImageUrls = [
     'https://media1.tenor.com/m/yZgeunzs6VQAAAAC/suomi-girls-frontline-2.gif',
     // Tololo
     'https://media1.tenor.com/m/SvINK5PJKeoAAAAC/ak-alfa-totolo.gif',
+    'https://media1.tenor.com/m/eCablCFdzwkAAAAC/girls-frontline-2-gfl2.gif',
     // Ullrid
     'https://media1.tenor.com/m/ValoHGcVpLcAAAAC/girls-frontline-2-gfl2.gif',
     // Vector
     'https://media1.tenor.com/m/f-B8bTSc6mwAAAAC/girls-frontline-2-gfl.gif',
     'https://media1.tenor.com/m/7gvJxpat_5MAAAAC/vector-incendiary-grenade.gif',
     'https://media1.tenor.com/m/QG8VdIyYR6IAAAAC/girls-frontline-2-gfl.gif',
+    'https://media1.tenor.com/m/KYMgLrKNiqsAAAAC/girls-frontline-2-vector.gif',
+    'https://media1.tenor.com/m/MpOjVaoAoFMAAAAC/girls-frontline-2-vector.gif',
+    'https://media1.tenor.com/m/sVJnOacx9IwAAAAC/vector-gfl.gif',
     // Vepley
     'https://media1.tenor.com/m/xPn8r5HfH44AAAAC/vepley-girls-frontline.gif',
+    // Yoohee
+    'https://media1.tenor.com/m/TpVWkLYx2CMAAAAC/girls-frontline-2-yoohee.gif',
+    'https://media1.tenor.com/m/cb2nE50HPAgAAAAC/girls-frontline-2-yoohee.gif',
+    'https://media1.tenor.com/m/N4-icus3oWcAAAAC/girls-frontline-2-yoohee.gif',
+    'https://media1.tenor.com/m/mHJZv4Qv1OMAAAAC/girls-frontline-2-yoohee.gif',
+    // Zhaohui
+    'https://media1.tenor.com/m/SuJ0qveZ4pYAAAAC/girls-frontline-2-zhaohui.gif',
+    // Other
+    'https://media1.tenor.com/m/18JV2dGsqmYAAAAC/girls-frontline-2-zucchero-squad.gif',
+    'https://media1.tenor.com/m/51a3FOMPn5AAAAAC/gfl-2-anime.gif',
 ];
 
 async function sendGFL2DailyResetMessage() {
@@ -928,7 +1097,8 @@ const nikkeImageUrls = [
 
 async function sendNikkeDailyResetMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
+    // const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
+    const cronTime = "0 * * * * *";
 
     schedule.scheduleJob(cronTime, async () => {
         const currentDayOfYear = moment().dayOfYear();
@@ -980,18 +1150,48 @@ async function sendNikkeDailyResetMessage() {
                         iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
                     });
                     
-                await channel.send({
+                const sentEmbed = await channel.send({
                     embeds: [embed]
                 });
 
-                const collector = channel.createMessageCollector({ 
+                // Create reaction collector for the embed message
+                const reactionFilter = (reaction: any, user: any) => {
+                    return ['🤢', '🤮', '🤒', '😷'].includes(reaction.emoji.name) && !user.bot;
+                };
+
+                const reactionCollector = sentEmbed.createReactionCollector({
+                    filter: reactionFilter,
+                    time: 15 * 1000 // 15 seconds
+                });
+
+                reactionCollector.on('collect', async (reaction, user) => {
+                    console.log(`Collected ${reaction.emoji.name} reaction from ${user.tag} on daily reset message in guild: ${guild.name}`);
+                    try {
+                        const message = getRandomQuietRapiPhrase();
+                        await channel.send({
+                            content: `<@${user.id}>, ${message}`,
+                            files: [{
+                                attachment: (await getFiles("./src/public/images/commands/quietRapi/"))[Math.floor(Math.random() * (await getFiles("./src/public/images/commands/quietRapi/")).length)].path
+                            }]
+                        });
+                    } catch (error) {
+                        logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Handling nauseated reaction');
+                    }
+                });
+
+                reactionCollector.on('end', collected => {
+                    console.log(`Reaction collector ended. Collected ${collected.size} reactions in guild: ${guild.name}`);
+                });
+
+                // Existing good girl collector
+                const messageCollector = channel.createMessageCollector({ 
                     filter: (response: Message) => response.content.toLowerCase().includes("good girl") && !response.author.bot,
-                    time: 15000 
+                    time: 15 * 1000 // 15 seconds
                 });
 
                 let firstResponseHandled = false;
 
-                collector.on('collect', async (m: Message) => {
+                messageCollector.on('collect', async (m: Message) => {
                     if (!firstResponseHandled) {
                         firstResponseHandled = true;
                         try {
@@ -1023,15 +1223,11 @@ async function sendNikkeDailyResetMessage() {
                     }
                 });
 
-                collector.on('end', (collected: ReadonlyCollection<string, Message<boolean>>) => {
+                messageCollector.on('end', (collected: ReadonlyCollection<string, Message<boolean>>) => {
                     console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
                 });
             } catch (error) {
-                if (error instanceof Error) {
-                    logError(guild.id, guild.name, error, 'Sending daily interception message');
-                } else {
-                    logError(guild.id, guild.name, new Error(String(error)), 'Sending daily interception message');
-                }
+                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending daily interception message');
             }
         });
     });
