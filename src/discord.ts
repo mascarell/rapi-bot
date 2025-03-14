@@ -362,7 +362,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "quiet rapi",
         description: "QUIET RAPI",
         async execute(msg) {
-            const message = getRandomQuietRapiPhrase();
+            const message = `${msg.author}, ${getRandomQuietRapiPhrase()}`;
             await sendRandomImageWithContent(msg, "./src/public/images/commands/quietRapi/", message);
         },
     },
@@ -482,9 +482,9 @@ async function sendRandomImageWithContentNoRepeat(msg: any, folderPath: string, 
 
 function getRandomQuietRapiPhrase() {
     const quietRapiPhrases = [
-        "Commander, you seriously want me to be quiet? Unbelievable.",
-        "Commander, you think telling me to be quiet will help? Pathetic.",
-        "Commander, being quiet won't fix your incompetence.",
+        "You seriously want me to be quiet? Unbelievable.",
+        "You think telling me to be quiet will help? Pathetic.",
+        "Being quiet won't fix your incompetence.",
     ];
     return quietRapiPhrases[Math.floor(Math.random() * quietRapiPhrases.length)];
 }
