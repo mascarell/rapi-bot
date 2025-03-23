@@ -7,9 +7,7 @@ module.exports = {
     async execute(interaction: CommandInteraction) {
         await interaction.reply({
             content: `CUSTOM COMMANDS \n 
-➜ **/gacha <type> <game>** : Gamba with rapi bot, you can do singles or multis, works with NIKKE and Solo Leveling: Arise
-➜ **/<name of Nikke> list** : get full list of correct advice answers of a Nikke in NIKKE
-➜ **/<name of Nikke> <term>** : get correct advice answers when typing the nikke name and search term for advice in NIKKE
+➜ **/gacha <type> <game>** : Gamba with rapi bot, you can do singles or multis, works with NIKKE
 ➜ **/lucky** : How lucky are you today?
 ➜ **damn train** : Fuck Thomas The Train
 ➜ **damn gravedigger** : Time for OSU!
@@ -30,6 +28,13 @@ module.exports = {
 ➜ **mold rates are not that bad** : 61% is enough  
 ➜ **seggs?** : shifty?  
 ➜ **Lap of discipline.** : Lap of discipline. 
+➜ **ccp leadership** : View the Commander's Leadership
+➜ **absolute...** : It's a movie.
+➜ **ccp #1** : Inspired the Community.
+➜ **we had a plan!** : Just follow the plan Commander!
+➜ **is it over?** : Yes it is, Commander.
+➜ **99%** : Here's some advice for you.
+➜ **belorta...** : CURSE OF BELORTA.
 `,
             ephemeral: true
         });

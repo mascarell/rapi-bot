@@ -19,7 +19,6 @@ import {
     findRoleByName,
     logError,
     getVoiceChannel,
-    getBossFileName,
     handleTimeout,
     getRandomImageUrl,
 } from "./utils/util";
@@ -988,8 +987,6 @@ const gfl2ImageUrls = [
 async function sendGFL2DailyResetMessage() {
     const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
     const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
-    const darkWinterDailyShopReminderTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    const darkWinterDailyShopReminderCronTime = `${darkWinterDailyShopReminderTime.minute()} ${darkWinterDailyShopReminderTime.hour()} * * *`;
 
     schedule.scheduleJob(cronTime, async () => {            
         bot.guilds.cache.forEach(async (guild) => {
@@ -1033,41 +1030,6 @@ async function sendGFL2DailyResetMessage() {
             }
         });
     });
-
-    schedule.scheduleJob(darkWinterDailyShopReminderCronTime, async () => {            
-        bot.guilds.cache.forEach(async (guild) => {
-            const channel = findChannelByName(guild, "girls-frontline-2");
-            if (!channel) {
-                console.log(`Channel 'girls-frontline-2' not found in server: ${guild.name}.`);
-                return;
-            }
-    
-            try {
-                const embed = new EmbedBuilder()
-                    .setAuthor({ 
-                        name: 'Rapi BOT', 
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
-                    })
-                    .setThumbnail(`https://iopwiki.com/images/thumb/e/ea/GFL2_Logo_Main.png/300px-GFL2_Logo_Main.png`)
-                    .setImage('https://i.imgur.com/4hAq4Jv.png')
-                    .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
-                    .setDescription(
-                        `Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**`
-                    )
-                    .setColor(0xE67E22)
-                    .setTimestamp()
-                    .setFooter({   
-                        text: 'Commander, ready for the next mission?',
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
-                    });
-                await channel.send({ 
-                    embeds: [embed],
-                });
-            } catch (error) {
-                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending GFL2 daily reset message');
-            }
-        });
-    });
 }
 
 // Please avoid using Story/Lore Spoiler Images.
@@ -1078,12 +1040,28 @@ const nikkeImageUrls = [
     'https://media1.tenor.com/m/u1xuL961rcsAAAAd/doro-vapus-dance.gif',
     // Doro Parachute
     'https://media1.tenor.com/m/SR0cZxcIzE4AAAAd/doro-war.gif',
+    // Laplace
+    'https://media1.tenor.com/m/lJEY9jmiyuoAAAAC/laplace-nikke.gif',
     // Mustang
     'https://media1.tenor.com/m/5o2yGsRLeGYAAAAd/mustang-nikke.gif',
+    // Musan Pro
+    'https://media1.tenor.com/m/pnImxibrBcsAAAAC/nikke-commander.gif',
     // Rapi
     'https://media1.tenor.com/m/2R2wPQlxadIAAAAC/rapi-nikke.gif',
+    'https://media1.tenor.com/m/TcFnsBiOGFMAAAAC/rapi-run.gif',
+    // Rapi Dance
+    'https://media1.tenor.com/m/zuBEBjGiZjsAAAAC/nikke-goddess-of-victory-nikke.gif',
+    // Red Hood
+    'https://media1.tenor.com/m/D3ylaNhKCHMAAAAC/red-hood-nikke.gif',
+    // Scarlet
+    'https://media1.tenor.com/m/_g87i92lCQEAAAAC/goddess-of-victory-nikke.gif',
+    'https://media1.tenor.com/m/8KD_2Z5q3GUAAAAC/nikke.gif',
     // Shifty
     'https://media1.tenor.com/m/k2iamu0-uaUAAAAC/shifty-nikke.gif',
+    // Snow White
+    'https://media1.tenor.com/m/E-n6RjJEnL0AAAAC/tungsten-rapture.gif',
+    // Sultan The Derp
+    'https://media1.tenor.com/m/fZ62ae1gI6gAAAAC/sultanthederp-chibi.gif',
     // Summer Anis
     'https://media1.tenor.com/m/Fs64xWyCYOcAAAAd/nikke-anis.gif',
     // Syuen Screaming
