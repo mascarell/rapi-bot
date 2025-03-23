@@ -365,6 +365,20 @@ const chatCommands: { [key: string]: BotCommand } = {
             await sendRandomImageWithContent(msg, "./src/public/images/commands/quietRapi/", message);
         },
     },
+    entertainmentttt: {
+        name: "entertainmentttt",
+        description: "ENTERTAINMENTTTT",
+        async execute(msg) {
+            await sendRandomImage(msg, "./src/public/images/commands/entertainmentttt/");
+        },
+    },
+    casualUnion: {
+        name: "we casual",
+        description: "CASUAL UNION",
+        async execute(msg) {
+            await sendRandomImage(msg, "./src/public/images/commands/casualUnion/");
+        },
+    },
 };
 
 async function sendRandomImage(msg: any, folderPath: string) {
@@ -1032,44 +1046,44 @@ async function sendGFL2DailyResetMessage() {
     });
 }
 
-// Please avoid using Story/Lore Spoiler Images.
+// Please avoid using recent (within the past 3 months) Story/Lore Spoiler Images.
 const nikkeImageUrls = [
     // Doro CCP March
-    'https://media1.tenor.com/m/lES4JPVHMhsAAAAd/doro-dorothy.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/doro-dorothy.gif',
     // Doro Dance
-    'https://media1.tenor.com/m/u1xuL961rcsAAAAd/doro-vapus-dance.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/doro-vapus-dance.gif',
     // Doro Parachute
-    'https://media1.tenor.com/m/SR0cZxcIzE4AAAAd/doro-war.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/doro-war.gif',
     // Laplace
-    'https://media1.tenor.com/m/lJEY9jmiyuoAAAAC/laplace-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/laplace-nikke.gif',
     // Mustang
-    'https://media1.tenor.com/m/5o2yGsRLeGYAAAAd/mustang-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/mustang-nikke.gif',
     // Musan Pro
-    'https://media1.tenor.com/m/pnImxibrBcsAAAAC/nikke-commander.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/musanpro-commander-nikke.gif',
     // Rapi
-    'https://media1.tenor.com/m/2R2wPQlxadIAAAAC/rapi-nikke.gif',
-    'https://media1.tenor.com/m/TcFnsBiOGFMAAAAC/rapi-run.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/rapi-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/rapi-run.gif',
     // Rapi Dance
-    'https://media1.tenor.com/m/zuBEBjGiZjsAAAAC/nikke-goddess-of-victory-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/rapi-red-hood-dance-nikke.gif',
     // Red Hood
-    'https://media1.tenor.com/m/D3ylaNhKCHMAAAAC/red-hood-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/red-hood-nikke.gif',
     // Scarlet
-    'https://media1.tenor.com/m/_g87i92lCQEAAAAC/goddess-of-victory-nikke.gif',
-    'https://media1.tenor.com/m/8KD_2Z5q3GUAAAAC/nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/scarlet-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/nikke-booba-slap-scarlet.gif',
     // Shifty
-    'https://media1.tenor.com/m/k2iamu0-uaUAAAAC/shifty-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/shifty-nikke.gif',
     // Snow White
-    'https://media1.tenor.com/m/E-n6RjJEnL0AAAAC/tungsten-rapture.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/snow-white-fight-nikke.gif',
     // Sultan The Derp
-    'https://media1.tenor.com/m/fZ62ae1gI6gAAAAC/sultanthederp-chibi.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/sultanthederp-chibi-little-mermaid-nikke.gif',
     // Summer Anis
-    'https://media1.tenor.com/m/Fs64xWyCYOcAAAAd/nikke-anis.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/summer-anis-nikke.gif',
     // Syuen Screaming
-    'https://media1.tenor.com/m/0HBUr7WQXa0AAAAd/syuen-nikke.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/syuen-nikke.gif',
     // Syuen Jumped
-    'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDQ2bnAzZG82d3NwM2w2dTN3dnpleWhhbmo4ZzVsdnRzeXp6NmEwMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/7Al7PAPhXhT6spse6j/giphy.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/syuen-jumped-nikke.gif',
     // TV Ad
-    'https://i.makeagif.com/media/1-12-2023/BRYJ4m.gif',
+    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/tv-ad-nikke.gif',
     
 ];
 
