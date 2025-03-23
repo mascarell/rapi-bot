@@ -365,6 +365,20 @@ const chatCommands: { [key: string]: BotCommand } = {
             await sendRandomImageWithContent(msg, "./src/public/images/commands/quietRapi/", message);
         },
     },
+    entertainmentttt: {
+        name: "entertainmentttt",
+        description: "ENTERTAINMENTTTT",
+        async execute(msg) {
+            await sendRandomImage(msg, "./src/public/images/commands/entertainmentttt/");
+        },
+    },
+    casualUnion: {
+        name: "we casual",
+        description: "CASUAL UNION",
+        async execute(msg) {
+            await sendRandomImage(msg, "./src/public/images/commands/casualUnion/");
+        },
+    },
 };
 
 async function sendRandomImage(msg: any, folderPath: string) {
