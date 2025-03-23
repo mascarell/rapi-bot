@@ -1078,12 +1078,28 @@ const nikkeImageUrls = [
     'https://media1.tenor.com/m/u1xuL961rcsAAAAd/doro-vapus-dance.gif',
     // Doro Parachute
     'https://media1.tenor.com/m/SR0cZxcIzE4AAAAd/doro-war.gif',
+    // Laplace
+    'https://media1.tenor.com/m/lJEY9jmiyuoAAAAC/laplace-nikke.gif',
     // Mustang
     'https://media1.tenor.com/m/5o2yGsRLeGYAAAAd/mustang-nikke.gif',
+    // Musan Pro
+    'https://media1.tenor.com/m/pnImxibrBcsAAAAC/nikke-commander.gif',
     // Rapi
     'https://media1.tenor.com/m/2R2wPQlxadIAAAAC/rapi-nikke.gif',
+    'https://media1.tenor.com/m/TcFnsBiOGFMAAAAC/rapi-run.gif',
+    // Rapi Dance
+    'https://media1.tenor.com/m/zuBEBjGiZjsAAAAC/nikke-goddess-of-victory-nikke.gif',
+    // Red Hood
+    'https://media1.tenor.com/m/D3ylaNhKCHMAAAAC/red-hood-nikke.gif',
+    // Scarlet
+    'https://media1.tenor.com/m/_g87i92lCQEAAAAC/goddess-of-victory-nikke.gif',
+    'https://media1.tenor.com/m/8KD_2Z5q3GUAAAAC/nikke.gif',
     // Shifty
     'https://media1.tenor.com/m/k2iamu0-uaUAAAAC/shifty-nikke.gif',
+    // Snow White
+    'https://media1.tenor.com/m/E-n6RjJEnL0AAAAC/tungsten-rapture.gif',
+    // Sultan The Derp
+    'https://media1.tenor.com/m/fZ62ae1gI6gAAAAC/sultanthederp-chibi.gif',
     // Summer Anis
     'https://media1.tenor.com/m/Fs64xWyCYOcAAAAd/nikke-anis.gif',
     // Syuen Screaming
