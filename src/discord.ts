@@ -1032,7 +1032,7 @@ async function sendGFL2DailyResetMessage() {
     });
 }
 
-// Please avoid using Story/Lore Spoiler Images.
+// Please avoid using recent (within the past 3 months) Story/Lore Spoiler Images.
 const nikkeImageUrls = [
     // Doro CCP March
     'https://media1.tenor.com/m/lES4JPVHMhsAAAAd/doro-dorothy.gif',
