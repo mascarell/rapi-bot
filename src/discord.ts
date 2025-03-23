@@ -19,7 +19,6 @@ import {
     findRoleByName,
     logError,
     getVoiceChannel,
-    getBossFileName,
     handleTimeout,
     getRandomImageUrl,
 } from "./utils/util";
