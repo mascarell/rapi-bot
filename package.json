@@ -13,6 +13,7 @@
   "author": "Loot and Waifus",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.772.0",
     "@discordjs/voice": "^0.17.0",
     "axios": "^1.7.7",
     "discord.js": "^14.14.1",
