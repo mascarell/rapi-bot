@@ -20,13 +20,27 @@ import {
     logError,
     getVoiceChannel,
     handleTimeout,
-    getRandomImageUrl,
 } from "./utils/util";
 import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
 import { ccpMessage } from "./utils/constants/messages";
 
+import { S3, S3ClientConfig, ListObjectsV2Command } from "@aws-sdk/client-s3";
+
+//TODO: Extract into common utils S3 client
+const s3ClientConfig: S3ClientConfig = {
+    forcePathStyle: false,
+    endpoint: "https://sfo3.digitaloceanspaces.com",
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: process.env.S3ACCESSKEYID as string,
+      secretAccessKey: process.env.S3SECRETKEY as string
+    }
+};
+const s3Client = new S3(s3ClientConfig);
+
 const TOKEN = process.env.WAIFUTOKEN as string;
 const CLIENTID = process.env.CLIENTID as string;
+const S3BUCKET = process.env.S3BUCKET as string;
 const RADIO_FOLDER_PATH = './src/radio';
 const PRE = "/";
 const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
@@ -341,10 +355,56 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "ccp leadership",
         description: "CCP LEADERSHIP",
         async execute(msg) {
-            const emoji = msg.guild.emojis.cache.get('1298977385068236852');
-            const message = getRandomLeadershipPhrase(emoji);
-            //TODO: Move videos to CDN Server
-            await sendRandomImageWithContentNoRepeat(msg, "./src/public/images/commands/leadership/", message);
+            //TODO: Extract into reusable function
+            try {
+                // List objects in the leadership folder
+                const response = await s3Client.send(new ListObjectsV2Command({
+                    Bucket: S3BUCKET,
+                    Prefix: "commands/leadership/",
+                }));
+
+                if (!response.Contents || response.Contents.length === 0) {
+                    console.error('No leadership clips found in CDN');
+                    throw new Error('No leadership clips available');
+                }
+
+                // Filter out any non-media files, get keys under 100MB, and validate extensions
+                const MAX_SIZE_MB = 100;
+                const mediaKeys = response.Contents
+                    .filter(obj => {
+                        const sizeInMB = (obj.Size || 0) / (1024 * 1024); // Convert bytes to MB
+                        return sizeInMB <= MAX_SIZE_MB;
+                    })
+                    .map(obj => obj.Key)
+                    .filter(key => key && key.endsWith('.mp4'));
+
+                if (mediaKeys.length === 0) {
+                    console.error('No valid media files found under 100MB');
+                    throw new Error('No suitable media files available');
+                }
+
+                // Select a random media key
+                const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)];
+                const cdnUrl = `${CDN_PREFIX}/${randomKey}`;
+
+                const emoji = msg.guild.emojis.cache.get('1298977385068236852');
+                const message = getRandomLeadershipPhrase(emoji);
+
+                await msg.reply({
+                    content: message,
+                    files: [cdnUrl]
+                });
+
+            } catch (error) {
+                console.error('Error in leadership command:', error);
+                await msg.reply('Commander, there seems to be an issue with the leadership files...');
+                logError(
+                    msg.guild?.id || 'UNKNOWN',
+                    msg.guild?.name || 'UNKNOWN',
+                    error instanceof Error ? error : new Error(String(error)),
+                    'Leadership command'
+                );
+            }
         },
     },
     goodIdea: {
