@@ -32,6 +32,13 @@ const PRE = "/";
 const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
 const resetEndTime = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
+// CDN URLs
+const RAPI_BOT_THUMBNAIL_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/rapi-bot-thumbnail.jpg';
+const GFL2_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/gfl2-logo.png';
+const NIKKE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/nikke-logo.png';
+const BLUE_ARCHIVE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/blue-archive-logo.png';
+
+
 const voiceConnections: Map<string, VoiceConnectionData> = new Map();
 
 interface CustomClient extends Client {
@@ -336,6 +343,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             const emoji = msg.guild.emojis.cache.get('1298977385068236852');
             const message = getRandomLeadershipPhrase(emoji);
+            //TODO: Move videos to CDN Server
             await sendRandomImageWithContentNoRepeat(msg, "./src/public/images/commands/leadership/", message);
         },
     },
@@ -417,6 +425,8 @@ async function sendRandomImageWithContent(msg: any, folderPath: string, content:
     }
 }
 
+
+//TODO: Deprecate this function
 // Track recently sent images for each folder, per guild
 const recentlySentImages: Map<string, Map<string, string[]>> = new Map();
 const MAX_RECENT_IMAGES = 10;
@@ -652,16 +662,6 @@ function setBotActivity() {
             type: ActivityType.Listening,
             status: PresenceUpdateStatus.Online,
         },
-        // {
-        //     name: "UNION RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
-        // {
-        //     name: "SOLO RAID",
-        //     type: ActivityType.Competing,
-        //     status: PresenceUpdateStatus.DoNotDisturb,
-        // },
         {
             name: "CAMPAIGN",
             type: ActivityType.Playing,
@@ -742,6 +742,11 @@ function setBotActivity() {
             type: ActivityType.Competing,
             status: PresenceUpdateStatus.DoNotDisturb,
         },
+        {
+            name: "Minecraft",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
     ];
 
     updateBotActivity(activities);
@@ -801,45 +806,44 @@ function sendRandomMessages() {
     console.log("Scheduled random message job to run every 6 hours.");
 }
 
-const blueArchiveImageUrls = [
+const blueArchiveImageKeys = [
     // Aris
-    "https://media1.tenor.com/m/J9AcLGClOlIAAAAC/blue-archive-aris.gif",
+    'dailies/blue-archive/aris-blue-archive.gif',
     // Aru
-    "https://media1.tenor.com/m/LgTRLvOmp9oAAAAd/blue-archive-aru.gif",
+    'dailies/blue-archive/aru-blue-archive.gif',
     // Asuna
-    "https://media1.tenor.com/m/H2WNwimb78gAAAAC/asuna-ichinose-blue-archive.gif",
-    "https://media1.tenor.com/m/HTMHygJPtkoAAAAC/asuna-blue-archive.gif",
-    "https://media1.tenor.com/m/fY8EztVeNx0AAAAC/bunny-asuna-blue-archive.gif",
+    'dailies/blue-archive/chibi-asuna-blue-archive.gif',
+    'dailies/blue-archive/asuna-blue-archive.gif',
+    'dailies/blue-archive/bunny-asuna-blue-archive.gif',
     // Hanako
-    "https://media1.tenor.com/m/XxPrNv1TYAwAAAAC/blue-archive-hanako.gif",
+    'dailies/blue-archive/hanako-blue-archive.gif',
     // Hikari
-    "https://media1.tenor.com/m/8PGtPfLaDTkAAAAC/blue-archive-tachibana-hikari.gif",
+    'dailies/blue-archive/hikari-blue-archive-tachibana.gif',
     // Iroha
-    "https://media1.tenor.com/m/iOCE3qQr8W8AAAAC/blue-archive-168.gif",
+    'dailies/blue-archive/iroha-blue-archive.gif',
     // Karin
-    "https://media1.tenor.com/m/lVEtG4VsuAUAAAAC/blue-archive-karin-blue-archive.gif",
-    "https://media1.tenor.com/m/gfRdS_GIyYkAAAAC/karin-blue-archive.gif",
+    'dailies/blue-archive/karin-skill-blue-archive.gif',
+    'dailies/blue-archive/karin-blue-archive.gif',
     // Kazusa
-    "https://media1.tenor.com/m/LWeuVHW7dlkAAAAd/kazusa-blue-archive.gif",
-    "https://media1.tenor.com/m/AKLkyYWAB5cAAAAC/kazusa-blue-archive.gif",
+    'dailies/blue-archive/kazusa-blue-archive-walking.gif',
+    'dailies/blue-archive/kazusa-blue-archive.gif',
     // Kokona
-    "https://media1.tenor.com/m/6NZBdsNCbEwAAAAd/kokona-blue-archive.gif",
+    'dailies/blue-archive/kokona-blue-archive-dance.gif',
     // Sakurako
-    "https://media1.tenor.com/m/XQJVw8Gt8OgAAAAC/blue-archive-utazumi-sakurako.gif",
+    'dailies/blue-archive/sakurako-blue-archive-scene.gif',
     // Shiroko
-    "https://media1.tenor.com/m/jgEyvtk8GBIAAAAd/blue-archive.gif",
+    'dailies/blue-archive/shiroko-blue-archive.gif',
     // Shiromi
-    "https://media1.tenor.com/m/mvsnju_xuQwAAAAC/black-anime-girl.gif",
+    'dailies/blue-archive/shiromi-blue-archive.gif',
     // Sumire
-    "https://media1.tenor.com/m/KCNHiwTd1k4AAAAC/sumire-sumire-poggers.gif",
+    'dailies/blue-archive/sumire-blue-archive-gym.gif',
     // Ushio
-    "https://media1.tenor.com/m/qOK0Ua-Z7TkAAAAd/ushio-noa-noa.gif",
+    'dailies/blue-archive/ushio-blue-archive-noa-noa.gif',
     // Yuuka
-    "https://media1.tenor.com/m/ATKGYKvM0h4AAAAd/yuuka-blue.gif",
+    'dailies/blue-archive/yuuka-blue-archive-stop-slacking.gif',
     // Other
-    "https://media1.tenor.com/m/xfHTI3YVHlQAAAAC/cleaningandclearing-blue-archive.gif",
-    "https://media1.tenor.com/m/KVF42I8zL-gAAAAC/bunny-asuna-bunny-karin.gif",
-
+    'dailies/blue-archive/bunny-asuna-bunny-karin-blue-archive.gif',
+    'dailies/blue-archive/blue-archive-city-scene.gif',
 ];
 
 async function sendBlueArchiveDailyResetMessage() {
@@ -858,10 +862,9 @@ async function sendBlueArchiveDailyResetMessage() {
                 const embed = new EmbedBuilder()
                     .setAuthor({ 
                         name: 'Rapi BOT', 
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+                        iconURL: RAPI_BOT_THUMBNAIL_URL 
                     })
-                    .setThumbnail(`https://static.wikia.nocookie.net/blue-archive/images/b/b8/BA_Logo_1.png`)
-                    .setImage(getRandomImageUrl(blueArchiveImageUrls, guild.id))
+                    .setThumbnail(BLUE_ARCHIVE_LOGO_URL)
                     .setTitle(`ATTENTION SENSEIS!`)
                     .setDescription(
                         `Server has been reset! Here's some of Today's **Daily Assignments** Checklist:\n`
@@ -878,11 +881,14 @@ async function sendBlueArchiveDailyResetMessage() {
                     .setTimestamp()
                     .setFooter({   
                         text: 'Sensei, please help me with my homework?',
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+                        iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
-                await channel.send({ 
-                    embeds: [embed],
-                });
+
+                const imageUrl = await generateRandomCdnImageUrl(null, blueArchiveImageKeys, guild.id);
+                embed.setImage(imageUrl);
+                    await channel.send({ 
+                        embeds: [embed],
+                    });
             } catch (error) {
                 logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending Blue Archive daily reset message');
             }
@@ -890,110 +896,110 @@ async function sendBlueArchiveDailyResetMessage() {
     });
 }
 
-const gfl2ImageUrls = [
+const gfl2ImageKeys = [
     // Andoris
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/andoris-action-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/andoris-hug.gif',
+    'dailies/girls-frontline-2/andoris-action-scene.gif',
+    'dailies/girls-frontline-2/andoris-hug.gif',
     // Cheeta
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/cheeta-absolute-cinema-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/cheeta-racer-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/cheeta-racer.gif',
+    'dailies/girls-frontline-2/cheeta-absolute-cinema-scene.gif',
+    'dailies/girls-frontline-2/cheeta-racer-interaction.gif',
+    'dailies/girls-frontline-2/cheeta-racer.gif',
     // Daiyan
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/daiyan-chinese-dress-interaction.gif',
+    'dailies/girls-frontline-2/daiyan-chinese-dress-interaction.gif',
     // Dushevnaya
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/dushevnaya-action-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/dushevnaya-skill-cutscene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/dushevnaya-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/dushevnaya-interaction.gif',
+    'dailies/girls-frontline-2/dushevnaya-action-scene.gif',
+    'dailies/girls-frontline-2/dushevnaya-skill-cutscene.gif',
+    'dailies/girls-frontline-2/dushevnaya-scene.gif',
+    'dailies/girls-frontline-2/dushevnaya-interaction.gif',
     // Faye
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/faye-dorm-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/faye-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/faye-dorm-interaction-sparring.gif',
+    'dailies/girls-frontline-2/faye-dorm-interaction.gif',
+    'dailies/girls-frontline-2/faye-scene.gif',
+    'dailies/girls-frontline-2/faye-dorm-interaction-sparring.gif',
     // Groza
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/groza-action-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/groza-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/groza-scene.gif',
+    'dailies/girls-frontline-2/groza-action-scene.gif',
+    'dailies/girls-frontline-2/groza-interaction.gif',
+    'dailies/girls-frontline-2/groza-scene.gif',
     // Jiangyu
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/jiangyu-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/jiangyu-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/jiangyu-interaction-pull-in.gif',
-    // Klukay
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/klukai-dorm-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/klukai-interaction.gif',
+    'dailies/girls-frontline-2/jiangyu-interaction.gif',
+    'dailies/girls-frontline-2/jiangyu-scene.gif',
+    'dailies/girls-frontline-2/jiangyu-interaction-pull-in.gif',
+    // Klukai
+    'dailies/girls-frontline-2/klukai-dorm-interaction.gif',
+    'dailies/girls-frontline-2/klukai-interaction.gif',
     // Lenna
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/lenna-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/lenna-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/lenna-dorm-interaction.gif',
+    'dailies/girls-frontline-2/lenna-interaction.gif',
+    'dailies/girls-frontline-2/lenna-scene.gif',
+    'dailies/girls-frontline-2/lenna-dorm-interaction.gif',
     // Lotta
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/lotta-dorm-interaction.gif',
+    'dailies/girls-frontline-2/lotta-dorm-interaction.gif',
     // Mayling
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/mayling-working-hard.gif',
+    'dailies/girls-frontline-2/mayling-working-hard.gif',
     // Mechty
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/mechty-dorm-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/mechty-scene.gif',
-    // Mosin Nagant
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/mosin-nagant-interaction.gif',
+    'dailies/girls-frontline-2/mechty-dorm-interaction.gif',
+    'dailies/girls-frontline-2/mechty-scene.gif',
+    // Mosin
+    'dailies/girls-frontline-2/mosin-nagant-interaction.gif',
     // Nemesis
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/nemesis-action-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/nemesis-interaction.gif',
+    'dailies/girls-frontline-2/nemesis-action-scene.gif',
+    'dailies/girls-frontline-2/nemesis-interaction.gif',
     // Nikketa
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/nikketa-skin-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/nikketa-skin-interaction-handcuffs.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/nikketa-dorm-interaction-interesting.gif',
+    'dailies/girls-frontline-2/nikketa-skin-interaction.gif',
+    'dailies/girls-frontline-2/nikketa-skin-interaction-handcuffs.gif',
+    'dailies/girls-frontline-2/nikketa-dorm-interaction-interesting.gif',
     // Papasha
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/papasha-dorm-interaction-peek.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/papasha-scene.gif',
+    'dailies/girls-frontline-2/papasha-dorm-interaction-peek.gif',
+    'dailies/girls-frontline-2/papasha-scene.gif',
     // Peri
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/peri-interaction-spin-hat.gif',
+    'dailies/girls-frontline-2/peri-interaction-spin-hat.gif',
     // Qiongjiu
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiongjiu-action-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiongjiu-ultimate-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiongjiu-action-scene-ending.gif',
+    'dailies/girls-frontline-2/qiongjiu-action-scene.gif',
+    'dailies/girls-frontline-2/qiongjiu-ultimate-scene.gif',
+    'dailies/girls-frontline-2/qiongjiu-action-scene-ending.gif',
     // Qiuhua
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiuhua-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiuhua-scene-drink.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiuhua-dorm-interaction-eating.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/qiuhua-scene-fridge.gif',
+    'dailies/girls-frontline-2/qiuhua-scene.gif',
+    'dailies/girls-frontline-2/qiuhua-scene-drink.gif',
+    'dailies/girls-frontline-2/qiuhua-dorm-interaction-eating.gif',
+    'dailies/girls-frontline-2/qiuhua-scene-fridge.gif',
     // Sabrina
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/sabrina-interaction-eating-pizza.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/sabrina-scene.gif',
+    'dailies/girls-frontline-2/sabrina-interaction-eating-pizza.gif',
+    'dailies/girls-frontline-2/sabrina-scene.gif',
     // Sharkry
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/sharkry-interaction-wink-wink.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/skarkry-action-scene-ending.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/sharkry-interaction-bang-bang.gif',
+    'dailies/girls-frontline-2/sharkry-interaction-wink-wink.gif',
+    'dailies/girls-frontline-2/sharkry-action-scene-ending.gif',
+    'dailies/girls-frontline-2/sharkry-interaction-bang-bang.gif',
     // Springfield
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/springfield-dress-lap-pillow.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/springfield-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/springfield-scene-barista.gif',
+    'dailies/girls-frontline-2/springfield-dress-lap-pillow.gif',
+    'dailies/girls-frontline-2/springfield-scene.gif',
+    'dailies/girls-frontline-2/springfield-scene-barista.gif',
     // Suomi
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/suomi-dorm-interaction-headbop.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/suomi-action-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/suomi-dorm-interaction-guitar.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/suomi-scene-bonk.gif',
+    'dailies/girls-frontline-2/suomi-dorm-interaction-headbop.gif',
+    'dailies/girls-frontline-2/suomi-action-scene.gif',
+    'dailies/girls-frontline-2/suomi-dorm-interaction-guitar.gif',
+    'dailies/girls-frontline-2/suomi-scene-bonk.gif',
     // Tololo
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/totolo-dorm-interaction-watergun.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/tololo-scene.gif',
+    'dailies/girls-frontline-2/tololo-dorm-interaction-watergun.gif',
+    'dailies/girls-frontline-2/tololo-scene.gif',
     // Ullrid
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/ullrid-dorm-interaction-shoe.gif',
+    'dailies/girls-frontline-2/ullrid-dorm-interaction-shoe.gif',
     // Vector
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vector-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vector-ultimate-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vector-dorm-interaction-reading.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vector-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vector-bunny-interaction.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vector-dance-scene.gif',
+    'dailies/girls-frontline-2/vector-scene.gif',
+    'dailies/girls-frontline-2/vector-ultimate-scene.gif',
+    'dailies/girls-frontline-2/vector-dorm-interaction-reading.gif',
+    'dailies/girls-frontline-2/vector-interaction.gif',
+    'dailies/girls-frontline-2/vector-bunny-interaction.gif',
+    'dailies/girls-frontline-2/vector-dance-scene.gif',
     // Vepley
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/vepley-dorm-interaction-nuuh.gif',
+    'dailies/girls-frontline-2/vepley-dorm-interaction-nuuh.gif',
     // Yoohee
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/yoohee-dance-scene-alarm.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/yoohee-idol-fireworks-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/yoohee-maid-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/yoohee-dance-scene-laugh.gif',
+    'dailies/girls-frontline-2/yoohee-dance-scene-alarm.gif',
+    'dailies/girls-frontline-2/yoohee-idol-fireworks-scene.gif',
+    'dailies/girls-frontline-2/yoohee-maid-scene.gif',
+    'dailies/girls-frontline-2/yoohee-dance-scene-laugh.gif',
     // Zhaohui
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/zhaohui-racer-skin-interaction.gif',
-    // Other
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/zucchero-squad-scene.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/girls-frontline-2/groza-movie-scene.gif',
+    'dailies/girls-frontline-2/zhaohui-racer-skin-interaction.gif',
+    // Others
+    'dailies/girls-frontline-2/zucchero-squad-scene.gif',
+    'dailies/girls-frontline-2/groza-movie-scene.gif',
 ];
 
 async function sendGFL2DailyResetMessage() {
@@ -1007,20 +1013,21 @@ async function sendGFL2DailyResetMessage() {
                 console.log(`Channel 'girls-frontline-2' not found in server: ${guild.name}.`);
                 return;
             }
-    
-            try {
+
+            try {                
+                
                 const embed = new EmbedBuilder()
                     .setAuthor({ 
                         name: 'Rapi BOT', 
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+                        iconURL: RAPI_BOT_THUMBNAIL_URL 
                     })
-                    .setThumbnail(`https://iopwiki.com/images/thumb/e/ea/GFL2_Logo_Main.png/300px-GFL2_Logo_Main.png`)
-                    .setImage(getRandomImageUrl(gfl2ImageUrls, guild.id))
+                    .setThumbnail(GFL2_LOGO_URL)
                     .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
                     .setDescription(
                         `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`
                     )
                     .addFields(
+                        { name: '**Gunsmoke Frontline**', value: 'Do Your **Daily Patrol** and **Gunsmoke Hits**!' },
                         { name: '**Daily Free Gift Pack**', value: 'Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**' },
                         { name: '**Daily Sign-in**', value: 'Complete Daily Sign-in' },
                         { name: '**Dormitory**', value: 'Enter The Dormitory And **Check on Your WAIFU**' },
@@ -1032,8 +1039,12 @@ async function sendGFL2DailyResetMessage() {
                     .setTimestamp()
                     .setFooter({   
                         text: 'Commander, ready for the next mission?',
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+                        iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
+
+                const imageUrl = await generateRandomCdnImageUrl(null, gfl2ImageKeys, guild.id);
+                embed.setImage(imageUrl);
+
                 await channel.send({ 
                     embeds: [embed],
                 });
@@ -1044,45 +1055,41 @@ async function sendGFL2DailyResetMessage() {
     });
 }
 
-// Please avoid using recent (within the past 3 months) Story/Lore Spoiler Images.
-const nikkeImageUrls = [
-    // Doro CCP March
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/doro-dorothy.gif',
-    // Doro Dance
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/doro-vapus-dance.gif',
-    // Doro Parachute
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/doro-war.gif',
+const nikkeImageKeys = [
+    // Doro
+    'dailies/nikke/doro-dorothy.gif',
+    // Doro Vapus Dance
+    'dailies/nikke/doro-vapus-dance.gif',
+    // Doro War
+    'dailies/nikke/doro-war.gif',
     // Laplace
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/laplace-nikke.gif',
+    'dailies/nikke/laplace-nikke.gif',
     // Mustang
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/mustang-nikke.gif',
-    // Musan Pro
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/musanpro-commander-nikke.gif',
-    // Rapi
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/rapi-nikke.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/rapi-run.gif',
-    // Rapi Dance
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/rapi-red-hood-dance-nikke.gif',
+    'dailies/nikke/mustang-nikke.gif',
+    // Musanpro
+    'dailies/nikke/musanpro-commander-nikke.gif',
+    // Rapi 
+    'dailies/nikke/rapi-nikke.gif',
+    'dailies/nikke/rapi-run.gif',
+    'dailies/nikke/rapi-red-hood-dance-nikke.gif',
     // Red Hood
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/red-hood-nikke.gif',
+    'dailies/nikke/red-hood-nikke.gif',
     // Scarlet
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/scarlet-nikke.gif',
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/nikke-booba-slap-scarlet.gif',
+    'dailies/nikke/scarlet-nikke.gif',
+    'dailies/nikke/nikke-booba-slap-scarlet.gif',
     // Shifty
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/shifty-nikke.gif',
+    'dailies/nikke/shifty-nikke.gif',
     // Snow White
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/snow-white-fight-nikke.gif',
-    // Sultan The Derp
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/sultanthederp-chibi-little-mermaid-nikke.gif',
+    'dailies/nikke/snow-white-fight-nikke.gif',
+    // Sultanthederp
+    'dailies/nikke/sultanthederp-chibi-little-mermaid-nikke.gif',
     // Summer Anis
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/summer-anis-nikke.gif',
-    // Syuen Screaming
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/syuen-nikke.gif',
-    // Syuen Jumped
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/syuen-jumped-nikke.gif',
+    'dailies/nikke/summer-anis-nikke.gif',
+    // Syuen
+    'dailies/nikke/syuen-nikke.gif',
+    'dailies/nikke/syuen-jumped-nikke.gif',
     // TV Ad
-    'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/dailies/nikke/tv-ad-nikke.gif',
-    
+    'dailies/nikke/tv-ad-nikke.gif',
 ];
 
 async function sendNikkeDailyResetMessage() {
@@ -1111,10 +1118,9 @@ async function sendNikkeDailyResetMessage() {
                 const embed = new EmbedBuilder()
                     .setAuthor({ 
                         name: 'Rapi BOT', 
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg' 
+                        iconURL: RAPI_BOT_THUMBNAIL_URL 
                     })
-                    .setThumbnail(`https://cdn2.steamgriddb.com/logo/ec0654ecb4284e98366b7596a15c5e1b.png`)
-                    .setImage(getRandomImageUrl(nikkeImageUrls, guild.id))
+                    .setThumbnail(NIKKE_LOGO_URL)
                     .setTitle('ATTENTION COMMANDERS!')
                     .setDescription(
                         `Server has been reset! Here's some of Today's **Daily Missions** Checklist:\n`
@@ -1136,9 +1142,12 @@ async function sendNikkeDailyResetMessage() {
                     .setTimestamp()
                     .setFooter({   
                         text: 'Stay safe on the surface, Commanders!',
-                        iconURL: 'https://static.zerochan.net/Rapi.full.3851790.jpg'
+                        iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
                     
+                const imageUrl = await generateRandomCdnImageUrl(null, nikkeImageKeys, guild.id);
+                embed.setImage(imageUrl);
+    
                 const sentEmbed = await channel.send({
                     embeds: [embed]
                 });
@@ -1503,3 +1512,118 @@ export {
     initDiscordBot,
     bot as getDiscordBot,
 };
+
+//TODO: Extract into common utils
+// Track recently sent image keys per guild and collection
+const recentlySentImageKeys: Map<string, Map<string, string[]>> = new Map();
+const MAX_RECENT_CDN_IMAGES = 10;
+const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
+
+/**
+ * Generates a random CDN image URL with optional guild-based tracking to prevent recent repeats.
+ * 
+ * @param msg - Discord Message object or null (used for guild info if guildId not provided)
+ * @param imageKeys - Array of relative paths to images from CDN root (e.g., ['path/to/image1.gif'])
+ * @param guildId - Optional guild ID string for tracking without message context
+ * @returns Promise<string> A fully qualified CDN URL (e.g., 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/path/to/image1.gif')
+ * 
+ * @throws {Error} When imageKeys array is empty or invalid
+ * 
+ * @description
+ * Generates a CDN URL for a random image while tracking recently sent images per guild to ensure variety.
+ * The tracking system prevents the same image from being shown too frequently in a given guild.
+ * 
+ * If no guild tracking is available (both msg and guildId are null/invalid), it falls back to simple
+ * This function generates URLs for CDN-hosted images while tracking recently sent images per guild
+ * to ensure variety. If no guild tracking is available (both msg and guild are null/invalid), 
+ * it falls back to simple random selection.
+ * 
+ * The function uses the first image key as a collection identifier for tracking purposes.
+ * Once all images in a collection have been shown, the tracking resets.
+ * 
+ * @example
+ * // With guild tracking via message
+ * const url = await generateRandomCdnImageUrl(message, ['path/to/image1.gif', 'path/to/image2.gif']);
+ * 
+ * // With explicit guild tracking
+ * const url = await generateRandomCdnImageUrl(null, imageKeys, guildId);
+ * 
+ * // Without tracking (random selection)
+ * const url = await generateRandomCdnImageUrl(null, imageKeys);
+ * 
+ * @note
+ * - Uses CDN_PREFIX constant to construct full URLs
+ * - Maintains MAX_RECENT_CDN_IMAGES (10) most recent images per guild/collection
+ * - Guild tracking helps prevent repetitive images in the same server
+ * - Contact Sefhi or Strip3s on Discord for content submission guidelines and approval since it must be hosted on the CDN server. We will provide an image key for you once approved.
+ */
+async function generateRandomCdnImageUrl(
+    msg: any | null | undefined, 
+    imageKeys: string[],
+    guildId?: any
+): Promise<string> {
+    try {
+        if (!Array.isArray(imageKeys) || imageKeys.length === 0) {
+            console.error('Failed to generate URL: No image keys provided or invalid input');
+            throw new Error('No valid image keys provided');
+        }
+
+        // Use guild from message or explicit guild parameter
+        const activeGuildId = msg?.guild.id || guildId;
+        
+        // Handle case with no guild tracking
+        if (!activeGuildId) {
+            const randomKey = imageKeys[Math.floor(Math.random() * imageKeys.length)];
+            console.log('No guild tracking available, returning random image');
+            return `${CDN_PREFIX}/${randomKey}`;
+        }
+
+        console.log(`Processing image request for guildId: ${activeGuildId}`);
+        
+        // Initialize guild tracking if not exists
+        if (!recentlySentImageKeys.has(guildId)) {
+            console.log(`Initializing tracking for new guildId: ${activeGuildId}`);
+            recentlySentImageKeys.set(guildId, new Map());
+        }
+
+        // Use the first image key as collection identifier
+        const collectionKey = imageKeys[0];
+        
+        // Initialize collection tracking for this guild if not exists
+        const guildTracking = recentlySentImageKeys.get(guildId)!;
+        if (!guildTracking.has(collectionKey)) {
+            console.log(`Initializing tracking for collection in guildId: ${activeGuildId}`);
+            guildTracking.set(collectionKey, []);
+        }
+
+        const recentKeys = guildTracking.get(collectionKey)!;
+        
+        // Filter out recently sent images
+        const availableKeys = imageKeys.filter(key => !recentKeys.includes(key));
+
+        // If all images have been recently sent, reset the tracking
+        if (availableKeys.length === 0) {
+            console.log(`All images have been recently sent in guildId: ${activeGuildId}. Resetting tracking`);
+            guildTracking.set(collectionKey, []);
+            return generateRandomCdnImageUrl(msg, imageKeys, guildId);
+        }
+
+        // Select a random image from available ones
+        const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
+        
+        // Add the selected key to recently sent images
+        recentKeys.push(randomKey);
+        
+        // Keep only the last MAX_RECENT_CDN_IMAGES
+        if (recentKeys.length > MAX_RECENT_CDN_IMAGES) {
+            recentKeys.shift();
+        }
+
+        return `${CDN_PREFIX}/${randomKey}`;
+    } catch (error) {
+        console.error('Failed to generate CDN image URL:', error);
+        // For any error, fall back to a random image without tracking
+        const randomKey = imageKeys[Math.floor(Math.random() * imageKeys.length)];
+        return `${CDN_PREFIX}/${randomKey}`;
+    }
+}
