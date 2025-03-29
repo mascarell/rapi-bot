@@ -355,44 +355,24 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "ccp leadership",
         description: "CCP LEADERSHIP",
         async execute(msg) {
-            //TODO: Extract into reusable function
             try {
-                // List objects in the leadership folder
-                const response = await s3Client.send(new ListObjectsV2Command({
-                    Bucket: S3BUCKET,
-                    Prefix: "commands/leadership/",
-                }));
-
-                if (!response.Contents || response.Contents.length === 0) {
-                    console.error('No leadership clips found in CDN');
-                    throw new Error('No leadership clips available');
-                }
-
-                // Filter out any non-media files, get keys under 100MB, and validate extensions
-                const MAX_SIZE_MB = 100;
-                const mediaKeys = response.Contents
-                    .filter(obj => {
-                        const sizeInMB = (obj.Size || 0) / (1024 * 1024); // Convert bytes to MB
-                        return sizeInMB <= MAX_SIZE_MB;
-                    })
-                    .map(obj => obj.Key)
-                    .filter(key => key && key.endsWith('.mp4'));
-
-                if (mediaKeys.length === 0) {
-                    console.error('No valid media files found under 100MB');
-                    throw new Error('No suitable media files available');
-                }
-
-                // Select a random media key
-                const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)];
-                const cdnUrl = `${CDN_PREFIX}/${randomKey}`;
-
+                const randomKey = await getRandomCdnMediaKey(
+                    "commands/leadership/",
+                    msg.guild.id,
+                    {
+                        maxSizeMB: 100,
+                        extensions: ['.mp4'],
+                        trackLast: 5
+                    }
+                );
+                
+                const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
                 const emoji = msg.guild.emojis.cache.get('1298977385068236852');
                 const message = getRandomLeadershipPhrase(emoji);
 
                 await msg.reply({
                     content: message,
-                    files: [cdnUrl]
+                    files: [cdnMediaUrl]
                 });
 
             } catch (error) {
@@ -1685,5 +1665,137 @@ async function generateRandomCdnImageUrl(
         // For any error, fall back to a random image without tracking
         const randomKey = imageKeys[Math.floor(Math.random() * imageKeys.length)];
         return `${CDN_PREFIX}/${randomKey}`;
+    }
+}
+
+// Track recently sent media keys per guild and prefix
+const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
+
+/**
+ * Retrieves and filters media keys from the CDN based on specified criteria, with guild-based tracking 
+ * to prevent recent repeats within each server.
+ * 
+ * @param prefix - The bucket prefix path (e.g., "commands/leadership/")
+ * @param guildId - Discord guild ID for tracking media keys per server
+ * @param options - Optional configuration object
+ * @param options.maxSizeMB - Maximum file size in MB (default: 100)
+ * @param options.extensions - Array of allowed file extensions (default: ['.mp4'])
+ * @param options.trackLast - Number of keys to track for preventing repeats (default: 5)
+ * @returns Promise<string> A random media key from the filtered results
+ * 
+ * @throws {Error} When prefix or guildId is missing/invalid
+ * @throws {Error} When no valid media files are found
+ * @throws {Error} When S3 operations fail
+ * 
+ * @example
+ * // Basic usage with default options
+ * const key = await getRandomCdnMediaKey("commands/leadership/", "123456789");
+ * 
+ * // With custom options
+ * const key = await getRandomCdnMediaKey("commands/videos/", "123456789", {
+ *   maxSizeMB: 50,
+ *   extensions: ['.mp4', '.gif'],
+ *   trackLast: 3
+ * });
+ */
+async function getRandomCdnMediaKey(
+    prefix: string,
+    guildId: string,
+    options: {
+        maxSizeMB?: number;
+        extensions?: string[];
+        trackLast?: number;
+    } = {}
+): Promise<string> {
+    // Validate required parameters
+    if (!prefix || typeof prefix !== 'string') {
+        console.error('Invalid prefix provided:', prefix);
+        throw new Error('Valid prefix path is required');
+    }
+
+    if (!guildId || typeof guildId !== 'string') {
+        console.error('Invalid guildId provided:', guildId);
+        throw new Error('Valid guild ID is required');
+    }
+
+    const {
+        maxSizeMB = 100,
+        extensions = ['.mp4'],
+        trackLast = 5
+    } = options;
+
+    try {
+        console.log(`Fetching media keys for prefix: ${prefix} in guild: ${guildId}`);
+
+        // List objects in the specified folder
+        const response = await s3Client.send(new ListObjectsV2Command({
+            Bucket: S3BUCKET,
+            Prefix: prefix,
+        }));
+
+        if (!response.Contents || response.Contents.length === 0) {
+            console.error(`No media files found in CDN under prefix: ${prefix}`);
+            throw new Error('No media files available');
+        }
+
+        // Filter media files based on size and extension
+        const mediaKeys = response.Contents
+            .filter(obj => {
+                const sizeInMB = (obj.Size || 0) / (1024 * 1024);
+                return sizeInMB <= maxSizeMB;
+            })
+            .map(obj => obj.Key)
+            .filter(key => key && extensions.some(ext => key.toLowerCase().endsWith(ext)));
+
+        if (mediaKeys.length === 0) {
+            console.error(`No valid media files found under ${maxSizeMB}MB with extensions: ${extensions.join(', ')}`);
+            throw new Error('No suitable media files available');
+        }
+
+        // Initialize guild tracking if not exists
+        if (!recentlySentMediaKeys.has(guildId)) {
+            console.log(`Initializing tracking for new guild: ${guildId}`);
+            recentlySentMediaKeys.set(guildId, new Map());
+        }
+
+        // Initialize prefix tracking for this guild if not exists
+        const guildTracking = recentlySentMediaKeys.get(guildId)!;
+        if (!guildTracking.has(prefix)) {
+            console.log(`Initializing tracking for prefix: ${prefix} in guild: ${guildId}`);
+            guildTracking.set(prefix, []);
+        }
+
+        const recentKeys = guildTracking.get(prefix)!;
+        console.log(`Currently tracking ${recentKeys.length} keys for ${prefix} in guild: ${guildId}`);
+
+        // Filter out recently sent keys
+        const availableKeys = mediaKeys.filter(key => key && !recentKeys.includes(key));
+
+        // If all keys have been recently used, reset tracking and use all keys
+        if (availableKeys.length === 0) {
+            console.log(`All media keys for ${prefix} have been recently used in guild: ${guildId}. Resetting tracking.`);
+            guildTracking.set(prefix, []);
+            const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)]!;
+            guildTracking.get(prefix)!.push(randomKey);
+            return randomKey;
+        }
+
+        // Select a random key from available ones
+        const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)]!;
+        
+        // Add to tracking
+        recentKeys.push(randomKey);
+        
+        // Keep only the last trackLast number of keys
+        if (recentKeys.length > trackLast) {
+            recentKeys.shift();
+        }
+
+        console.log(`Selected random key: ${randomKey} for guild: ${guildId}`);
+        return randomKey;
+
+    } catch (error) {
+        console.error(`Error retrieving CDN media keys for guild ${guildId}:`, error);
+        throw error instanceof Error ? error : new Error('Error retrieving CDN media keys');
     }
 }
