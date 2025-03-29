@@ -7,6 +7,10 @@ import path from "path";
 export { gamesData };
 
 let isStreaming = false;
+// CDN Constants
+const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
+const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
+const DEFAULT_VIDEO_EXTENSIONS = ['.mp4'] as const;
 
 export function findChannelByName(guild: Guild, channelName: string): TextChannel | undefined {
     return guild.channels.cache.find(
@@ -87,13 +91,12 @@ export function handleTimeout(msg: any, duration: number = 300000) {
             .then(() => {
                 const emojis = ["sefhistare:1124869893880283306", "❌"];
                 emojis.forEach(emoji => msg.react(emoji).catch(console.error));
+                
+                const smugRapiMediaUrl = `${CDN_PREFIX}/commands/damnTrain/SmugRapi.jpg`;
 
                 msg.reply({
                     content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your ${duration / 60000} minutes of quiet time!`,
-                    files: [{
-                        attachment: "./src/public/images/commands/damnTrain/SmugRapi.jpg",
-                        name: "SmugRapi.jpg",
-                    }]
+                    files: [smugRapiMediaUrl]
                 });
             })
             .catch((error: any) => {
@@ -101,12 +104,10 @@ export function handleTimeout(msg: any, duration: number = 300000) {
                 handleTimeoutError(msg, author);
             });
     } else {
+        const rapiHugMediaUrl = `${CDN_PREFIX}/commands/goodGirl/commander_rapi_hug.jpg`;
         msg.reply({
             content: `Well, I tried to give myself a break from you, Commander ${author}...but maybe I was being too rash. Thank you, Commander...`,
-            files: [{
-                attachment: "./src/public/images/commands/goodGirl/commander_rapi_hug.jpg",
-                name: "commander_rapi_hug.jpg",
-            }]
+            files: [rapiHugMediaUrl]
         });
     }
 }
