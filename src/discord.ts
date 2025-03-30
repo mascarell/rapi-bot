@@ -9,7 +9,6 @@ import moment from "moment";
 import 'moment-timezone';
 
 import {
-    getFiles,
     getIsStreaming,
     getRandomRapiMessage,
     getRandomReadNikkeMessage,
@@ -52,7 +51,7 @@ const GFL2_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/l
 const NIKKE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/nikke-logo.png';
 const BLUE_ARCHIVE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/blue-archive-logo.png';
 // CDN Constants
-const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
+const CDN_DOMAIN_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
 const DEFAULT_VIDEO_EXTENSIONS = ['.mp4'] as const;
 
@@ -101,7 +100,7 @@ const chatCommands: { [key: string]: BotCommand } = {
             const mentionedUser = msg.mentions.users.first();
             const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';        
             const randomMessage = readNikkeReply + getRandomReadNikkeMessage();
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/readNikke/",
                 msg.guild.id,
                 {
@@ -109,10 +108,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `${randomMessage}`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -121,7 +119,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         async execute(msg) {
             const mentionedUser = msg.mentions.users.first();
             const messageReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/getDatNikke/",
                 msg.guild.id,
                 {
@@ -129,17 +127,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `${messageReply}`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     booba: {
         name: "booba?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/booba/",
                 msg.guild.id,
                 {
@@ -148,16 +145,15 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     booty: {
         name: "booty?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/booty/",
                 msg.guild.id,
                 {
@@ -166,16 +162,15 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     skillissue: {
         name: "sounds like...",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/skillIssue/",
                 msg.guild.id,
                 {
@@ -183,17 +178,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `It sounds like you have some skill issues Commander.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     skillissueiphone: {
         name: "sounds like…",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/skillIssue/",
                 msg.guild.id,
                 {
@@ -201,17 +195,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `It sounds like you have some skill issues Commander.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     seggs: {
         name: "seggs?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/seggs/",
                 msg.guild.id,
                 {
@@ -219,17 +212,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Wait, Shifty, what are you talking about?`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     kindaweird: {
         name: "kinda weird...",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/kindaWeird/",
                 msg.guild.id,
                 {
@@ -237,17 +229,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `But why, Commander?...`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     iswear: {
         name: "i swear she is actually 3000 years old",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/iSwear/",
                 msg.guild.id,
                 {
@@ -255,17 +246,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander... I'm calling the authorities.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     teengame: {
         name: "12+ game",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/12Game/",
                 msg.guild.id,
                 {
@@ -273,17 +263,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander the surface is obviously safe for 12 year old kids.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     justice: {
         name: "justice for...",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/justice/",
                 msg.guild.id,
                 {
@@ -292,17 +281,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander, let's take her out of NPC jail.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     whale: {
         name: "whale levels",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/whaling/",
                 msg.guild.id,
                 {
@@ -310,10 +298,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander, it's fine if you are poor.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -323,12 +310,12 @@ const chatCommands: { [key: string]: BotCommand } = {
             const lapOfCountersKey = 'commands/lapOfDiscipline/lapOfCounters.webp';
             const lapOfDisciplineKey = 'commands/lapOfDiscipline/lapOfDiscipline.jpg';
             
-            const lapOfCountersUrl = `${CDN_PREFIX}/${lapOfCountersKey}`;
+            const lapOfCountersUrl = `${CDN_DOMAIN_URL}/${lapOfCountersKey}`;
             await msg.reply({
                 content: `Commander ${msg.author}...`,
                 files: [lapOfCountersUrl]
             });
-            const lapOfDisciplineUrl = `${CDN_PREFIX}/${lapOfDisciplineKey}`;
+            const lapOfDisciplineUrl = `${CDN_DOMAIN_URL}/${lapOfDisciplineKey}`;
             await msg.reply({
                 content: `Commander ${msg.author}... Lap of discipline.`,
                 files: [lapOfDisciplineUrl]
@@ -365,7 +352,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "wrong girl",
         description: "wrong girl Rapi",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/wrongGirl/",
                 msg.guild.id,
                 {
@@ -374,10 +361,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -385,7 +371,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "mold rates are not that bad",
         description: `Commander, what are you talking about?`,
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/moldRates/",
                 msg.guild.id,
                 {
@@ -394,17 +380,16 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander, what are you talking about?`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
     readyRapi: {
         name: "ready rapi?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/ready/",
                 msg.guild.id,
                 {
@@ -413,10 +398,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander... ready for what?`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -433,7 +417,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "bad girl",
         description: "bad girl",
         async execute(msg) {    
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/wrong/",
                 msg.guild.id,
                 {
@@ -442,10 +426,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander...`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -453,7 +436,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "reward?",
         description: "reward?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/reward/",
                 msg.guild.id,
                 {
@@ -462,10 +445,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander...`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -483,7 +465,7 @@ const chatCommands: { [key: string]: BotCommand } = {
                 );
             }
 
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/damnTrain/",
                 msg.guild.id,
                 {
@@ -492,10 +474,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: `Commander...we don't talk about trains here.`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -503,7 +484,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "damn gravedigger",
         description: "damn gravedigger",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/damnGravedigger/",
                 msg.guild.id,
                 {
@@ -512,10 +493,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: "Commander...damn gravedigger?",
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -523,7 +503,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "dead spicy?",
         description: "dead spicy?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/deadSpicy/",
                 msg.guild.id,
                 {
@@ -532,10 +512,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: "Commander...dead spicy?",
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -543,7 +522,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/belorta/",
                 msg.guild.id,
                 {
@@ -552,10 +531,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
-                content: "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈  𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊",
-                files: [cdnMediaUrl]
+                content: "CURSE OF BELORTA𓀀 �� 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈  𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊",
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -563,7 +541,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "ccp rules...",
         description: "CCP Rules",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/ccpRules/",
                 msg.guild.id,
                 {
@@ -572,10 +550,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: "Commander...please review our CCP Guidelines set by El Shafto...",
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -583,7 +560,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "best girl?",
         description: "Best Girl Rapi",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/bestGirl/",
                 msg.guild.id,
                 {
@@ -592,10 +569,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: getRandomBestGirlPhrase(),
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -603,7 +579,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "99%",
         description: "Gamblers' Advice",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/gamblerAdvice/",
                 msg.guild.id,
                 {
@@ -612,10 +588,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: "Commander...did you know 99% of gamblers quit before hitting it big?",
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -623,7 +598,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "ccp #1",
         description: "CCP LOYALTY",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/ccp/",
                 msg.guild.id,
                 {
@@ -632,10 +607,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: getRandomMantraPhrase(),
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -643,7 +617,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "is it over?",
         description: "ITS DOROVER",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/dorover/",
                 msg.guild.id,
                 {
@@ -652,10 +626,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: "Commander....ITS DOROVER",
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -663,7 +636,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "absolute...",
         description: "CINEMA",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/cinema/",
                 msg.guild.id,
                 {
@@ -672,9 +645,8 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -682,7 +654,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "we had a plan!",
         description: "WE HAD A PLAN!",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/plan/",
                 msg.guild.id,
                 {
@@ -691,10 +663,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
             await msg.reply({
                 content: getRandomPlanPhrase(),
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -703,7 +674,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         description: "CCP LEADERSHIP",
         async execute(msg) {
             try {
-                const randomKey = await getRandomCdnMediaKey(
+                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                     "commands/leadership/",
                     msg.guild.id,
                     {
@@ -712,13 +683,12 @@ const chatCommands: { [key: string]: BotCommand } = {
                     }
                 );
                 
-                const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
                 const emoji = msg.guild.emojis.cache.get('1298977385068236852');
                 const message = getRandomLeadershipPhrase(emoji);
 
                 await msg.reply({
                     content: message,
-                    files: [cdnMediaUrl]
+                    files: [randomCdnMediaUrl]
                 });
 
             } catch (error) {
@@ -737,7 +707,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "good idea!",
         description: "GOOD IDEA",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/goodIdea/",
                 msg.guild.id,
                 {
@@ -745,11 +715,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
-
             await msg.reply({
                 content: getRandomGoodIdeaPhrase(),
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
             
             const reactions = ['wecant', 'HAH'];
@@ -767,7 +735,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "quiet rapi",
         description: "QUIET RAPI",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/quietRapi/",
                 msg.guild.id,
                 {
@@ -775,11 +743,9 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
-
             await msg.reply({
                 content: `${msg.author}, ${getRandomQuietRapiPhrase()}`,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -787,7 +753,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "entertainmentttt",
         description: "ENTERTAINMENTTTT",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/entertainmentttt/",
                 msg.guild.id,
                 {
@@ -795,10 +761,8 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
-
             await msg.reply({
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -806,7 +770,7 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "we casual",
         description: "CASUAL UNION?",
         async execute(msg) {
-            const randomKey = await getRandomCdnMediaKey(
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/casualUnion/",
                 msg.guild.id,
                 {
@@ -814,10 +778,8 @@ const chatCommands: { [key: string]: BotCommand } = {
                 }
             );
             
-            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
-
             await msg.reply({
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
         },
     },
@@ -1192,7 +1154,7 @@ async function sendBlueArchiveDailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
 
-                const imageKey = await getRandomCdnMediaKey(
+                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                     "dailies/blue-archive/",
                     guild.id,
                     {
@@ -1200,8 +1162,8 @@ async function sendBlueArchiveDailyResetMessage() {
                         trackLast: 10
                     }
                 );
-                const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
-                embed.setImage(cdnMediaUrl);
+                
+                embed.setImage(randomCdnMediaUrl);
                     await channel.send({ 
                         embeds: [embed],
                     });
@@ -1266,7 +1228,7 @@ async function sendGFL2DailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
 
-                const imageKey = await getRandomCdnMediaKey(
+                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                     "dailies/girls-frontline-2/",
                     guild.id,
                     {
@@ -1275,8 +1237,7 @@ async function sendGFL2DailyResetMessage() {
                     }
                 );
 
-                const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
-                embed.setImage(cdnMediaUrl);
+                embed.setImage(randomCdnMediaUrl);
 
                 await channel.send({ 
                     embeds: [embed],
@@ -1361,7 +1322,7 @@ async function sendNikkeDailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
                     
-                const imageKey = await getRandomCdnMediaKey(
+                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                     "dailies/nikke/",
                     guild.id,
                     {
@@ -1369,9 +1330,8 @@ async function sendNikkeDailyResetMessage() {
                         trackLast: 10
                     }
                 );
-                
-                const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
-                embed.setImage(cdnMediaUrl);
+
+                embed.setImage(randomCdnMediaUrl);
     
                 const sentEmbed = await channel.send({
                     embeds: [embed]
@@ -1391,7 +1351,7 @@ async function sendNikkeDailyResetMessage() {
                     console.log(`Collected ${reaction.emoji.name} reaction from ${user.tag} on daily reset message in guild: ${guild.name}`);
                     try {
                         const message = getRandomQuietRapiPhrase();
-                        const imageKey = await getRandomCdnMediaKey(
+                        const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                             "commands/quietRapi/",
                             guild.id,
                             {
@@ -1399,11 +1359,10 @@ async function sendNikkeDailyResetMessage() {
                                 trackLast: 10
                             }
                         );
-                        const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
 
                         await channel.send({
                             content: `<@${user.id}>, ${message}`,
-                            files: [cdnMediaUrl]
+                            files: [randomCdnMediaUrl]
                         });
                     } catch (error) {
                         logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Handling nauseated reaction');
@@ -1561,13 +1520,12 @@ async function checkSensitiveTerms(message: Message) {
 
     if (sensitiveTerms.some(term => messageContent.includes(term))) {
         try {
-            const ccpMediaKey = await getRandomCdnMediaKey("commands/ccp/", message.guild.id, {
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl("commands/ccp/", message.guild.id, {
                 extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
             });
-            const cdnMediaUrl = `${CDN_PREFIX}/${ccpMediaKey}`;
             await message.reply({
                 content: ccpMessage,
-                files: [cdnMediaUrl]
+                files: [randomCdnMediaUrl]
             });
             await message.member.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
         } catch (error) {
@@ -1761,16 +1719,16 @@ export {
 const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
 
 /**
- * Retrieves and filters media keys from the CDN based on specified criteria, with guild-based tracking 
+ * Retrieves and filters media from the CDN based on specified criteria, with guild-based tracking 
  * to prevent recent repeats within each server.
  * 
  * @param prefix - The bucket prefix path (e.g., "commands/leadership/")
- * @param guildId - Discord guild ID for tracking media keys per server
+ * @param guildId - Discord guild ID for tracking media per server
  * @param options - Optional configuration object
  * @param options.maxSizeMB - Maximum file size in MB (default: 100)
  * @param options.extensions - Array of allowed file extensions (default: ['.mp4'])
- * @param options.trackLast - Number of keys to track for preventing repeats (default: 5)
- * @returns Promise<string> A random media key from the filtered results
+ * @param options.trackLast - Number of media to track for preventing repeats (default: 5)
+ * @returns Promise<string> A fully qualified CDN URL (e.g., 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/commands/leadership/video.mp4')
  * 
  * @throws {Error} When prefix or guildId is missing/invalid
  * @throws {Error} When no valid media files are found
@@ -1778,16 +1736,16 @@ const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
  * 
  * @example
  * // Basic usage with default options
- * const key = await getRandomCdnMediaKey("commands/leadership/", "123456789");
+ * const url = await getRandomCdnMediaUrl("commands/leadership/", "123456789");
  * 
  * // With custom options
- * const key = await getRandomCdnMediaKey("commands/videos/", "123456789", {
+ * const url = await getRandomCdnMediaUrl("commands/videos/", "123456789", {
  *   maxSizeMB: 50,
- *   extensions: ['.mp4', '.gif'],
+ *   extensions: DEFAULT_IMAGE_EXTENSIONS,
  *   trackLast: 3
  * });
  */
-async function getRandomCdnMediaKey(
+async function getRandomCdnMediaUrl(
     prefix: string,
     guildId: string,
     options: {
@@ -1812,7 +1770,7 @@ async function getRandomCdnMediaKey(
     const trackLast = options.trackLast ?? 5;
 
     try {
-        console.log(`Fetching media keys for prefix: ${prefix} in guild: ${guildId}`);
+        console.log(`Fetching media for prefix: ${prefix} in guild: ${guildId}`);
 
         // List objects in the specified folder
         const response = await s3Client.send(new ListObjectsV2Command({
@@ -1860,29 +1818,29 @@ async function getRandomCdnMediaKey(
 
         // If all keys have been recently used, reset tracking and use all keys
         if (availableKeys.length === 0) {
-            console.log(`All media keys for ${prefix} have been recently used in guild: ${guildId}. Resetting tracking.`);
+            console.log(`All media for ${prefix} have been recently used in guild: ${guildId}. Resetting tracking.`);
             guildTracking.set(prefix, []);
-            const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)]!;
-            guildTracking.get(prefix)!.push(randomKey);
-            return randomKey;
+            const randomCdnMediaKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)]!;
+            guildTracking.get(prefix)!.push(randomCdnMediaKey);
+            return `${CDN_DOMAIN_URL}/${randomCdnMediaKey}`;
         }
 
         // Select a random key from available ones
-        const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)]!;
+        const randomCdnMediaKey = availableKeys[Math.floor(Math.random() * availableKeys.length)]!;
         
         // Add to tracking
-        recentKeys.push(randomKey);
+        recentKeys.push(randomCdnMediaKey);
         
         // Keep only the last trackLast number of keys
         if (recentKeys.length > trackLast) {
             recentKeys.shift();
         }
 
-        console.log(`Selected random key: ${randomKey} for guild: ${guildId}`);
-        return randomKey;
+        console.log(`Selected random key: ${randomCdnMediaKey} for guild: ${guildId}`);
+        return `${CDN_DOMAIN_URL}/${randomCdnMediaKey}`;
 
     } catch (error) {
-        console.error(`Error retrieving CDN media keys for guild ${guildId}:`, error);
-        throw error instanceof Error ? error : new Error('Error retrieving CDN media keys');
+        console.error(`Error retrieving CDN media for guild ${guildId}:`, error);
+        throw error instanceof Error ? error : new Error('Error retrieving CDN media');
     }
 }
