@@ -1712,7 +1712,7 @@ async function initDiscordBot() {
 
 export {
     initDiscordBot,
-    bot as getDiscordBot,
+    bot as getDiscordBot, s3Client,
 };
 
 // Track recently sent media keys per guild and prefix
