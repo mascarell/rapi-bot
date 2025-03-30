@@ -9,8 +9,6 @@ export { gamesData };
 let isStreaming = false;
 // CDN Constants
 const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
-const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
-const DEFAULT_VIDEO_EXTENSIONS = ['.mp4'] as const;
 
 export function findChannelByName(guild: Guild, channelName: string): TextChannel | undefined {
     return guild.channels.cache.find(
