@@ -59,6 +59,7 @@ jobs:
             S3BUCKET=${{ secrets.S3_BUCKET }}
             S3ACCESSKEYID=${{ secrets.S3_ACCESS_KEY_ID }}
             S3SECRETKEY=${{ secrets.S3_SECRET_KEY }}
+            CDN_DOMAIN_URL=${{ secrets.CDN_DOMAIN_URL }}
             EOF
             
             echo "Running the new container..."
