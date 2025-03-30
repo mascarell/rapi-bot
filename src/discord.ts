@@ -1208,7 +1208,6 @@ async function sendBlueArchiveDailyResetMessage() {
                     "dailies/blue-archive/",
                     guild.id,
                     {
-                        maxSizeMB: 100,
                         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                         trackLast: 10
                     }
@@ -1282,7 +1281,6 @@ async function sendGFL2DailyResetMessage() {
                     "dailies/girls-frontline-2/",
                     guild.id,
                     {
-                        maxSizeMB: 100,
                         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                         trackLast: 10
                     }
@@ -1376,7 +1374,6 @@ async function sendNikkeDailyResetMessage() {
                     "dailies/nikke/",
                     guild.id,
                     {
-                        maxSizeMB: 100,
                         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                         trackLast: 10
                     }
