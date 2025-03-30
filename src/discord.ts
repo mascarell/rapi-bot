@@ -38,13 +38,13 @@ const s3ClientConfig: S3ClientConfig = {
 };
 const s3Client = new S3(s3ClientConfig);
 
-const TOKEN = process.env.WAIFUTOKEN as string;
-const CLIENTID = process.env.CLIENTID as string;
-const S3BUCKET = process.env.S3BUCKET as string;
+const DISCORD_TOKEN = process.env.WAIFUTOKEN as string;
+const CLIENT_ID = process.env.CLIENTID as string;
+const S3_BUCKET = process.env.S3BUCKET as string;
 const RADIO_FOLDER_PATH = './src/radio';
 const PRE = "/";
-const resetStartTime = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
-const resetEndTime = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
+const NIKKE_RESET_START_TIME = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
+const NIKKE_RESET_END_TIME = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
 // CDN URLs
 const RAPI_BOT_THUMBNAIL_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/rapi-bot-thumbnail.jpg';
@@ -342,7 +342,7 @@ const chatCommands: { [key: string]: BotCommand } = {
             const isNikkeChannel = msg.channel.name === "nikke";
             const currentTime = moment.tz('UTC');
 
-            if (isNikkeChannel && currentTime.isBetween(resetStartTime, resetEndTime)) {
+            if (isNikkeChannel && currentTime.isBetween(NIKKE_RESET_START_TIME, NIKKE_RESET_END_TIME)) {
                 console.log("Ignoring 'goodgirl' command in 'nikke' channel within specific time window.");
                 return;
             }
@@ -823,35 +823,23 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
 };
 
-
-async function sendRandomImageWithContent(msg: any, folderPath: string, content: string) {
-    try {
-        console.log(`Fetching files from folder: ${folderPath}`);
-        let files = await getFiles(folderPath);
-        let randomFile = files[Math.floor(Math.random() * files.length)];
-        console.log(`Selected random file: ${randomFile.name}`);
-        
-        await msg.reply({
-            content: content,
-            files: [
-                {
-                    attachment: randomFile.path,
-                    name: randomFile.name,
-                },
-            ],
-        });
-        console.log(`Successfully sent message with content: ${content}`);
-    } catch (error) {
-        console.error(`Failed to send message with content: ${content}`, error);
-        logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContent');
-    }
-}
-
 function getRandomQuietRapiPhrase() {
     const quietRapiPhrases = [
         "You seriously want me to be quiet? Unbelievable.",
         "You think telling me to be quiet will help? Pathetic.",
         "Being quiet won't fix your incompetence.",
+        "Silence won't make your mistakes disappear.",
+        "Quiet? That's not going to solve anything.",
+        "You think silence is the answer? Think again.",
+        "Being quiet won't change the facts.",
+        "You want quiet? How about some competence instead?",
+        "Silence won't cover up your errors.",
+        "Quiet won't make the problem go away.",
+        "You think quiet will help? That's laughable.",
+        "Being quiet won't make you any smarter.",
+        "You want me to be quiet? How original.",
+        "Quiet? That's your solution? Pathetic.",
+        "Silence won't make your failures any less obvious.",
     ];
     return quietRapiPhrases[Math.floor(Math.random() * quietRapiPhrases.length)];
 }
@@ -1204,7 +1192,7 @@ async function sendBlueArchiveDailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
 
-                const imageUrl = await getRandomCdnMediaKey(
+                const imageKey = await getRandomCdnMediaKey(
                     "dailies/blue-archive/",
                     guild.id,
                     {
@@ -1212,7 +1200,8 @@ async function sendBlueArchiveDailyResetMessage() {
                         trackLast: 10
                     }
                 );
-                embed.setImage(imageUrl);
+                const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
+                embed.setImage(cdnMediaUrl);
                     await channel.send({ 
                         embeds: [embed],
                     });
@@ -1277,7 +1266,7 @@ async function sendGFL2DailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
 
-                const imageUrl = await getRandomCdnMediaKey(
+                const imageKey = await getRandomCdnMediaKey(
                     "dailies/girls-frontline-2/",
                     guild.id,
                     {
@@ -1285,7 +1274,9 @@ async function sendGFL2DailyResetMessage() {
                         trackLast: 10
                     }
                 );
-                embed.setImage(imageUrl);
+
+                const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
+                embed.setImage(cdnMediaUrl);
 
                 await channel.send({ 
                     embeds: [embed],
@@ -1370,7 +1361,7 @@ async function sendNikkeDailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
                     
-                const imageUrl = await getRandomCdnMediaKey(
+                const imageKey = await getRandomCdnMediaKey(
                     "dailies/nikke/",
                     guild.id,
                     {
@@ -1378,7 +1369,9 @@ async function sendNikkeDailyResetMessage() {
                         trackLast: 10
                     }
                 );
-                embed.setImage(imageUrl);
+                
+                const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
+                embed.setImage(cdnMediaUrl);
     
                 const sentEmbed = await channel.send({
                     embeds: [embed]
@@ -1398,11 +1391,19 @@ async function sendNikkeDailyResetMessage() {
                     console.log(`Collected ${reaction.emoji.name} reaction from ${user.tag} on daily reset message in guild: ${guild.name}`);
                     try {
                         const message = getRandomQuietRapiPhrase();
+                        const imageKey = await getRandomCdnMediaKey(
+                            "commands/quietRapi/",
+                            guild.id,
+                            {
+                                extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                                trackLast: 10
+                            }
+                        );
+                        const cdnMediaUrl = `${CDN_PREFIX}/${imageKey}`;
+
                         await channel.send({
                             content: `<@${user.id}>, ${message}`,
-                            files: [{
-                                attachment: (await getFiles("./src/public/images/commands/quietRapi/"))[Math.floor(Math.random() * (await getFiles("./src/public/images/commands/quietRapi/")).length)].path
-                            }]
+                            files: [cdnMediaUrl]
                         });
                     } catch (error) {
                         logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Handling nauseated reaction');
@@ -1542,6 +1543,10 @@ async function checkSensitiveTerms(message: Message) {
         .replace(/<a?:\w+:\d+>/g, '') // Remove custom emoji IDs
         .replace(/<:\w+:\d+>/g, '') // Remove animated emoji IDs
         .replace(/<:\w+:\d+>/g, '') // Remove sticker IDs
+        .replace(/`{1,3}[^`]*`/g, '') // Remove inline and block code formatting
+        .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1') // Remove bold and italic formatting
+        .replace(/~~([^~]+)~~/g, '$1') // Remove strikethrough formatting
+        .replace(/__([^_]+)__/g, '$1') // Remove underline formatting
         .trim();
 
     // Define sensitive terms in multiple languages
@@ -1556,7 +1561,14 @@ async function checkSensitiveTerms(message: Message) {
 
     if (sensitiveTerms.some(term => messageContent.includes(term))) {
         try {
-            await sendRandomImageWithContent(message, "./src/public/images/commands/ccp/", ccpMessage);
+            const ccpMediaKey = await getRandomCdnMediaKey("commands/ccp/", message.guild.id, {
+                extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
+            });
+            const cdnMediaUrl = `${CDN_PREFIX}/${ccpMediaKey}`;
+            await message.reply({
+                content: ccpMessage,
+                files: [cdnMediaUrl]
+            });
             await message.member.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
         } catch (error) {
             logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within checkSensitiveTerms');
@@ -1701,10 +1713,10 @@ async function initDiscordBot() {
             handleMessages();
             handleSlashCommands();
 
-            const rest = new REST().setToken(TOKEN);
-            console.log(`Client ID: ${CLIENTID}`);
+            const rest = new REST().setToken(DISCORD_TOKEN);
+            console.log(`Client ID: ${CLIENT_ID}`);
             console.log('Started refreshing application (/) commands.');
-            await rest.put(Routes.applicationCommands(CLIENTID), { body: commands });
+            await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
             console.log('Successfully reloaded application (/) commands.');
 
             for (const guild of bot.guilds.cache.values()) {
@@ -1734,7 +1746,7 @@ async function initDiscordBot() {
     });
 
     try {
-        await bot.login(TOKEN);
+        await bot.login(DISCORD_TOKEN);
     } catch (error) {
         logError('GLOBAL', 'GLOBAL', error instanceof Error ? error : new Error(String(error)), 'Bot login');
     }
@@ -1804,7 +1816,7 @@ async function getRandomCdnMediaKey(
 
         // List objects in the specified folder
         const response = await s3Client.send(new ListObjectsV2Command({
-            Bucket: S3BUCKET,
+            Bucket: S3_BUCKET,
             Prefix: prefix,
         }));
 
