@@ -1,5 +1,5 @@
 export const CONSTANTS = {
-    CDN_URL: 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com',
+    CDN_DOMAIN_URL: process.env.CDN_DOMAIN_URL as string,
     RATE_LIMIT: {
         MAX_PULLS: 20,
         WINDOW_MS: 300000, // 5 minutes

@@ -58,7 +58,7 @@ export class GachaPuller {
         return {
             rarity,
             name: NikkeUtil.fileToCharacterName(randomFile),
-            imageUrl: `${CONSTANTS.CDN_URL}/${prefix}/${randomFile}`
+            imageUrl: `${CONSTANTS.CDN_DOMAIN_URL}/${prefix}/${randomFile}`
         };
     }
 } 
