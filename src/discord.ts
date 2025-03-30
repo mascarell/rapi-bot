@@ -51,6 +51,11 @@ const RAPI_BOT_THUMBNAIL_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com
 const GFL2_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/gfl2-logo.png';
 const NIKKE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/nikke-logo.png';
 const BLUE_ARCHIVE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/blue-archive-logo.png';
+// CDN Constants
+const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
+const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
+const DEFAULT_VIDEO_EXTENSIONS = ['.mp4'] as const;
+
 
 
 const voiceConnections: Map<string, VoiceConnectionData> = new Map();
@@ -96,102 +101,237 @@ const chatCommands: { [key: string]: BotCommand } = {
             const mentionedUser = msg.mentions.users.first();
             const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';        
             const randomMessage = readNikkeReply + getRandomReadNikkeMessage();
-
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/readNikke/", randomMessage);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/readNikke/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `${randomMessage}`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     getDatNikke: {
         name: "rapi get dat nikke",
         async execute(msg) {
             const mentionedUser = msg.mentions.users.first();
-            const getHimReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
+            const messageReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/getDatNikke/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
             
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/getDatNikke/", getHimReply);
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `${messageReply}`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     booba: {
         name: "booba?",
         async execute(msg) {
-            await sendRandomImage(msg, "./src/public/images/booba/");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/booba/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 20
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                files: [cdnMediaUrl]
+            });
         },
     },
     booty: {
         name: "booty?",
         async execute(msg) {
-            await sendRandomImage(msg, "./src/public/images/booty/");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/booty/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 20
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                files: [cdnMediaUrl]
+            });
         },
     },
     skillissue: {
         name: "sounds like...",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/skillIssue/", 'It sounds like you have some skill issues Commander.');
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/skillIssue/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `It sounds like you have some skill issues Commander.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     skillissueiphone: {
         name: "sounds like…",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/skillIssue/", 'It sounds like you have some skill issues Commander.');
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/skillIssue/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `It sounds like you have some skill issues Commander.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     seggs: {
         name: "seggs?",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/seggs/", `Wait, Shifty, what are you talking about?`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/seggs/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_VIDEO_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Wait, Shifty, what are you talking about?`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     kindaweird: {
         name: "kinda weird...",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/kindaWeird/", `But why, Commander?...`);    
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/kindaWeird/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `But why, Commander?...`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     iswear: {
         name: "i swear she is actually 3000 years old",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/iSwear/", `Commander... I'm calling the authorities.`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/iSwear/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander... I'm calling the authorities.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     teengame: {
         name: "12+ game",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/12Game/", `Commander the surface is obviously safe for 12 year old kids.`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/12Game/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander the surface is obviously safe for 12 year old kids.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     justice: {
         name: "justice for...",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./public/images/justice/", `Commander, let's take her out of NPC jail.`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/justice/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 4
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander, let's take her out of NPC jail.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     whale: {
         name: "whale levels",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/whaling/", `Commander, it's fine if you are poor.`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/whaling/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander, it's fine if you are poor.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     discipline: {
         name: "lap of discipline.",
         async execute(msg) {
-            const filePaths = [
-                "./src/public/images/commands/chat/lapOfCounters.webp",
-                "./src/public/images/commands/chat/lapOfDiscipline.jpg"
-            ];
-
+            const lapOfCountersKey = 'commands/lapOfDiscipline/lapOfCounters.webp';
+            const lapOfDisciplineKey = 'commands/lapOfDiscipline/lapOfDiscipline.jpg';
+            
+            const lapOfCountersUrl = `${CDN_PREFIX}/${lapOfCountersKey}`;
             await msg.reply({
-                files: [
-                    {
-                        attachment: filePaths[0],
-                    },
-                ]
+                content: `Commander ${msg.author}...`,
+                files: [lapOfCountersUrl]
             });
-
+            const lapOfDisciplineUrl = `${CDN_PREFIX}/${lapOfDisciplineKey}`;
             await msg.reply({
-                files: [
-                    {
-                        attachment: filePaths[1],
-                    }
-                ],
                 content: `Commander ${msg.author}... Lap of discipline.`,
+                files: [lapOfDisciplineUrl]
             });
         },
     },
@@ -225,20 +365,59 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "wrong girl",
         description: "wrong girl Rapi",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/wrongGirl/", `(￢з￢) Well well, so you DO see us that way, interesting!`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/wrongGirl/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `(￢з￢) Well well, so you DO see us that way, interesting!`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     moldRates: {
         name: "mold rates are not that bad",
         description: `Commander, what are you talking about?`,
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/moldRates/", `Commander, what are you talking about?`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/moldRates/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander, what are you talking about?`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     readyRapi: {
         name: "ready rapi?",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/ready/", `Commander... ready for what?`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/ready/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander... ready for what?`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     contentSquad: {
@@ -254,14 +433,40 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "bad girl",
         description: "bad girl",
         async execute(msg) {    
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/wrong/", "Commander...");   
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/wrong/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander...`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     reward: {
         name: "reward?",
         description: "reward?",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/reward/", "Commander...");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/reward/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander...`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     damntrain: {
@@ -278,121 +483,242 @@ const chatCommands: { [key: string]: BotCommand } = {
                 );
             }
 
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/damnTrain/", `Commander...we don't talk about trains here.`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/damnTrain/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: `Commander...we don't talk about trains here.`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     damngravedigger: {
         name: "damn gravedigger",
         description: "damn gravedigger",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, './src/public/images/commands/damnGravedigger/', `Commander...`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/damnGravedigger/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 2
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: "Commander...damn gravedigger?",
+                files: [cdnMediaUrl]
+            });
         },
     },
-    shiftdeadspicycrawl: {
+    deadSpicy: {
         name: "dead spicy?",
         description: "dead spicy?",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, './src/public/images/commands/deadSpicy/', `Commander...`);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/deadSpicy/",
+                msg.guild.id,
+                {
+                    extensions: ['.gif'],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: "Commander...dead spicy?",
+                files: [cdnMediaUrl]
+            });
         },
     },
     curseofbelorta: {
         name: "belorta...",
         description: "CURSE OF BELORTA",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/belorta/", "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈  𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/belorta/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
+                    trackLast: 5
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: "CURSE OF BELORTA𓀀 𓀁 𓀂 𓀃 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊 𓀋 𓀌 𓀍 𓀎 𓀏 𓀐 𓀑 𓀒 𓀓 𓀔 𓀕 𓀖 𓀗 𓀘 𓀙 𓀚 𓀛 𓀜 𓀝 𓀞 𓀟 𓀠 𓀡 𓀢 𓀣 𓀤 𓀥 𓀦 𓀧 𓀨  𓀪 𓀫 𓀬 𓀭 𓀮 𓀯 𓀰 𓀱 𓀲 𓀳 𓀴 𓀵 𓀶 𓀷 𓀸 𓀹 𓀺 𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈  𓁊 𓁋 𓁌 𓁍 𓁎 𓁏 𓁐 𓁑 𓀄 𓀅 𓀆 𓀇 𓀈 𓀉 𓀊",
+                files: [cdnMediaUrl]
+            });
         },
     },
     ccprules: {
         name: "ccp rules...",
         description: "CCP Rules",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/ccpRules/", "Commander...please review our CCP Guidelines set by El Shafto...");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/ccpRules/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: "Commander...please review our CCP Guidelines set by El Shafto...",
+                files: [cdnMediaUrl]
+            });
         },
     },
     bestgirl: {
         name: "best girl?",
         description: "Best Girl Rapi",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/bestGirl/", getRandomBestGirlPhrase());
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/bestGirl/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 3
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: getRandomBestGirlPhrase(),
+                files: [cdnMediaUrl]
+            });
         },
     },
     gambleradvice: {
         name: "99%",
         description: "Gamblers' Advice",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/gamblerAdvice/", "Commander...did you know 99% of gamblers quit before hitting it big?");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/gamblerAdvice/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 3
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: "Commander...did you know 99% of gamblers quit before hitting it big?",
+                files: [cdnMediaUrl]
+            });
         },
     },
     ccpNumbahOne: {
         name: "ccp #1",
         description: "CCP LOYALTY",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/ccp/", getRandomMantraPhrase());
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/ccp/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_VIDEO_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: getRandomMantraPhrase(),
+                files: [cdnMediaUrl]
+            });
         },
     },
     dorover: {
         name: "is it over?",
         description: "ITS DOROVER",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/dorover/", "Commander....ITS DOROVER");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/dorover/",
+                msg.guild.id,
+                {
+                    extensions: ['.jpg'],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: "Commander....ITS DOROVER",
+                files: [cdnMediaUrl]
+            });
         },
     },
     cinema: {
         name: "absolute...",
         description: "CINEMA",
         async execute(msg) {
-            await sendRandomImage(msg, "./src/public/images/commands/cinema/");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/cinema/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 1
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                files: [cdnMediaUrl]
+            });
         },
     },
     plan: {
         name: "we had a plan!",
         description: "WE HAD A PLAN!",
         async execute(msg) {
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/plan/", getRandomPlanPhrase());
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/plan/",
+                msg.guild.id,
+                {
+                    extensions: ['.jpg', '.png'],
+                    trackLast: 5
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+            await msg.reply({
+                content: getRandomPlanPhrase(),
+                files: [cdnMediaUrl]
+            });
         },
     },
     leadership: {
         name: "ccp leadership",
         description: "CCP LEADERSHIP",
         async execute(msg) {
-            //TODO: Extract into reusable function
             try {
-                // List objects in the leadership folder
-                const response = await s3Client.send(new ListObjectsV2Command({
-                    Bucket: S3BUCKET,
-                    Prefix: "commands/leadership/",
-                }));
-
-                if (!response.Contents || response.Contents.length === 0) {
-                    console.error('No leadership clips found in CDN');
-                    throw new Error('No leadership clips available');
-                }
-
-                // Filter out any non-media files, get keys under 100MB, and validate extensions
-                const MAX_SIZE_MB = 100;
-                const mediaKeys = response.Contents
-                    .filter(obj => {
-                        const sizeInMB = (obj.Size || 0) / (1024 * 1024); // Convert bytes to MB
-                        return sizeInMB <= MAX_SIZE_MB;
-                    })
-                    .map(obj => obj.Key)
-                    .filter(key => key && key.endsWith('.mp4'));
-
-                if (mediaKeys.length === 0) {
-                    console.error('No valid media files found under 100MB');
-                    throw new Error('No suitable media files available');
-                }
-
-                // Select a random media key
-                const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)];
-                const cdnUrl = `${CDN_PREFIX}/${randomKey}`;
-
+                const randomKey = await getRandomCdnMediaKey(
+                    "commands/leadership/",
+                    msg.guild.id,
+                    {
+                        extensions: [...DEFAULT_VIDEO_EXTENSIONS],
+                        trackLast: 5
+                    }
+                );
+                
+                const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
                 const emoji = msg.guild.emojis.cache.get('1298977385068236852');
                 const message = getRandomLeadershipPhrase(emoji);
 
                 await msg.reply({
                     content: message,
-                    files: [cdnUrl]
+                    files: [cdnMediaUrl]
                 });
 
             } catch (error) {
@@ -411,8 +737,20 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "good idea!",
         description: "GOOD IDEA",
         async execute(msg) {
-            const message = getRandomGoodIdeaPhrase();
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/goodIdea/", message);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/goodIdea/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+
+            await msg.reply({
+                content: getRandomGoodIdeaPhrase(),
+                files: [cdnMediaUrl]
+            });
             
             const reactions = ['wecant', 'HAH'];
             for (const reaction of reactions) {
@@ -429,38 +767,62 @@ const chatCommands: { [key: string]: BotCommand } = {
         name: "quiet rapi",
         description: "QUIET RAPI",
         async execute(msg) {
-            const message = `${msg.author}, ${getRandomQuietRapiPhrase()}`;
-            await sendRandomImageWithContent(msg, "./src/public/images/commands/quietRapi/", message);
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/quietRapi/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+
+            await msg.reply({
+                content: `${msg.author}, ${getRandomQuietRapiPhrase()}`,
+                files: [cdnMediaUrl]
+            });
         },
     },
     entertainmentttt: {
         name: "entertainmentttt",
         description: "ENTERTAINMENTTTT",
         async execute(msg) {
-            await sendRandomImage(msg, "./src/public/images/commands/entertainmentttt/");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/entertainmentttt/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_VIDEO_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+
+            await msg.reply({
+                files: [cdnMediaUrl]
+            });
         },
     },
     casualUnion: {
         name: "we casual",
-        description: "CASUAL UNION",
+        description: "CASUAL UNION?",
         async execute(msg) {
-            await sendRandomImage(msg, "./src/public/images/commands/casualUnion/");
+            const randomKey = await getRandomCdnMediaKey(
+                "commands/casualUnion/",
+                msg.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            const cdnMediaUrl = `${CDN_PREFIX}/${randomKey}`;
+
+            await msg.reply({
+                files: [cdnMediaUrl]
+            });
         },
     },
 };
 
-async function sendRandomImage(msg: any, folderPath: string) {
-    let files = await getFiles(folderPath);
-    let randomFile = files[Math.floor(Math.random() * files.length)];
-    msg.reply({
-        files: [
-            {
-                attachment: randomFile.path,
-                name: randomFile.name,
-            },
-        ],
-    });
-}
 
 async function sendRandomImageWithContent(msg: any, folderPath: string, content: string) {
     try {
@@ -482,84 +844,6 @@ async function sendRandomImageWithContent(msg: any, folderPath: string, content:
     } catch (error) {
         console.error(`Failed to send message with content: ${content}`, error);
         logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContent');
-    }
-}
-
-
-//TODO: Deprecate this function
-// Track recently sent images for each folder, per guild
-const recentlySentImages: Map<string, Map<string, string[]>> = new Map();
-const MAX_RECENT_IMAGES = 10;
-
-async function sendRandomImageWithContentNoRepeat(msg: any, folderPath: string, content: string) {
-    try {
-        if (!msg.guild?.id) {
-            console.error('No guild ID found in message');
-            return sendRandomImageWithContent(msg, folderPath, content);
-        }
-
-        const guildId = msg.guild.id;
-        console.log(`Processing request for guild: ${msg.guild.name} (${guildId})`);
-        
-        // Initialize guild tracking if not exists
-        if (!recentlySentImages.has(guildId)) {
-            console.log(`Initializing tracking for new guild: ${msg.guild.name}`);
-            recentlySentImages.set(guildId, new Map());
-        }
-
-        // Initialize folder tracking for this guild if not exists
-        const guildTracking = recentlySentImages.get(guildId)!;
-        if (!guildTracking.has(folderPath)) {
-            console.log(`Initializing tracking for folder: ${folderPath} in guild: ${msg.guild.name}`);
-            guildTracking.set(folderPath, []);
-        }
-
-        console.log(`Fetching files from folder: ${folderPath}`);
-        let files = await getFiles(folderPath);
-        
-        const recentImages = guildTracking.get(folderPath)!;
-        console.log(`Currently tracking ${recentImages.length} recent images for ${folderPath} in guild: ${msg.guild.name}`);
-
-        // Filter out recently sent images
-        const availableFiles = files.filter(file => 
-            !recentImages.includes(file.path)
-        );
-
-        console.log(`Found ${availableFiles.length} available images out of ${files.length} total images in guild: ${msg.guild.name}`);
-
-        // If all images have been recently sent, reset the tracking
-        if (availableFiles.length === 0) {
-            console.log(`All ${files.length} images have been recently sent in guild: ${msg.guild.name}. Resetting tracking for ${folderPath}`);
-            guildTracking.set(folderPath, []);
-            return sendRandomImageWithContentNoRepeat(msg, folderPath, content);
-        }
-
-        // Select a random file from available files
-        let randomFile = availableFiles[Math.floor(Math.random() * availableFiles.length)];
-        console.log(`Selected random file: ${randomFile.name} (not in recent history) for guild: ${msg.guild.name}`);
-        
-        // Add the selected file to recently sent images
-        recentImages.push(randomFile.path);
-        
-        // Keep only the last MAX_RECENT_IMAGES
-        if (recentImages.length > MAX_RECENT_IMAGES) {
-            const removedFile = recentImages.shift();
-            console.log(`Removed ${removedFile} from tracking history (reached max of ${MAX_RECENT_IMAGES}) in guild: ${msg.guild.name}`);
-        }
-        
-        await msg.reply({
-            content: content,
-            files: [
-                {
-                    attachment: randomFile.path,
-                    name: randomFile.name,
-                },
-            ],
-        });
-        console.log(`Successfully sent message with content: ${content} in guild: ${msg.guild.name}`);
-    } catch (error) {
-        console.error(`Failed to send message with content: ${content}`, error);
-        logError(msg.guild?.id || 'UNKNOWN', msg.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), 'sendRandomImageWithContentNoRepeat');
     }
 }
 
@@ -866,46 +1150,22 @@ function sendRandomMessages() {
     console.log("Scheduled random message job to run every 6 hours.");
 }
 
-const blueArchiveImageKeys = [
-    // Aris
-    'dailies/blue-archive/aris-blue-archive.gif',
-    // Aru
-    'dailies/blue-archive/aru-blue-archive.gif',
-    // Asuna
-    'dailies/blue-archive/chibi-asuna-blue-archive.gif',
-    'dailies/blue-archive/asuna-blue-archive.gif',
-    'dailies/blue-archive/bunny-asuna-blue-archive.gif',
-    // Hanako
-    'dailies/blue-archive/hanako-blue-archive.gif',
-    // Hikari
-    'dailies/blue-archive/hikari-blue-archive-tachibana.gif',
-    // Iroha
-    'dailies/blue-archive/iroha-blue-archive.gif',
-    // Karin
-    'dailies/blue-archive/karin-skill-blue-archive.gif',
-    'dailies/blue-archive/karin-blue-archive.gif',
-    // Kazusa
-    'dailies/blue-archive/kazusa-blue-archive-walking.gif',
-    'dailies/blue-archive/kazusa-blue-archive.gif',
-    // Kokona
-    'dailies/blue-archive/kokona-blue-archive-dance.gif',
-    // Sakurako
-    'dailies/blue-archive/sakurako-blue-archive-scene.gif',
-    // Shiroko
-    'dailies/blue-archive/shiroko-blue-archive.gif',
-    // Shiromi
-    'dailies/blue-archive/shiromi-blue-archive.gif',
-    // Sumire
-    'dailies/blue-archive/sumire-blue-archive-gym.gif',
-    // Ushio
-    'dailies/blue-archive/ushio-blue-archive-noa-noa.gif',
-    // Yuuka
-    'dailies/blue-archive/yuuka-blue-archive-stop-slacking.gif',
-    // Other
-    'dailies/blue-archive/bunny-asuna-bunny-karin-blue-archive.gif',
-    'dailies/blue-archive/blue-archive-city-scene.gif',
-];
 
+/**
+ * Schedules and sends a daily reset message for the Blue Archive game.
+ * The message includes a checklist of daily assignments for players.
+ * 
+ * The reset message is sent to a channel named "blue-archive" in each guild.
+ * 
+ * If the channel is not found, a log message is printed.
+ * 
+ * The message is sent as an embedded message with a title, description, fields, and an image.
+ * The image is randomly selected from a set of CDN media keys.
+ * 
+ * If an error occurs while sending the message, it is logged using the logError function.
+ * 
+ * The reset time is set to 7:00 PM UTC.
+ */
 async function sendBlueArchiveDailyResetMessage() {
     const blueArchiveResetTime = moment.tz({ hour: 19, minute: 0 }, "UTC");
     const cronTime = `${blueArchiveResetTime.minute()} ${blueArchiveResetTime.hour()} * * *`;
@@ -944,7 +1204,15 @@ async function sendBlueArchiveDailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
 
-                const imageUrl = await generateRandomCdnImageUrl(null, blueArchiveImageKeys, guild.id);
+                const imageUrl = await getRandomCdnMediaKey(
+                    "dailies/blue-archive/",
+                    guild.id,
+                    {
+                        maxSizeMB: 100,
+                        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                        trackLast: 10
+                    }
+                );
                 embed.setImage(imageUrl);
                     await channel.send({ 
                         embeds: [embed],
@@ -956,112 +1224,20 @@ async function sendBlueArchiveDailyResetMessage() {
     });
 }
 
-const gfl2ImageKeys = [
-    // Andoris
-    'dailies/girls-frontline-2/andoris-action-scene.gif',
-    'dailies/girls-frontline-2/andoris-hug.gif',
-    // Cheeta
-    'dailies/girls-frontline-2/cheeta-absolute-cinema-scene.gif',
-    'dailies/girls-frontline-2/cheeta-racer-interaction.gif',
-    'dailies/girls-frontline-2/cheeta-racer.gif',
-    // Daiyan
-    'dailies/girls-frontline-2/daiyan-chinese-dress-interaction.gif',
-    // Dushevnaya
-    'dailies/girls-frontline-2/dushevnaya-action-scene.gif',
-    'dailies/girls-frontline-2/dushevnaya-skill-cutscene.gif',
-    'dailies/girls-frontline-2/dushevnaya-scene.gif',
-    'dailies/girls-frontline-2/dushevnaya-interaction.gif',
-    // Faye
-    'dailies/girls-frontline-2/faye-dorm-interaction.gif',
-    'dailies/girls-frontline-2/faye-scene.gif',
-    'dailies/girls-frontline-2/faye-dorm-interaction-sparring.gif',
-    // Groza
-    'dailies/girls-frontline-2/groza-action-scene.gif',
-    'dailies/girls-frontline-2/groza-interaction.gif',
-    'dailies/girls-frontline-2/groza-scene.gif',
-    // Jiangyu
-    'dailies/girls-frontline-2/jiangyu-interaction.gif',
-    'dailies/girls-frontline-2/jiangyu-scene.gif',
-    'dailies/girls-frontline-2/jiangyu-interaction-pull-in.gif',
-    // Klukai
-    'dailies/girls-frontline-2/klukai-dorm-interaction.gif',
-    'dailies/girls-frontline-2/klukai-interaction.gif',
-    // Lenna
-    'dailies/girls-frontline-2/lenna-interaction.gif',
-    'dailies/girls-frontline-2/lenna-scene.gif',
-    'dailies/girls-frontline-2/lenna-dorm-interaction.gif',
-    // Lotta
-    'dailies/girls-frontline-2/lotta-dorm-interaction.gif',
-    // Mayling
-    'dailies/girls-frontline-2/mayling-working-hard.gif',
-    // Mechty
-    'dailies/girls-frontline-2/mechty-dorm-interaction.gif',
-    'dailies/girls-frontline-2/mechty-scene.gif',
-    // Mosin
-    'dailies/girls-frontline-2/mosin-nagant-interaction.gif',
-    // Nemesis
-    'dailies/girls-frontline-2/nemesis-action-scene.gif',
-    'dailies/girls-frontline-2/nemesis-interaction.gif',
-    // Nikketa
-    'dailies/girls-frontline-2/nikketa-skin-interaction.gif',
-    'dailies/girls-frontline-2/nikketa-skin-interaction-handcuffs.gif',
-    'dailies/girls-frontline-2/nikketa-dorm-interaction-interesting.gif',
-    // Papasha
-    'dailies/girls-frontline-2/papasha-dorm-interaction-peek.gif',
-    'dailies/girls-frontline-2/papasha-scene.gif',
-    // Peri
-    'dailies/girls-frontline-2/peri-interaction-spin-hat.gif',
-    // Qiongjiu
-    'dailies/girls-frontline-2/qiongjiu-action-scene.gif',
-    'dailies/girls-frontline-2/qiongjiu-ultimate-scene.gif',
-    'dailies/girls-frontline-2/qiongjiu-action-scene-ending.gif',
-    // Qiuhua
-    'dailies/girls-frontline-2/qiuhua-scene.gif',
-    'dailies/girls-frontline-2/qiuhua-scene-drink.gif',
-    'dailies/girls-frontline-2/qiuhua-dorm-interaction-eating.gif',
-    'dailies/girls-frontline-2/qiuhua-scene-fridge.gif',
-    // Sabrina
-    'dailies/girls-frontline-2/sabrina-interaction-eating-pizza.gif',
-    'dailies/girls-frontline-2/sabrina-scene.gif',
-    // Sharkry
-    'dailies/girls-frontline-2/sharkry-interaction-wink-wink.gif',
-    'dailies/girls-frontline-2/sharkry-action-scene-ending.gif',
-    'dailies/girls-frontline-2/sharkry-interaction-bang-bang.gif',
-    // Springfield
-    'dailies/girls-frontline-2/springfield-dress-lap-pillow.gif',
-    'dailies/girls-frontline-2/springfield-scene.gif',
-    'dailies/girls-frontline-2/springfield-scene-barista.gif',
-    // Suomi
-    'dailies/girls-frontline-2/suomi-dorm-interaction-headbop.gif',
-    'dailies/girls-frontline-2/suomi-action-scene.gif',
-    'dailies/girls-frontline-2/suomi-dorm-interaction-guitar.gif',
-    'dailies/girls-frontline-2/suomi-scene-bonk.gif',
-    // Tololo
-    'dailies/girls-frontline-2/tololo-dorm-interaction-watergun.gif',
-    'dailies/girls-frontline-2/tololo-scene.gif',
-    // Ullrid
-    'dailies/girls-frontline-2/ullrid-dorm-interaction-shoe.gif',
-    // Vector
-    'dailies/girls-frontline-2/vector-scene.gif',
-    'dailies/girls-frontline-2/vector-ultimate-scene.gif',
-    'dailies/girls-frontline-2/vector-dorm-interaction-reading.gif',
-    'dailies/girls-frontline-2/vector-interaction.gif',
-    'dailies/girls-frontline-2/vector-bunny-interaction.gif',
-    'dailies/girls-frontline-2/vector-dance-scene.gif',
-    // Vepley
-    'dailies/girls-frontline-2/vepley-dorm-interaction-nuuh.gif',
-    // Yoohee
-    'dailies/girls-frontline-2/yoohee-dance-scene-alarm.gif',
-    'dailies/girls-frontline-2/yoohee-idol-fireworks-scene.gif',
-    'dailies/girls-frontline-2/yoohee-maid-scene.gif',
-    'dailies/girls-frontline-2/yoohee-dance-scene-laugh.gif',
-    // Zhaohui
-    'dailies/girls-frontline-2/zhaohui-racer-skin-interaction.gif',
-    // Others
-    'dailies/girls-frontline-2/zucchero-squad-scene.gif',
-    'dailies/girls-frontline-2/groza-movie-scene.gif',
-];
-
+/**
+ * Schedules and sends a daily reset message for the Girls' Frontline 2 game.
+ * The message includes a checklist of daily quests for players to complete.
+ * 
+ * The reset message is sent to a channel named "girls-frontline-2" in each guild.
+ * If the channel is not found, a log message is printed.
+ * 
+ * The message is sent as an embedded message with a title, description, fields, and an image.
+ * The image is randomly selected from a set of CDN media keys.
+ * 
+ * If an error occurs while sending the message, it is logged using the logError function.
+ * 
+ * The reset time is set to 9:00 AM UTC.
+ */
 async function sendGFL2DailyResetMessage() {
     const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
     const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
@@ -1102,7 +1278,15 @@ async function sendGFL2DailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
 
-                const imageUrl = await generateRandomCdnImageUrl(null, gfl2ImageKeys, guild.id);
+                const imageUrl = await getRandomCdnMediaKey(
+                    "dailies/girls-frontline-2/",
+                    guild.id,
+                    {
+                        maxSizeMB: 100,
+                        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                        trackLast: 10
+                    }
+                );
                 embed.setImage(imageUrl);
 
                 await channel.send({ 
@@ -1115,43 +1299,26 @@ async function sendGFL2DailyResetMessage() {
     });
 }
 
-const nikkeImageKeys = [
-    // Doro
-    'dailies/nikke/doro-dorothy.gif',
-    // Doro Vapus Dance
-    'dailies/nikke/doro-vapus-dance.gif',
-    // Doro War
-    'dailies/nikke/doro-war.gif',
-    // Laplace
-    'dailies/nikke/laplace-nikke.gif',
-    // Mustang
-    'dailies/nikke/mustang-nikke.gif',
-    // Musanpro
-    'dailies/nikke/musanpro-commander-nikke.gif',
-    // Rapi 
-    'dailies/nikke/rapi-nikke.gif',
-    'dailies/nikke/rapi-run.gif',
-    'dailies/nikke/rapi-red-hood-dance-nikke.gif',
-    // Red Hood
-    'dailies/nikke/red-hood-nikke.gif',
-    // Scarlet
-    'dailies/nikke/scarlet-nikke.gif',
-    'dailies/nikke/nikke-booba-slap-scarlet.gif',
-    // Shifty
-    'dailies/nikke/shifty-nikke.gif',
-    // Snow White
-    'dailies/nikke/snow-white-fight-nikke.gif',
-    // Sultanthederp
-    'dailies/nikke/sultanthederp-chibi-little-mermaid-nikke.gif',
-    // Summer Anis
-    'dailies/nikke/summer-anis-nikke.gif',
-    // Syuen
-    'dailies/nikke/syuen-nikke.gif',
-    'dailies/nikke/syuen-jumped-nikke.gif',
-    // TV Ad
-    'dailies/nikke/tv-ad-nikke.gif',
-];
-
+/**
+ * Schedules and sends a daily reset message for the Nikke game.
+ * The message includes a checklist of daily missions for players to complete.
+ * 
+ * The reset message is sent to a channel named "nikke" in each guild.
+ * If the channel is not found, a log message is printed.
+ * 
+ * The message is sent as an embedded message with a title, description, fields, and an image.
+ * The image is randomly selected from a set of CDN media keys.
+ * 
+ * If an error occurs while sending the message, it is logged using the logError function.
+ * 
+ * The reset time is set to 8:00 PM UTC.
+ * 
+ * The message also includes a reaction collector for the "🤢", "🤮", "🤒", and "😷" emojis.
+ * If a reaction is collected, a random quiet Rapi phrase is sent to the channel.
+ * 
+ * The message also includes a message collector for the "good girl" keyword.
+ * If the keyword is detected, the user is thanked and a "sefhistare:1124869893880283306" emoji is reacted to the message.
+ */
 async function sendNikkeDailyResetMessage() {
     const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
     const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
@@ -1205,7 +1372,15 @@ async function sendNikkeDailyResetMessage() {
                         iconURL: RAPI_BOT_THUMBNAIL_URL
                     });
                     
-                const imageUrl = await generateRandomCdnImageUrl(null, nikkeImageKeys, guild.id);
+                const imageUrl = await getRandomCdnMediaKey(
+                    "dailies/nikke/",
+                    guild.id,
+                    {
+                        maxSizeMB: 100,
+                        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                        trackLast: 10
+                    }
+                );
                 embed.setImage(imageUrl);
     
                 const sentEmbed = await channel.send({
@@ -1573,117 +1748,132 @@ export {
     bot as getDiscordBot,
 };
 
-//TODO: Extract into common utils
-// Track recently sent image keys per guild and collection
-const recentlySentImageKeys: Map<string, Map<string, string[]>> = new Map();
-const MAX_RECENT_CDN_IMAGES = 10;
-const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
+// Track recently sent media keys per guild and prefix
+const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
 
 /**
- * Generates a random CDN image URL with optional guild-based tracking to prevent recent repeats.
+ * Retrieves and filters media keys from the CDN based on specified criteria, with guild-based tracking 
+ * to prevent recent repeats within each server.
  * 
- * @param msg - Discord Message object or null (used for guild info if guildId not provided)
- * @param imageKeys - Array of relative paths to images from CDN root (e.g., ['path/to/image1.gif'])
- * @param guildId - Optional guild ID string for tracking without message context
- * @returns Promise<string> A fully qualified CDN URL (e.g., 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/path/to/image1.gif')
+ * @param prefix - The bucket prefix path (e.g., "commands/leadership/")
+ * @param guildId - Discord guild ID for tracking media keys per server
+ * @param options - Optional configuration object
+ * @param options.maxSizeMB - Maximum file size in MB (default: 100)
+ * @param options.extensions - Array of allowed file extensions (default: ['.mp4'])
+ * @param options.trackLast - Number of keys to track for preventing repeats (default: 5)
+ * @returns Promise<string> A random media key from the filtered results
  * 
- * @throws {Error} When imageKeys array is empty or invalid
- * 
- * @description
- * Generates a CDN URL for a random image while tracking recently sent images per guild to ensure variety.
- * The tracking system prevents the same image from being shown too frequently in a given guild.
- * 
- * If no guild tracking is available (both msg and guildId are null/invalid), it falls back to simple
- * This function generates URLs for CDN-hosted images while tracking recently sent images per guild
- * to ensure variety. If no guild tracking is available (both msg and guild are null/invalid), 
- * it falls back to simple random selection.
- * 
- * The function uses the first image key as a collection identifier for tracking purposes.
- * Once all images in a collection have been shown, the tracking resets.
+ * @throws {Error} When prefix or guildId is missing/invalid
+ * @throws {Error} When no valid media files are found
+ * @throws {Error} When S3 operations fail
  * 
  * @example
- * // With guild tracking via message
- * const url = await generateRandomCdnImageUrl(message, ['path/to/image1.gif', 'path/to/image2.gif']);
+ * // Basic usage with default options
+ * const key = await getRandomCdnMediaKey("commands/leadership/", "123456789");
  * 
- * // With explicit guild tracking
- * const url = await generateRandomCdnImageUrl(null, imageKeys, guildId);
- * 
- * // Without tracking (random selection)
- * const url = await generateRandomCdnImageUrl(null, imageKeys);
- * 
- * @note
- * - Uses CDN_PREFIX constant to construct full URLs
- * - Maintains MAX_RECENT_CDN_IMAGES (10) most recent images per guild/collection
- * - Guild tracking helps prevent repetitive images in the same server
- * - Contact Sefhi or Strip3s on Discord for content submission guidelines and approval since it must be hosted on the CDN server. We will provide an image key for you once approved.
+ * // With custom options
+ * const key = await getRandomCdnMediaKey("commands/videos/", "123456789", {
+ *   maxSizeMB: 50,
+ *   extensions: ['.mp4', '.gif'],
+ *   trackLast: 3
+ * });
  */
-async function generateRandomCdnImageUrl(
-    msg: any | null | undefined, 
-    imageKeys: string[],
-    guildId?: any
+async function getRandomCdnMediaKey(
+    prefix: string,
+    guildId: string,
+    options: {
+        maxSizeMB?: number;
+        extensions?: string[];
+        trackLast?: number;
+    } = {}
 ): Promise<string> {
+    // Validate required parameters
+    if (!prefix || typeof prefix !== 'string') {
+        console.error('Invalid prefix provided:', prefix);
+        throw new Error('Valid prefix path is required');
+    }
+
+    if (!guildId || typeof guildId !== 'string') {
+        console.error('Invalid guildId provided:', guildId);
+        throw new Error('Valid guild ID is required');
+    }
+
+    const maxSizeMB = options.maxSizeMB ?? 100;
+    const extensions = options.extensions ?? [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS];
+    const trackLast = options.trackLast ?? 5;
+
     try {
-        if (!Array.isArray(imageKeys) || imageKeys.length === 0) {
-            console.error('Failed to generate URL: No image keys provided or invalid input');
-            throw new Error('No valid image keys provided');
+        console.log(`Fetching media keys for prefix: ${prefix} in guild: ${guildId}`);
+
+        // List objects in the specified folder
+        const response = await s3Client.send(new ListObjectsV2Command({
+            Bucket: S3BUCKET,
+            Prefix: prefix,
+        }));
+
+        if (!response.Contents || response.Contents.length === 0) {
+            console.error(`No media files found in CDN under prefix: ${prefix}`);
+            throw new Error('No media files available');
         }
 
-        // Use guild from message or explicit guild parameter
-        const activeGuildId = msg?.guild.id || guildId;
-        
-        // Handle case with no guild tracking
-        if (!activeGuildId) {
-            const randomKey = imageKeys[Math.floor(Math.random() * imageKeys.length)];
-            console.log('No guild tracking available, returning random image');
-            return `${CDN_PREFIX}/${randomKey}`;
+        // Filter media files based on size and extension
+        const mediaKeys = response.Contents
+            .filter(obj => {
+                const sizeInMB = (obj.Size || 0) / (1024 * 1024);
+                return sizeInMB <= maxSizeMB;
+            })
+            .map(obj => obj.Key)
+            .filter(key => key && extensions.some(ext => key.toLowerCase().endsWith(ext)));
+
+        if (mediaKeys.length === 0) {
+            console.error(`No valid media files found under ${maxSizeMB}MB with extensions: ${extensions.join(', ')}`);
+            throw new Error('No suitable media files available');
         }
 
-        console.log(`Processing image request for guildId: ${activeGuildId}`);
-        
         // Initialize guild tracking if not exists
-        if (!recentlySentImageKeys.has(guildId)) {
-            console.log(`Initializing tracking for new guildId: ${activeGuildId}`);
-            recentlySentImageKeys.set(guildId, new Map());
+        if (!recentlySentMediaKeys.has(guildId)) {
+            console.log(`Initializing tracking for new guild: ${guildId}`);
+            recentlySentMediaKeys.set(guildId, new Map());
         }
 
-        // Use the first image key as collection identifier
-        const collectionKey = imageKeys[0];
-        
-        // Initialize collection tracking for this guild if not exists
-        const guildTracking = recentlySentImageKeys.get(guildId)!;
-        if (!guildTracking.has(collectionKey)) {
-            console.log(`Initializing tracking for collection in guildId: ${activeGuildId}`);
-            guildTracking.set(collectionKey, []);
+        // Initialize prefix tracking for this guild if not exists
+        const guildTracking = recentlySentMediaKeys.get(guildId)!;
+        if (!guildTracking.has(prefix)) {
+            console.log(`Initializing tracking for prefix: ${prefix} in guild: ${guildId}`);
+            guildTracking.set(prefix, []);
         }
 
-        const recentKeys = guildTracking.get(collectionKey)!;
-        
-        // Filter out recently sent images
-        const availableKeys = imageKeys.filter(key => !recentKeys.includes(key));
+        const recentKeys = guildTracking.get(prefix)!;
+        console.log(`Currently tracking ${recentKeys.length} keys for ${prefix} in guild: ${guildId}`);
 
-        // If all images have been recently sent, reset the tracking
+        // Filter out recently sent keys
+        const availableKeys = mediaKeys.filter(key => key && !recentKeys.includes(key));
+
+        // If all keys have been recently used, reset tracking and use all keys
         if (availableKeys.length === 0) {
-            console.log(`All images have been recently sent in guildId: ${activeGuildId}. Resetting tracking`);
-            guildTracking.set(collectionKey, []);
-            return generateRandomCdnImageUrl(msg, imageKeys, guildId);
+            console.log(`All media keys for ${prefix} have been recently used in guild: ${guildId}. Resetting tracking.`);
+            guildTracking.set(prefix, []);
+            const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)]!;
+            guildTracking.get(prefix)!.push(randomKey);
+            return randomKey;
         }
 
-        // Select a random image from available ones
-        const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
+        // Select a random key from available ones
+        const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)]!;
         
-        // Add the selected key to recently sent images
+        // Add to tracking
         recentKeys.push(randomKey);
         
-        // Keep only the last MAX_RECENT_CDN_IMAGES
-        if (recentKeys.length > MAX_RECENT_CDN_IMAGES) {
+        // Keep only the last trackLast number of keys
+        if (recentKeys.length > trackLast) {
             recentKeys.shift();
         }
 
-        return `${CDN_PREFIX}/${randomKey}`;
+        console.log(`Selected random key: ${randomKey} for guild: ${guildId}`);
+        return randomKey;
+
     } catch (error) {
-        console.error('Failed to generate CDN image URL:', error);
-        // For any error, fall back to a random image without tracking
-        const randomKey = imageKeys[Math.floor(Math.random() * imageKeys.length)];
-        return `${CDN_PREFIX}/${randomKey}`;
+        console.error(`Error retrieving CDN media keys for guild ${guildId}:`, error);
+        throw error instanceof Error ? error : new Error('Error retrieving CDN media keys');
     }
 }
