@@ -21,7 +21,7 @@ import {
     handleTimeout,
 } from "./utils/util";
 import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
-import { ccpMessage } from "./utils/constants/messages";
+import { getCCPMessage } from "./utils/constants/messages";
 
 import { S3, S3ClientConfig, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
@@ -1492,45 +1492,169 @@ function handleMessages() {
     });
 }
 
-async function checkSensitiveTerms(message: Message) {
-    if (!message.guild || !message.member) return;
+/**
+ * Interface for sensitive term configuration
+ */
+interface SensitiveTerm {
+    term: string;
+    variations?: string[];
+    category: 'location' | 'event' | 'date';
+}
+
+/**
+ * Sensitive terms configuration with categorization and variations
+ */
+const SENSITIVE_TERMS: SensitiveTerm[] = [
+    // Locations
+    {
+        term: 'taiwan',
+        variations: ['台湾', 'тайвань', '타이완', 'taiwán', 'tw'],
+        category: 'location'
+    },
+    {
+        term: 'tibet',
+        variations: ['西藏', 'тибет', '티베트', 'tíbet'],
+        category: 'location'
+    },
+    {
+        term: 'hong kong',
+        variations: ['hongkong', '香港', 'гонконг', '홍콩'],
+        category: 'location'
+    },
+    // Events
+    {
+        term: 'tiananmen',
+        variations: ['天安门', 'тяньаньмэнь', '톈안먼', 'tiananmén'],
+        category: 'event'
+    },
+    // Dates
+    {
+        term: '1989',
+        variations: ['一九八九'],
+        category: 'date'
+    }
+];
+
+/**
+ * Message preprocessing options
+ */
+const MESSAGE_CLEANUP_PATTERNS = [
+    { pattern: /https?:\/\/[^\s]+/g, replacement: '' },           // URLs
+    { pattern: /<@!?\d+>/g, replacement: '' },                    // User mentions
+    { pattern: /<a?:\w+:\d+>/g, replacement: '' },                // Custom emoji IDs
+    { pattern: /<:\w+:\d+>/g, replacement: '' },                  // Animated emoji IDs
+    { pattern: /`{1,3}[^`]*`/g, replacement: '' },                // Code blocks
+    { pattern: /\*{1,2}([^*]+)\*{1,2}/g, replacement: '$1' },     // Bold/italic
+    { pattern: /~~([^~]+)~~/g, replacement: '$1' },               // Strikethrough
+    { pattern: /__([^_]+)__/g, replacement: '$1' }                // Underline
+] as const;
+
+/**
+ * Cache for compiled regular expressions
+ */
+const SENSITIVE_PATTERNS = (() => {
+    const patterns: RegExp[] = [];
     
-    const messageContent = message.content
-        .toLowerCase()
-        .replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
-        .replace(/<@!?\d+>/g, '') // Remove user mentions
-        .replace(/<a?:\w+:\d+>/g, '') // Remove custom emoji IDs
-        .replace(/<:\w+:\d+>/g, '') // Remove animated emoji IDs
-        .replace(/<:\w+:\d+>/g, '') // Remove sticker IDs
-        .replace(/`{1,3}[^`]*`/g, '') // Remove inline and block code formatting
-        .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1') // Remove bold and italic formatting
-        .replace(/~~([^~]+)~~/g, '$1') // Remove strikethrough formatting
-        .replace(/__([^_]+)__/g, '$1') // Remove underline formatting
-        .trim();
+    SENSITIVE_TERMS.forEach(termConfig => {
+        const allTerms = [termConfig.term, ...(termConfig.variations || [])];
+        const pattern = allTerms
+            .map(term => `\\b${term.replace(/\s+/g, '\\s*')}\\b`)
+            .join('|');
+        patterns.push(new RegExp(pattern, 'i'));
+    });
+    
+    return patterns;
+})();
 
-    // Define sensitive terms in multiple languages
-    const sensitiveTerms = [
-        'taiwan', 'tibet', 'hong kong', 'tiananmen', '1989', 'tw', // English
-        '台湾', '西藏', '香港', '天安门', '一九八九', // Chinese
-        'тайвань', 'тибет', 'гонконг', 'тяньаньмэнь', '1989', // Russian
-        '타이완', '티베트', '홍콩', '톈안먼', '1989', // Korean
-        'taiwán', 'tíbet', 'hong kong', 'tiananmén', '1989', // Spanish
-        // Add more translations as needed
-    ];
-
-    if (sensitiveTerms.some(term => messageContent.includes(term))) {
-        try {
-            const randomCdnMediaUrl = await getRandomCdnMediaUrl("commands/ccp/", message.guild.id, {
-                extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
-            });
-            await message.reply({
-                content: ccpMessage,
-                files: [randomCdnMediaUrl]
-            });
-            await message.member.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!");
-        } catch (error) {
-            logError(message.guild.id, message.guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending CCP message within checkSensitiveTerms');
+/**
+ * Checks if a message contains sensitive terms and takes appropriate action
+ * @param message - Discord message to check
+ * @returns Promise<void>
+ */
+async function checkSensitiveTerms(message: Message): Promise<void> {
+    try {
+        // Early exit conditions
+        if (!message.guild?.id || !message.member) {
+            return;
         }
+
+        // Preprocess message content
+        const messageContent = preprocessMessage(message.content);
+        
+        // Check for sensitive content
+        if (containsSensitiveTerms(messageContent)) {
+            await handleSensitiveContent(message);
+        }
+    } catch (error) {
+        await handleError(message, error);
+    }
+}
+
+/**
+ * Preprocesses message content by removing formatting and unwanted patterns
+ * @param content - Raw message content
+ * @returns Cleaned message content
+ */
+function preprocessMessage(content: string): string {
+    let processed = content.toLowerCase();
+    
+    MESSAGE_CLEANUP_PATTERNS.forEach(({ pattern, replacement }) => {
+        processed = processed.replace(pattern, replacement);
+    });
+    
+    return processed.trim();
+}
+
+/**
+ * Checks if the message contains any sensitive terms
+ * @param content - Preprocessed message content
+ * @returns boolean indicating if sensitive terms were found
+ */
+function containsSensitiveTerms(content: string): boolean {
+    return SENSITIVE_PATTERNS.some(pattern => pattern.test(content));
+}
+
+/**
+ * Handles messages containing sensitive content
+ * @param message - Discord message to handle
+ */
+async function handleSensitiveContent(message: Message): Promise<void> {
+    const guildId = message.guild?.id;
+    if (!guildId || !message.member) return;
+
+    try {
+        const randomCdnMediaUrl = await getRandomCdnMediaUrl("commands/ccp/", guildId, {
+            extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
+        });
+
+        await Promise.all([
+            message.reply({
+                content: getCCPMessage(),
+                files: [randomCdnMediaUrl]
+            }),
+            message.member.timeout(60000, "Commander, you leave me no choice! You will be quiet for 1 minute!")
+        ]);
+    } catch (error) {
+        throw new Error(`Failed to handle sensitive content: ${error}`);
+    }
+}
+
+/**
+ * Handles errors that occur during message processing
+ * @param message - Discord message that caused the error
+ * @param error - Error that occurred
+ */
+async function handleError(message: Message, error: unknown): Promise<void> {
+    const guildId = message.guild?.id;
+    const guildName = message.guild?.name;
+    
+    if (guildId && guildName) {
+        logError(
+            guildId,
+            guildName,
+            error instanceof Error ? error : new Error(String(error)),
+            'checkSensitiveTerms'
+        );
     }
 }
 
