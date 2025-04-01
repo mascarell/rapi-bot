@@ -1510,7 +1510,7 @@ async function checkSensitiveTerms(message: Message) {
 
     // Define sensitive terms in multiple languages
     const sensitiveTerms = [
-        'taiwan', 'tibet', 'hong kong', 'tiananmen', '1989', 'TW', // English
+        'taiwan', 'tibet', 'hong kong', 'tiananmen', '1989', 'tw', // English
         '台湾', '西藏', '香港', '天安门', '一九八九', // Chinese
         'тайвань', 'тибет', 'гонконг', 'тяньаньмэнь', '1989', // Russian
         '타이완', '티베트', '홍콩', '톈안먼', '1989', // Korean
