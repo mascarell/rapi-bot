@@ -18,7 +18,7 @@ import {
     joinVoiceChannel,
     createAudioResource,
     VoiceConnectionStatus,
-    AudioPlayerStatus
+    AudioPlayerStatus,
 } from '@discordjs/voice';
 import path from "path";
 import fs from "fs";
@@ -27,7 +27,7 @@ import moment from "moment";
 import 'moment-timezone';
 
 import * as util from "./utils/util";
-import { VoiceConnectionData } from "./utils/interfaces/VoiceConnectionData.interface";
+import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
 import { getCCPMessage } from "./utils/constants/messages";
 import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
 import { Command, MessageCommand } from './utils/interfaces/Command.interface';
