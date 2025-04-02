@@ -1,5 +1,5 @@
 import { ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { s3Client } from '../../discord';
+import { s3Client } from '../../utils/cdn';
 import { CONSTANTS } from './gachaConstants';
 import { GachaGameConfig, PullResult } from './gachaTypes';
 import { NikkeUtil } from './nikkeUtil';
@@ -58,7 +58,7 @@ export class GachaPuller {
         return {
             rarity,
             name: NikkeUtil.fileToCharacterName(randomFile),
-            imageUrl: `${CONSTANTS.CDN_DOMAIN_URL}/${prefix}/${randomFile}`
+            imageUrl: `${CONSTANTS.cdnDomainUrl}/${prefix}/${randomFile}`
         };
     }
 } 

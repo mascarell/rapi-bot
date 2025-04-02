@@ -4,4 +4,4 @@ export * from './constants/messages';
 export * from './constants/towerRotation';
 
 // Interfaces
-export * from './interfaces/voiceConnectionData.interface';
+export * from './interfaces/VoiceConnectionData.interface';

@@ -1,10 +1,10 @@
 import {
     SlashCommandBuilder,
     EmbedBuilder,
-    CommandInteraction,
     ColorResolvable,
+    ChatInputCommandInteraction,
 } from 'discord.js';
-import { Command } from '../types';
+import { SlashCommand } from '../utils/interfaces/Command.interface';
 import { 
     GACHA_CONFIGS,
     RateLimiter,
@@ -39,7 +39,7 @@ module.exports = {
                     { name: 'GODDESS OF VICTORY: NIKKE', value: 'nikke' }
                 )),
 
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         await interaction.deferReply();
 
         try {
@@ -71,4 +71,4 @@ module.exports = {
             await interaction.followUp('Commander, there was an error with the gacha system...');
         }
     }
-} as Command;
+} as SlashCommand;
