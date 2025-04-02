@@ -4,7 +4,7 @@ import {
     ColorResolvable,
     ChatInputCommandInteraction,
 } from 'discord.js';
-import { SlashCommand } from '../types';
+import { SlashCommand } from '../utils/interfaces/Command.interface';
 import { 
     GACHA_CONFIGS,
     RateLimiter,

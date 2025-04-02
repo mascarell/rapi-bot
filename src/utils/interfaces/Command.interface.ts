@@ -1,6 +1,5 @@
-import { Message } from "discord.js";
+import { Message, ChatInputCommandInteraction, AutocompleteInteraction } from "discord.js";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ChatInputCommandInteraction } from "discord.js";
 
 /**
  * Interface for Legacy Message Commands
@@ -8,7 +7,7 @@ import { ChatInputCommandInteraction } from "discord.js";
 export interface MessageCommand {
     name: string;
     description?: string;
-    execute: (message: Message) => Promise<void>;
+    execute: (message: Message, args?: string[]) => Promise<void>;
 }
 
 /**
@@ -17,7 +16,7 @@ export interface MessageCommand {
 export interface SlashCommand {
     data: SlashCommandBuilder;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
-    autocomplete?: (interaction: any) => Promise<void>;
+    autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
 }
 
 /**

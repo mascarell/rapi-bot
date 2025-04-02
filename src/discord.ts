@@ -33,6 +33,7 @@ import { getCCPMessage } from "./utils/constants/messages";
 import { S3, S3ClientConfig, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
 import { Command, MessageCommand } from './utils/interfaces/Command.interface';
+import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 
 // Destructure only the necessary functions from util
 const {
@@ -71,23 +72,27 @@ const PRE = "/";
 const NIKKE_RESET_START_TIME = moment.tz({ hour: 20, minute: 0, second: 0, millisecond: 0 }, 'UTC');
 const NIKKE_RESET_END_TIME = moment.tz({ hour: 20, minute: 0, second: 15, millisecond: 0 }, 'UTC');
 
-// CDN URLs
-const RAPI_BOT_THUMBNAIL_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/rapi-bot-thumbnail.jpg';
-const GFL2_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/gfl2-logo.png';
-const NIKKE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/nikke-logo.png';
-const BLUE_ARCHIVE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/blue-archive-logo.png';
-// CDN Constants
+// Asset paths
+const ASSET_PATHS = {
+    THUMBNAIL: 'assets/rapi-bot-thumbnail.jpg',
+    LOGOS: {
+        GFL2: 'assets/logos/gfl2-logo.png',
+        NIKKE: 'assets/logos/nikke-logo.png',
+        BLUE_ARCHIVE: 'assets/logos/blue-archive-logo.png'
+    }
+} as const;
 
+// CDN URLs
+const RAPI_BOT_THUMBNAIL_URL = `${cdnDomainUrl}/${ASSET_PATHS.THUMBNAIL}`;
+const GFL2_LOGO_URL = `${cdnDomainUrl}/${ASSET_PATHS.LOGOS.GFL2}`;
+const NIKKE_LOGO_URL = `${cdnDomainUrl}/${ASSET_PATHS.LOGOS.NIKKE}`;
+const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/${ASSET_PATHS.LOGOS.BLUE_ARCHIVE}`;
+
+// Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
 const DEFAULT_VIDEO_EXTENSIONS = ['.mp4'] as const;
 
-
-
 const voiceConnections: Map<string, VoiceConnectionData> = new Map();
-
-interface CustomClient extends Client {
-    commands: Collection<string, any>;
-}
 
 const bot: CustomClient = new Client({
     intents: [
@@ -1495,10 +1500,12 @@ function handleMessages() {
             const hasIgnoredRole = ignoredRole && message.member.roles.cache.has(ignoredRole.id);
             const hasContentCreatorRole = contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id);
 
-            if (command === "content" && hasContentCreatorRole) {
-                await matchedCommand.execute(message, args);
-            } else if (!hasIgnoredRole) {
-                await matchedCommand.execute(message, args);
+            if (isMessageCommand(matchedCommand)) {  // Add type guard check
+                if (command === "content" && hasContentCreatorRole) {
+                    await matchedCommand.execute(message, args);
+                } else if (!hasIgnoredRole) {
+                    await matchedCommand.execute(message, args);
+                }
             }
         } catch (error) {
             logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
@@ -1697,7 +1704,9 @@ function handleSlashCommands() {
         }
 
         try {
-            await command.execute(interaction);
+            if (isSlashCommand(command)) {  // Add type guard check
+                await command.execute(interaction);
+            }
         } catch (error) {
             if (error instanceof Error) {
                 logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, `Executing slash command: ${interaction.commandName}`);
@@ -1733,7 +1742,7 @@ function enableAutoComplete() {
         if (!interaction.isAutocomplete()) return;
 
         const command = bot.commands.get(interaction.commandName);
-        if (command && typeof command.autocomplete === "function") {
+        if (command && isSlashCommand(command) && typeof command.autocomplete === "function") {
             try {
                 await command.autocomplete(interaction);
             } catch (error) {

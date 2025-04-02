@@ -4,7 +4,7 @@ export class RateLimiter {
     private static usage: Record<string, number[]> = {};
 
     static init(): void {
-        setInterval(() => this.cleanup(), CONSTANTS.rateLimit.CLEANUP_INTERVAL_MS);
+        setInterval(() => this.cleanup(), CONSTANTS.rateLimit.cleanupIntervalMs);
     }
 
     static check(userId: string): boolean {
@@ -12,9 +12,9 @@ export class RateLimiter {
         if (!this.usage[userId]) this.usage[userId] = [];
         
         this.usage[userId] = this.usage[userId]
-            .filter(time => now - time < CONSTANTS.rateLimit.WINDOW_MS);
+            .filter(time => now - time < CONSTANTS.rateLimit.windowMs);
         
-        if (this.usage[userId].length >= CONSTANTS.rateLimit.MAX_PULLS) return false;
+        if (this.usage[userId].length >= CONSTANTS.rateLimit.maxPulls) return false;
         
         this.usage[userId].push(now);
         return true;
@@ -24,7 +24,7 @@ export class RateLimiter {
         const now = Date.now();
         Object.keys(this.usage).forEach(userId => {
             this.usage[userId] = this.usage[userId]
-                .filter(time => now - time < CONSTANTS.rateLimit.WINDOW_MS);
+                .filter(time => now - time < CONSTANTS.rateLimit.windowMs);
             if (this.usage[userId].length === 0) delete this.usage[userId];
         });
     }
