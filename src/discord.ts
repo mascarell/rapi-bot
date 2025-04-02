@@ -1,14 +1,41 @@
-import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection, TextChannel, ChannelType, ChatInputCommandInteraction } from "discord.js";
+import {
+    Client,
+    Collection,
+    GatewayIntentBits,
+    Events,
+    EmbedBuilder,
+    ActivityType,
+    PresenceUpdateStatus,
+    Message,
+    ReadonlyCollection,
+    TextChannel,
+    ChannelType
+} from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
-import { createAudioPlayer, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus, AudioPlayer } from '@discordjs/voice';
+import {
+    createAudioPlayer,
+    joinVoiceChannel,
+    createAudioResource,
+    VoiceConnectionStatus,
+    AudioPlayerStatus
+} from '@discordjs/voice';
 import path from "path";
 import fs from "fs";
 import schedule from 'node-schedule';
 import moment from "moment";
 import 'moment-timezone';
 
-import {
+import * as util from "./utils/util";
+import { VoiceConnectionData } from "./utils/interfaces/VoiceConnectionData.interface";
+import { getCCPMessage } from "./utils/constants/messages";
+
+import { S3, S3ClientConfig, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
+import { Command, MessageCommand } from './utils/interfaces/Command.interface';
+
+// Destructure only the necessary functions from util
+const {
     getIsStreaming,
     getRandomRapiMessage,
     getRandomReadNikkeMessage,
@@ -19,13 +46,10 @@ import {
     logError,
     getVoiceChannel,
     handleTimeout,
-} from "./utils/util";
-import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
-import { getCCPMessage } from "./utils/constants/messages";
-
-import { S3, S3ClientConfig, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
-import { Command, SlashCommand, MessageCommand, isSlashCommand, isMessageCommand } from './types';
+    cdnDomainUrl,
+    isSlashCommand,
+    isMessageCommand
+} = util;
 
 //TODO: Extract into common utils S3 client
 const s3ClientConfig: S3ClientConfig = {
@@ -53,7 +77,7 @@ const GFL2_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/l
 const NIKKE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/nikke-logo.png';
 const BLUE_ARCHIVE_LOGO_URL = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com/assets/logos/blue-archive-logo.png';
 // CDN Constants
-const CDN_DOMAIN_URL = process.env.CDN_DOMAIN_URL as string;
+
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
 const DEFAULT_VIDEO_EXTENSIONS = ['.mp4'] as const;
 
@@ -307,12 +331,12 @@ const chatCommands: { [key: string]: Command } = {
             const lapOfCountersKey = 'commands/lapOfDiscipline/lapOfCounters.webp';
             const lapOfDisciplineKey = 'commands/lapOfDiscipline/lapOfDiscipline.jpg';
             
-            const lapOfCountersUrl = `${CDN_DOMAIN_URL}/${lapOfCountersKey}`;
+            const lapOfCountersUrl = `${cdnDomainUrl}/${lapOfCountersKey}`;
             await msg.reply({
                 content: `Commander ${msg.author}...`,
                 files: [lapOfCountersUrl]
             });
-            const lapOfDisciplineUrl = `${CDN_DOMAIN_URL}/${lapOfDisciplineKey}`;
+            const lapOfDisciplineUrl = `${cdnDomainUrl}/${lapOfDisciplineKey}`;
             await msg.reply({
                 content: `Commander ${msg.author}... Lap of discipline.`,
                 files: [lapOfDisciplineUrl]
@@ -1949,7 +1973,7 @@ async function getRandomCdnMediaUrl(
             guildTracking.set(prefix, []);
             const randomCdnMediaKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)]!;
             guildTracking.get(prefix)!.push(randomCdnMediaKey);
-            return `${CDN_DOMAIN_URL}/${randomCdnMediaKey}`;
+            return `${cdnDomainUrl}/${randomCdnMediaKey}`;
         }
 
         // Select a random key from available ones
@@ -1964,7 +1988,7 @@ async function getRandomCdnMediaUrl(
         }
 
         console.log(`Selected random key: ${randomCdnMediaKey} for guild: ${guildId}`);
-        return `${CDN_DOMAIN_URL}/${randomCdnMediaKey}`;
+        return `${cdnDomainUrl}/${randomCdnMediaKey}`;
 
     } catch (error) {
         console.error(`Error retrieving CDN media for guild ${guildId}:`, error);

@@ -1,12 +1,12 @@
 export const CONSTANTS = {
-    CDN_DOMAIN_URL: process.env.CDN_DOMAIN_URL as string,
-    RATE_LIMIT: {
-        MAX_PULLS: 20,
-        WINDOW_MS: 300000, // 5 minutes
-        CLEANUP_INTERVAL_MS: 600000 // 10 minutes
+    cdnDomainUrl: process.env.CDN_DOMAIN_URL as string,
+    rateLimit: {
+        maxPulls: 20,
+        windowMs: 300000, // 5 minutes
+        cleanupIntervalMs: 600000 // 10 minutes
     },
-    PAGINATION: {
-        TIMEOUT_MS: 900000 // 15 minutes
+    pagination: {
+        timeoutMs: 900000 // 15 minutes
     }
 } as const;
 

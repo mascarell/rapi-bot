@@ -3,12 +3,13 @@ import { Guild, TextChannel, ChannelType, VoiceBasedChannel } from 'discord.js';
 import { bosses, bossesLinks, towerRotation, rapiMessages, readNikkeMessages } from ".";
 import { promises as fs } from "fs";
 import path from "path";
+import { Command, SlashCommand, MessageCommand } from './interfaces/Command.interface';
 
 export { gamesData };
 
 let isStreaming = false;
 // CDN Constants
-const CDN_PREFIX = 'https://rapi-bot.sfo3.cdn.digitaloceanspaces.com';
+export const cdnDomainUrl = process.env.CDN_DOMAIN_URL;
 
 export function findChannelByName(guild: Guild, channelName: string): TextChannel | undefined {
     return guild.channels.cache.find(
@@ -90,7 +91,7 @@ export function handleTimeout(msg: any, duration: number = 300000) {
                 const emojis = ["sefhistare:1124869893880283306", "❌"];
                 emojis.forEach(emoji => msg.react(emoji).catch(console.error));
                 
-                const smugRapiMediaUrl = `${CDN_PREFIX}/commands/damnTrain/SmugRapi.jpg`;
+                const smugRapiMediaUrl = `${cdnDomainUrl}/commands/damnTrain/SmugRapi.jpg`;
 
                 msg.reply({
                     content: `Honestly, Commander ${author}, can't I get a moment of peace?! Enjoy your ${duration / 60000} minutes of quiet time!`,
@@ -102,10 +103,24 @@ export function handleTimeout(msg: any, duration: number = 300000) {
                 handleTimeoutError(msg, author);
             });
     } else {
-        const rapiHugMediaUrl = `${CDN_PREFIX}/commands/goodGirl/commander_rapi_hug.jpg`;
+        const rapiHugMediaUrl = `${cdnDomainUrl}/commands/goodGirl/commander_rapi_hug.jpg`;
         msg.reply({
             content: `Well, I tried to give myself a break from you, Commander ${author}...but maybe I was being too rash. Thank you, Commander...`,
             files: [rapiHugMediaUrl]
         });
     }
+}
+
+/**
+ * Type guard to check if a command is a slash command
+ */
+export function isSlashCommand(command: Command): command is SlashCommand {
+    return 'data' in command;
+}
+
+/**
+ * Type guard to check if a command is a message command
+ */
+export function isMessageCommand(command: Command): command is MessageCommand {
+    return 'name' in command && !('data' in command);
 }

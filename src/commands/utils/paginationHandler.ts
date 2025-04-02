@@ -27,7 +27,7 @@ export async function handlePagination(interaction: CommandInteraction, embeds: 
     });
 
     const collector = message.createMessageComponentCollector({ 
-        time: CONSTANTS.PAGINATION.TIMEOUT_MS 
+        time: CONSTANTS.pagination.TIMEOUT_MS 
     });
 
     collector.on("collect", async (i) => {
