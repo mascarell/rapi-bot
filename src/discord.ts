@@ -1,4 +1,4 @@
-import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection, TextChannel, ChannelType } from "discord.js";
+import { Client, Collection, GatewayIntentBits, Events, EmbedBuilder, ActivityType, PresenceUpdateStatus, Message, Guild, ReadonlyCollection, TextChannel, ChannelType, ChatInputCommandInteraction } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
 import { createAudioPlayer, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus, AudioPlayer } from '@discordjs/voice';
@@ -24,6 +24,8 @@ import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.inte
 import { getCCPMessage } from "./utils/constants/messages";
 
 import { S3, S3ClientConfig, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
+import { Command, SlashCommand, MessageCommand, isSlashCommand, isMessageCommand } from './types';
 
 //TODO: Extract into common utils S3 client
 const s3ClientConfig: S3ClientConfig = {
@@ -77,12 +79,7 @@ const bot: CustomClient = new Client({
 bot.commands = new Collection();
 const commands: Array<object> = [];
 
-// Define a type for your bot commands
-type BotCommand = {
-    name: string;
-    description?: string;
-    execute: (msg: any) => void | Promise<void>;
-};
+
 
 // Extend Client to include commands
 declare module 'discord.js' {
@@ -93,16 +90,16 @@ declare module 'discord.js' {
 
 // Bot commands object
 // The name has to be lowercase
-const chatCommands: { [key: string]: BotCommand } = {
+const chatCommands: { [key: string]: Command } = {
     readNikke: {
         name: "read nikke",
-        async execute(msg) {
+        async execute(msg: Message) {
             const mentionedUser = msg.mentions.users.first();
             const readNikkeReply = mentionedUser ? `Commander <@${mentionedUser.id}>, ` : 'Commander, ';        
             const randomMessage = readNikkeReply + getRandomReadNikkeMessage();
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/readNikke/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -116,12 +113,12 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     getDatNikke: {
         name: "rapi get dat nikke",
-        async execute(msg) {
+        async execute(msg: Message) {
             const mentionedUser = msg.mentions.users.first();
             const messageReply = mentionedUser ? `Commander <@${mentionedUser.id}>... ` : '';
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/getDatNikke/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -135,10 +132,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     booba: {
         name: "booba?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/booba/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 20
@@ -152,10 +149,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     booty: {
         name: "booty?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/booty/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 20
@@ -169,10 +166,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     skillissue: {
         name: "sounds like...",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/skillIssue/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -186,10 +183,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     skillissueiphone: {
         name: "sounds like…",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/skillIssue/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -203,10 +200,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     seggs: {
         name: "seggs?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/seggs/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_VIDEO_EXTENSIONS],
                 }
@@ -220,10 +217,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     kindaweird: {
         name: "kinda weird...",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/kindaWeird/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -237,10 +234,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     iswear: {
         name: "i swear she is actually 3000 years old",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/iSwear/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -254,10 +251,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     teengame: {
         name: "12+ game",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/12Game/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -271,10 +268,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     justice: {
         name: "justice for...",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/justice/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 4
@@ -289,10 +286,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     whale: {
         name: "whale levels",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/whaling/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -306,7 +303,7 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     discipline: {
         name: "lap of discipline.",
-        async execute(msg) {
+        async execute(msg: Message) {
             const lapOfCountersKey = 'commands/lapOfDiscipline/lapOfCounters.webp';
             const lapOfDisciplineKey = 'commands/lapOfDiscipline/lapOfDiscipline.jpg';
             
@@ -325,8 +322,8 @@ const chatCommands: { [key: string]: BotCommand } = {
     goodgirl: {
         name: "good girl",
         description: "good girl Rapi",
-        async execute(msg) {
-            const isNikkeChannel = msg.channel.name === "nikke";
+        async execute(msg: Message) {
+            const isNikkeChannel = (msg.channel as TextChannel).name === "nikke";
             const currentTime = moment.tz('UTC');
 
             if (isNikkeChannel && currentTime.isBetween(NIKKE_RESET_START_TIME, NIKKE_RESET_END_TIME)) {
@@ -344,17 +341,17 @@ const chatCommands: { [key: string]: BotCommand } = {
     dammit: {
         name: "dammit rapi",
         description: "dammit rapi",
-        execute(msg) {
+        async execute(msg: Message) {
             msg.reply("Sorry Commander.");
         },
     },
     wronggirl: {
         name: "wrong girl",
         description: "wrong girl Rapi",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/wrongGirl/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -370,10 +367,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     moldRates: {
         name: "mold rates are not that bad",
         description: `Commander, what are you talking about?`,
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/moldRates/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -388,10 +385,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     },
     readyRapi: {
         name: "ready rapi?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/ready/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -407,7 +404,7 @@ const chatCommands: { [key: string]: BotCommand } = {
     contentSquad: {
         name: PRE + "content",
         description: "content squad ping",
-        execute(msg) {
+        async execute(msg: Message) {
             msg.reply(
                 `<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`
             );
@@ -416,10 +413,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     badgirl: {
         name: "bad girl",
         description: "bad girl",
-        async execute(msg) {    
+        async execute(msg: Message) {    
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/wrong/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -435,10 +432,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     reward: {
         name: "reward?",
         description: "reward?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/reward/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -454,7 +451,7 @@ const chatCommands: { [key: string]: BotCommand } = {
     damntrain: {
         name: "damn train",
         description: "damn train",
-        async execute(msg) {
+        async execute(msg: Message) {
             try {
                 const emoji = "❌";
                 msg.react(emoji);
@@ -467,7 +464,7 @@ const chatCommands: { [key: string]: BotCommand } = {
 
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/damnTrain/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -483,10 +480,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     damngravedigger: {
         name: "damn gravedigger",
         description: "damn gravedigger",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/damnGravedigger/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 2
@@ -502,10 +499,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     deadSpicy: {
         name: "dead spicy?",
         description: "dead spicy?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/deadSpicy/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: ['.gif'],
                     trackLast: 1
@@ -521,10 +518,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     curseofbelorta: {
         name: "belorta...",
         description: "CURSE OF BELORTA",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/belorta/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
                     trackLast: 5
@@ -540,10 +537,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     ccprules: {
         name: "ccp rules...",
         description: "CCP Rules",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/ccpRules/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -559,10 +556,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     bestgirl: {
         name: "best girl?",
         description: "Best Girl Rapi",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/bestGirl/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 3
@@ -578,10 +575,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     gambleradvice: {
         name: "99%",
         description: "Gamblers' Advice",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/gamblerAdvice/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 3
@@ -597,10 +594,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     ccpNumbahOne: {
         name: "ccp #1",
         description: "CCP LOYALTY",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/ccp/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_VIDEO_EXTENSIONS],
                     trackLast: 1
@@ -616,10 +613,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     dorover: {
         name: "is it over?",
         description: "ITS DOROVER",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/dorover/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: ['.jpg'],
                     trackLast: 1
@@ -635,10 +632,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     cinema: {
         name: "absolute...",
         description: "CINEMA",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/cinema/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                     trackLast: 1
@@ -653,10 +650,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     plan: {
         name: "we had a plan!",
         description: "WE HAD A PLAN!",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/plan/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: ['.jpg', '.png'],
                     trackLast: 5
@@ -672,19 +669,19 @@ const chatCommands: { [key: string]: BotCommand } = {
     leadership: {
         name: "ccp leadership",
         description: "CCP LEADERSHIP",
-        async execute(msg) {
+        async execute(msg: Message) {
             try {
                 const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                     "commands/leadership/",
-                    msg.guild.id,
+                    msg.guild?.id as string || 'UNKNOWN',
                     {
                         extensions: [...DEFAULT_VIDEO_EXTENSIONS],
                         trackLast: 5
                     }
                 );
                 
-                const emoji = msg.guild.emojis.cache.get('1298977385068236852');
-                const message = getRandomLeadershipPhrase(emoji);
+                const emoji = msg.guild?.emojis.cache.get('1298977385068236852');
+                const message = getRandomLeadershipPhrase(emoji?.name || undefined);
 
                 await msg.reply({
                     content: message,
@@ -706,10 +703,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     goodIdea: {
         name: "good idea!",
         description: "GOOD IDEA",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/goodIdea/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -734,10 +731,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     quietRapi: {
         name: "quiet rapi",
         description: "QUIET RAPI",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/quietRapi/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -752,10 +749,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     entertainmentttt: {
         name: "entertainmentttt",
         description: "ENTERTAINMENTTTT",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/entertainmentttt/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_VIDEO_EXTENSIONS],
                 }
@@ -769,10 +766,10 @@ const chatCommands: { [key: string]: BotCommand } = {
     casualUnion: {
         name: "we casual",
         description: "CASUAL UNION?",
-        async execute(msg) {
+        async execute(msg: Message) {
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
                 "commands/casualUnion/",
-                msg.guild.id,
+                msg.guild?.id as string || 'UNKNOWN',
                 {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
@@ -897,10 +894,20 @@ function getRandomGoodIdeaPhrase() {
 }
 
 function loadCommands() {
+    // Load chat commands
     for (const key in chatCommands) {
-        console.log(`The following command was loaded successfully: ${key}`);
-        (bot as any).commands.set(chatCommands[key].name, chatCommands[key]);
+        if (Object.prototype.hasOwnProperty.call(chatCommands, key)) {
+            const command = chatCommands[key];
+            if (isMessageCommand(command)) {
+                console.log(`The following chat command was loaded successfully: ${key}`);
+                bot.commands.set(command.name, command);
+            } else {
+                console.warn(`Skipping invalid chat command: ${key} - Does not match MessageCommand interface`);
+            }
+        }
     }
+
+    // Load slash commands from files
     const commandsPath = path.join(__dirname, 'commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
 
@@ -908,14 +915,19 @@ function loadCommands() {
         const filePath = path.join(commandsPath, file);
         import(filePath).then(commandModule => {
             const command = commandModule.default;
-            bot.commands.set(command.data.name, command);
-            commands.push(command.data.toJSON());
-            console.log(`Loaded command: ${command.data.name}`);
-        }).catch(error => {
-            if (error instanceof Error) {
-                logError('GLOBAL', 'GLOBAL', error, `Loading command ${file}`);
+            if (isSlashCommand(command)) {
+                bot.commands.set(command.data.name, command);
+                commands.push(command.data.toJSON());
+                console.log(`Loaded slash command: ${command.data.name}`);
             } else {
-                logError('GLOBAL', 'GLOBAL', new Error(String(error)), `Loading command ${file}`);
+                console.warn(`Skipping invalid command in file ${file}: Command does not match SlashCommand interface`);
+            }
+        }).catch(error => {
+            const errorMessage = `Failed to load command from file ${file}`;
+            if (error instanceof Error) {
+                logError('GLOBAL', 'GLOBAL', error, errorMessage);
+            } else {
+                logError('GLOBAL', 'GLOBAL', new Error(String(error)), errorMessage);
             }
         });
     }
@@ -1446,8 +1458,8 @@ function handleMessages() {
 
         // Check if the command is a registered bot command
         const matchedCommand = bot.commands.get(command);
-        const chatCommand = Object.values(chatCommands).find(cmd => cmd.name.toLowerCase() === command);
-        if (!matchedCommand || !chatCommand || chatCommand.name.toLowerCase() !== command) {
+        const chatCommand = Object.values(chatCommands).find(cmd => (cmd as MessageCommand).name.toLowerCase() === command);
+        if (!matchedCommand || !chatCommand || (chatCommand as MessageCommand).name.toLowerCase() !== command) {
             console.log(`Ignoring message: The command is either a registered slash command or not recognized as a chat command. Guild: ${message.guild.name}, Author: ${message.author.tag}, Command: ${command}`);
             return;
         }
@@ -1490,15 +1502,6 @@ function handleMessages() {
             console.error("Error handling message update:", error);
         }
     });
-}
-
-/**
- * Interface for sensitive term configuration
- */
-interface SensitiveTerm {
-    term: string;
-    variations?: string[];
-    category: 'location' | 'event' | 'date';
 }
 
 /**
