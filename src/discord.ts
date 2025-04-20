@@ -689,7 +689,7 @@ const chatCommands: { [key: string]: Command } = {
                     msg.guild?.id as string || 'UNKNOWN',
                     {
                         extensions: [...DEFAULT_VIDEO_EXTENSIONS],
-                        trackLast: 5
+                        trackLast: 20
                     }
                 );
                 
