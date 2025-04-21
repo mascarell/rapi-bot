@@ -184,7 +184,7 @@ const chatCommands: { [key: string]: Command } = {
                 "commands/skillIssue/",
                 msg.guild?.id as string || 'UNKNOWN',
                 {
-                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
                 }
             );
             
