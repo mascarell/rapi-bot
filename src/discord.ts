@@ -668,8 +668,8 @@ const chatCommands: { [key: string]: Command } = {
                 "commands/plan/",
                 msg.guild?.id as string || 'UNKNOWN',
                 {
-                    extensions: ['.jpg', '.png'],
-                    trackLast: 5
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 8
                 }
             );
             
