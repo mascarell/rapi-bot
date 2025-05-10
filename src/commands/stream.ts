@@ -1,20 +1,18 @@
 import {
     SlashCommandBuilder,
     CommandInteraction,
-    ActivityType,
-    PresenceUpdateStatus,
     TextChannel,
 } from 'discord.js';
-import { setIsStreaming } from '../utils/util';
+import { checkStreamStatus } from '../utils/twitch';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('stream')
-        .setDescription("Update the bot's streaming activity or watch the current stream.")
+        .setDescription("Announce the current stream or check stream status.")
         .addStringOption((option) =>
             option.setName('url')
-                .setDescription('The URL of the stream')
-                .setRequired(false)
+                .setDescription('The URL of the stream (optional)')
+                .setRequired(true)
         ),
     async execute(interaction: CommandInteraction) {
         if (interaction.commandName !== 'stream') return;
@@ -24,37 +22,21 @@ module.exports = {
         const userId = '118451485221715977'; // Sefhi's user ID
 
         if (interaction.user.id === userId) {
-            if (url) {
-                interaction.client.user?.setPresence({
-                    status: 'online',
-                    activities: [{
-                        name: 'Loot & Waifus',
-                        type: ActivityType.Streaming,
-                        url: twitchLink,
-                    }],
-                });
-                setIsStreaming(true);
-                await interaction.reply({ content: `Streaming activity updated to: ${url}`, ephemeral: true });
-
+            const isLive = await checkStreamStatus(interaction.client);
+            
+            if (isLive) {
                 const channel = await interaction.client.channels.fetch(channelId) as TextChannel;
                 if (channel) {
-                    await channel.send(`@everyone Commander Sefhi is now streaming! You can watch on YouTube and Twitch here: ${url} ${twitchLink}`);
+                    await channel.send(`@everyone Commander Sefhi is now streaming! You can watch on Youtube or Twitch here: ${url} ${twitchLink}`);
                 } else {
                     console.error(`Channel with ID ${channelId} not found.`);
                 }
+                await interaction.reply({ content: 'Stream announcement sent!', ephemeral: true });
             } else {
-                setIsStreaming(false);
-                interaction.client.user?.setPresence({
-                    status: PresenceUpdateStatus.Online,
-                    activities: [{
-                        name: 'SIMULATION ROOM',
-                        type: ActivityType.Competing,
-                    }],
-                });
-                await interaction.reply({ content: 'Streaming activity cleared.', ephemeral: true });
+                await interaction.reply({ content: 'Stream is not currently live.', ephemeral: true });
             }
         } else {
-            await interaction.reply({ content: `Commander, you can watch the stream here: ${twitchLink}`, ephemeral: true });
+            await interaction.reply({ content: `Commander, you can watch the stream here: ${url} ${twitchLink}`, ephemeral: true });
         }
     },
 };

@@ -60,6 +60,8 @@ jobs:
             S3ACCESSKEYID=${{ secrets.S3_ACCESS_KEY_ID }}
             S3SECRETKEY=${{ secrets.S3_SECRET_KEY }}
             CDN_DOMAIN_URL=${{ secrets.CDN_DOMAIN_URL }}
+            TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
+            TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
             EOF
             
             echo "Running the new container..."

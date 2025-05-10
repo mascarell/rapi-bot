@@ -33,6 +33,7 @@ import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
 import { Command, MessageCommand } from './utils/interfaces/Command.interface';
 import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
+import { startStreamStatusCheck } from './utils/twitch';
 
 // Destructure only the necessary functions from util
 const {
@@ -1814,6 +1815,7 @@ async function initDiscordBot() {
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
+            startStreamStatusCheck(bot);
 
             const rest = new REST().setToken(DISCORD_TOKEN);
             console.log(`Client ID: ${CLIENT_ID}`);
