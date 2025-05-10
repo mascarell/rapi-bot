@@ -24,6 +24,7 @@
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.46",
     "node-schedule": "^2.1.1",
+    "twitch-api-v5": "^2.0.4",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
