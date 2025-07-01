@@ -34,6 +34,7 @@ import { Command, MessageCommand } from './utils/interfaces/Command.interface';
 import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
 import { startStreamStatusCheck } from './utils/twitch';
+import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
 
 // Destructure only the necessary functions from util
 const {
@@ -794,6 +795,127 @@ const chatCommands: { [key: string]: Command } = {
             });
         },
     },
+    rateLimit: {
+        name: "rate limit",
+        description: "Check your rate limit status for chat commands",
+        async execute(msg: Message) {
+            const userId = msg.author.id;
+            const guildId = msg.guild?.id || 'UNKNOWN';
+            const remainingCommands = ChatCommandRateLimiter.getRemainingCommands(guildId, userId);
+            const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
+            
+            const embed = new EmbedBuilder()
+                .setAuthor({ 
+                    name: 'Rapi BOT', 
+                    iconURL: RAPI_BOT_THUMBNAIL_URL 
+                })
+                .setTitle('Your Rate Limit Status')
+                .setColor(remainingCommands > 0 ? 0x2ECC71 : 0xE74C3C)
+                .addFields(
+                    { name: '🎯 Remaining Commands', value: `${remainingCommands}/3`, inline: true }
+                )
+                .setTimestamp()
+                .setFooter({   
+                    text: 'Rate limiting helps keep the chat clean!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL
+                });
+
+            if (remainingTime > 0) {
+                const remainingSeconds = Math.ceil(remainingTime / 1000);
+                embed.addFields({ name: '⏰ Time Until Reset', value: `${remainingSeconds} seconds`, inline: true });
+            } else {
+                embed.addFields({ name: '✅ Status', value: 'Rate limit window reset', inline: true });
+            }
+            
+            await msg.reply({
+                embeds: [embed]
+            });
+        },
+    },
+    rateLimitAdmin: {
+        name: "rate limit admin",
+        description: "Admin command to manage rate limits (requires admin role)",
+        async execute(msg: Message) {
+            if (!msg.guild || !msg.member) {
+                await msg.reply({
+                    content: "Commander, this command can only be used in a server."
+                });
+                return;
+            }
+            const guildId = msg.guild.id;
+            const adminRole = findRoleByName(msg.guild, "Admin");
+            const hasAdminRole = adminRole && msg.member.roles.cache.has(adminRole.id);
+            
+            if (!hasAdminRole) {
+                await msg.reply({
+                    content: "Commander, you don't have permission to use this command."
+                });
+                return;
+            }
+
+            const args = msg.content.split(' ').slice(1);
+            const action = args[0]?.toLowerCase();
+
+            switch (action) {
+                case 'stats': {
+                    const stats = ChatCommandRateLimiter.getUsageStats(guildId);
+                    
+                    const embed = new EmbedBuilder()
+                        .setAuthor({ 
+                            name: 'Rapi BOT', 
+                            iconURL: RAPI_BOT_THUMBNAIL_URL 
+                        })
+                        .setTitle('Rate Limit Statistics')
+                        .setColor(0x3498DB)
+                        .addFields(
+                            { name: '📊 Total Users', value: `${stats.totalUsers}`, inline: true },
+                            { name: '🎯 Active Users', value: `${stats.activeUsers}`, inline: true },
+                            { name: '📈 Total Usage', value: `${stats.totalUsage}`, inline: true }
+                        )
+                        .setTimestamp()
+                        .setFooter({   
+                            text: 'Rate limiting helps keep the chat clean!',
+                            iconURL: RAPI_BOT_THUMBNAIL_URL
+                        });
+
+                    // Add top violators if any exist
+                    if (stats.topViolators.length > 0) {
+                        const violatorList = stats.topViolators
+                            .map((violator, index) => `${index + 1}. <@${violator.userId}> - ${violator.attempts} attempts`)
+                            .join('\n');
+                        embed.addFields({
+                            name: '🚨 Top Violators (5+ attempts)',
+                            value: violatorList,
+                            inline: false
+                        });
+                    }
+
+                    await msg.reply({
+                        embeds: [embed]
+                    });
+                    break;
+                }
+                case 'reset': {
+                    const targetUserId = args[1];
+                    if (!targetUserId) {
+                        await msg.reply({
+                            content: "Usage: rate limit admin reset <user_id>"
+                        });
+                        return;
+                    }
+                    ChatCommandRateLimiter.resetUser(guildId, targetUserId);
+                    await msg.reply({
+                        content: `Rate limit reset for user ${targetUserId}`
+                    });
+                    break;
+                }
+                default:
+                    await msg.reply({
+                        content: "Available actions: stats, reset <user_id>"
+                    });
+            }
+        },
+    },
 };
 
 function getRandomQuietRapiPhrase() {
@@ -1450,6 +1572,12 @@ async function sendNikkeDailyResetMessage() {
     console.log("Scheduled daily interception message job to run every Nikke reset time.");
 }
 
+function getAllChatCommandNames(): string[] {
+    const messageCommands = Object.values(chatCommands)
+        .filter((cmd): cmd is MessageCommand => !('data' in cmd));
+    return messageCommands.map(cmd => cmd.name.toLowerCase());
+}
+
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
         if (message.mentions.everyone || !message.guild || !message.member || message.author.bot) return;
@@ -1462,7 +1590,10 @@ function handleMessages() {
         // Check for sensitive terms in the message
         await checkSensitiveTerms(message);
 
-        const strippedContent = message.content.toLowerCase().replace(/https?:\/\/[^\s]+/g, '').replace(/<@!?\d+>/g, '').trim();
+        // Ignore rapi-bot channel for rate limiting
+        const isRapiBotChannel = message.channel.type === ChannelType.GuildText && (message.channel as TextChannel).name === 'rapi-bot';
+
+        const strippedContent = message.content.toLowerCase().replace(/https?:\/\/[\S]+/g, '').replace(/<@!?\d+>/g, '').trim();
         const args = message.content.startsWith(PRE) 
             ? message.content.slice(PRE.length).trim().split(/\s+/) 
             : [strippedContent];
@@ -1470,10 +1601,16 @@ function handleMessages() {
 
         if (!command) return;
 
+        // Dynamically get the list of chat command names
+        const allChatCommandNames = getAllChatCommandNames();
+        const isChatCommand = allChatCommandNames.includes(command);
+
         // Check if the command is a registered bot command
         const matchedCommand = bot.commands.get(command);
-        const chatCommand = Object.values(chatCommands).find(cmd => (cmd as MessageCommand).name.toLowerCase() === command);
-        if (!matchedCommand || !chatCommand || (chatCommand as MessageCommand).name.toLowerCase() !== command) {
+        const messageCommands = Object.values(chatCommands)
+            .filter((cmd): cmd is MessageCommand => !('data' in cmd));
+        const chatCommand = messageCommands.find(cmd => cmd.name.toLowerCase() === command);
+        if (!matchedCommand || !chatCommand || chatCommand.name.toLowerCase() !== command) {
             console.log(`Ignoring message: The command is either a registered slash command or not recognized as a chat command. Guild: ${message.guild.name}, Author: ${message.author.tag}, Command: ${command}`);
             return;
         }
@@ -1485,8 +1622,22 @@ function handleMessages() {
             const hasIgnoredRole = ignoredRole && message.member.roles.cache.has(ignoredRole.id);
             const hasContentCreatorRole = contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id);
 
-            if (isMessageCommand(matchedCommand)) {  // Add type guard check
-                if (command === "content" && hasContentCreatorRole) {
+            // Rate limit all chat commands (except in rapi-bot channel)
+            if (isChatCommand && !isRapiBotChannel) {
+                const guildId = message.guild.id;
+                const userId = message.author.id;
+                if (!ChatCommandRateLimiter.check(guildId, userId)) {
+                    const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
+                    const remainingSeconds = Math.ceil(remainingTime / 1000);
+                    await message.reply({
+                        content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again.`
+                    });
+                    return;
+                }
+            }
+
+            if (isMessageCommand(matchedCommand) && isMessageCommand(chatCommand)) {  // Add type guard check
+                if (matchedCommand.name === "content" && hasContentCreatorRole) {
                     await matchedCommand.execute(message, args);
                 } else if (!hasIgnoredRole) {
                     await matchedCommand.execute(message, args);
@@ -1803,6 +1954,9 @@ function playNextSong(guildId: string) {
 
 async function initDiscordBot() {
     loadCommands();
+    
+    // Initialize chat command rate limiter
+    ChatCommandRateLimiter.init();
 
     bot.once(Events.ClientReady, async () => {
         try {

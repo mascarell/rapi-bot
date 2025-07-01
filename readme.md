@@ -10,6 +10,41 @@ The Loot and Waifus Bot is a Discord bot designed to manage daily resets and pro
 - **24/7 Music Playback**: Connects to a voice channel to play music continuously from a specified folder.
 - **Command Responses**: Responds to specific text commands with images, videos, or text messages.
 - **Role and Channel Management**: Interacts with specific roles and channels to provide tailored experiences.
+- **Chat Command Rate Limiting**: Prevents spam by limiting users to 3 chat commands per hour per guild.
+
+## Chat Command Rate Limiting
+
+### TLDR
+
+- **Limit**: 3 chat commands per hour per user per guild
+- **Scope**: All chat commands are automatically rate limited (except in #rapi-bot channel)
+- **Violator Tracking**: Users with 5+ attempts are tracked as violators
+- **Commands**: 
+  - `rate limit` - Check your status (embed)
+  - `rate limit admin stats` - View guild stats with top violators (Admin only)
+  - `rate limit admin reset <user_id>` - Reset user limit (Admin only)
+
+### How It Works
+
+- Tracks usage per user per guild (not global)
+- Ignores #rapi-bot channel (allows unlimited spam there)
+- Automatically cleans up expired data every 2 hours
+- Shows remaining time when limit is exceeded
+- Tracks violators (users who attempt 5+ commands)
+- Uses embeds for better visual presentation
+- Logs all rate limit events to console
+
+### Configuration
+
+Edit `src/utils/chatCommandRateLimiter.ts` to change limits:
+
+```typescript
+export const CHAT_COMMAND_RATE_LIMIT = {
+    maxCommands: 3,        // Commands per hour
+    windowMs: 60 * 60 * 1000,       // 1 hour
+    cleanupIntervalMs: 2 * 60 * 60 * 1000 // 2 hours
+} as const;
+```
 
 ## Prerequisites
 
