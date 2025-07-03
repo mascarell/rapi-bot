@@ -20,18 +20,19 @@ The Loot and Waifus Bot is a Discord bot designed to manage daily resets and pro
 - **Scope**: All chat commands are automatically rate limited (except in #rapi-bot channel)
 - **Violator Tracking**: Users with 5+ attempts are tracked as violators
 - **Commands**: 
-  - `rate limit` - Check your status (embed)
-  - `rate limit admin stats` - View guild stats with top violators (Admin only)
-  - `rate limit admin reset <user_id>` - Reset user limit (Admin only)
+  - `/spam check` - Check your status (ephemeral embed)
+  - `/spam stats` - View guild stats with top violators (Mods/King only)
+  - `/spam reset <user>` - Reset user limit (Mods/King only)
 
 ### How It Works
 
 - Tracks usage per user per guild (not global)
 - Ignores #rapi-bot channel (allows unlimited spam there)
 - Automatically cleans up expired data every 2 hours
-- Shows remaining time when limit is exceeded
+- Shows temporary warning messages (auto-deleted after 5 seconds)
 - Tracks violators (users who attempt 5+ commands)
-- Uses embeds for better visual presentation
+- Uses slash commands with ephemeral responses
+- Requires Mods or King role for admin functions
 - Logs all rate limit events to console
 
 ### Configuration

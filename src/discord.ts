@@ -795,127 +795,7 @@ const chatCommands: { [key: string]: Command } = {
             });
         },
     },
-    rateLimit: {
-        name: "rate limit",
-        description: "Check your rate limit status for chat commands",
-        async execute(msg: Message) {
-            const userId = msg.author.id;
-            const guildId = msg.guild?.id || 'UNKNOWN';
-            const remainingCommands = ChatCommandRateLimiter.getRemainingCommands(guildId, userId);
-            const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
-            
-            const embed = new EmbedBuilder()
-                .setAuthor({ 
-                    name: 'Rapi BOT', 
-                    iconURL: RAPI_BOT_THUMBNAIL_URL 
-                })
-                .setTitle('Your Rate Limit Status')
-                .setColor(remainingCommands > 0 ? 0x2ECC71 : 0xE74C3C)
-                .addFields(
-                    { name: '🎯 Remaining Commands', value: `${remainingCommands}/3`, inline: true }
-                )
-                .setTimestamp()
-                .setFooter({   
-                    text: 'Rate limiting helps keep the chat clean!',
-                    iconURL: RAPI_BOT_THUMBNAIL_URL
-                });
 
-            if (remainingTime > 0) {
-                const remainingSeconds = Math.ceil(remainingTime / 1000);
-                embed.addFields({ name: '⏰ Time Until Reset', value: `${remainingSeconds} seconds`, inline: true });
-            } else {
-                embed.addFields({ name: '✅ Status', value: 'Rate limit window reset', inline: true });
-            }
-            
-            await msg.reply({
-                embeds: [embed]
-            });
-        },
-    },
-    rateLimitAdmin: {
-        name: "rate limit admin",
-        description: "Admin command to manage rate limits (requires admin role)",
-        async execute(msg: Message) {
-            if (!msg.guild || !msg.member) {
-                await msg.reply({
-                    content: "Commander, this command can only be used in a server."
-                });
-                return;
-            }
-            const guildId = msg.guild.id;
-            const adminRole = findRoleByName(msg.guild, "Admin");
-            const hasAdminRole = adminRole && msg.member.roles.cache.has(adminRole.id);
-            
-            if (!hasAdminRole) {
-                await msg.reply({
-                    content: "Commander, you don't have permission to use this command."
-                });
-                return;
-            }
-
-            const args = msg.content.split(' ').slice(1);
-            const action = args[0]?.toLowerCase();
-
-            switch (action) {
-                case 'stats': {
-                    const stats = ChatCommandRateLimiter.getUsageStats(guildId);
-                    
-                    const embed = new EmbedBuilder()
-                        .setAuthor({ 
-                            name: 'Rapi BOT', 
-                            iconURL: RAPI_BOT_THUMBNAIL_URL 
-                        })
-                        .setTitle('Rate Limit Statistics')
-                        .setColor(0x3498DB)
-                        .addFields(
-                            { name: '📊 Total Users', value: `${stats.totalUsers}`, inline: true },
-                            { name: '🎯 Active Users', value: `${stats.activeUsers}`, inline: true },
-                            { name: '📈 Total Usage', value: `${stats.totalUsage}`, inline: true }
-                        )
-                        .setTimestamp()
-                        .setFooter({   
-                            text: 'Rate limiting helps keep the chat clean!',
-                            iconURL: RAPI_BOT_THUMBNAIL_URL
-                        });
-
-                    // Add top violators if any exist
-                    if (stats.topViolators.length > 0) {
-                        const violatorList = stats.topViolators
-                            .map((violator, index) => `${index + 1}. <@${violator.userId}> - ${violator.attempts} attempts`)
-                            .join('\n');
-                        embed.addFields({
-                            name: '🚨 Top Violators (5+ attempts)',
-                            value: violatorList,
-                            inline: false
-                        });
-                    }
-
-                    await msg.reply({
-                        embeds: [embed]
-                    });
-                    break;
-                }
-                case 'reset': {
-                    const targetUserId = args[1];
-                    if (!targetUserId) {
-                        await msg.reply({
-                            content: "Usage: rate limit admin reset <user_id>"
-                        });
-                        return;
-                    }
-                    ChatCommandRateLimiter.resetUser(guildId, targetUserId);
-                    await msg.reply({
-                        content: `Rate limit reset for user ${targetUserId}`
-                    });
-                    break;
-                }
-                default:
-                    await msg.reply({
-                        content: "Available actions: stats, reset <user_id>"
-                    });
-            }
-        },
-    },
 };
 
 function getRandomQuietRapiPhrase() {
@@ -1629,9 +1509,21 @@ function handleMessages() {
                 if (!ChatCommandRateLimiter.check(guildId, userId)) {
                     const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
                     const remainingSeconds = Math.ceil(remainingTime / 1000);
-                    await message.reply({
-                        content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again.`
+                    
+                    // Send a temporary message that will be deleted after 5 seconds
+                    const warningMsg = await message.reply({
+                        content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.`
                     });
+                    
+                    // Delete the warning message after 5 seconds to reduce chat noise
+                    setTimeout(async () => {
+                        try {
+                            await warningMsg.delete();
+                        } catch (error) {
+                            console.log('Could not delete rate limit warning message (likely already deleted)');
+                        }
+                    }, 5000);
+                    
                     return;
                 }
             }
