@@ -10,12 +10,14 @@ export class ChatCommandRateLimiter {
     private static usage: Record<string, Record<string, number[]>> = {};
     // violators[guildId][userId] = total attempts (including blocked ones)
     private static violators: Record<string, Record<string, number>> = {};
+    // commandUsage[guildId][commandName] = count of times this command was used
+    private static commandUsage: Record<string, Record<string, number>> = {};
 
     static init(): void {
         setInterval(() => this.cleanup(), CHAT_COMMAND_RATE_LIMIT.cleanupIntervalMs);
     }
 
-    static check(guildId: string, userId: string): boolean {
+    static check(guildId: string, userId: string, commandName?: string): boolean {
         const now = Date.now();
         if (!this.usage[guildId]) this.usage[guildId] = {};
         if (!this.usage[guildId][userId]) this.usage[guildId][userId] = [];
@@ -24,6 +26,13 @@ export class ChatCommandRateLimiter {
         if (!this.violators[guildId]) this.violators[guildId] = {};
         if (!this.violators[guildId][userId]) this.violators[guildId][userId] = 0;
         this.violators[guildId][userId]++;
+        
+        // Track command-specific usage
+        if (commandName) {
+            if (!this.commandUsage[guildId]) this.commandUsage[guildId] = {};
+            if (!this.commandUsage[guildId][commandName]) this.commandUsage[guildId][commandName] = 0;
+            this.commandUsage[guildId][commandName]++;
+        }
         
         this.usage[guildId][userId] = this.usage[guildId][userId]
             .filter(time => now - time < CHAT_COMMAND_RATE_LIMIT.windowMs);
@@ -76,12 +85,14 @@ export class ChatCommandRateLimiter {
         totalUsage: number; 
         topViolators: Array<{userId: string, attempts: number}>;
         activeUsers: number;
+        mostSpammedCommands: Array<{command: string, count: number}>;
     } {
         if (!this.usage[guildId]) return { 
             totalUsers: 0, 
             totalUsage: 0, 
             topViolators: [],
-            activeUsers: 0
+            activeUsers: 0,
+            mostSpammedCommands: []
         };
         
         const totalUsers = Object.keys(this.usage[guildId]).length;
@@ -101,7 +112,14 @@ export class ChatCommandRateLimiter {
             .filter(times => times.some(time => now - time < CHAT_COMMAND_RATE_LIMIT.windowMs))
             .length;
         
-        return { totalUsers, totalUsage, topViolators, activeUsers };
+        // Get most spammed commands
+        const commandUsage = this.commandUsage[guildId] || {};
+        const mostSpammedCommands = Object.entries(commandUsage)
+            .map(([command, count]) => ({ command, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // Top 5 most spammed commands
+        
+        return { totalUsers, totalUsage, topViolators, activeUsers, mostSpammedCommands };
     }
 
     private static cleanup(): void {

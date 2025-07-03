@@ -1506,7 +1506,7 @@ function handleMessages() {
             if (isChatCommand && !isRapiBotChannel) {
                 const guildId = message.guild.id;
                 const userId = message.author.id;
-                if (!ChatCommandRateLimiter.check(guildId, userId)) {
+                if (!ChatCommandRateLimiter.check(guildId, userId, command)) {
                     const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
                     const remainingSeconds = Math.ceil(remainingTime / 1000);
                     
