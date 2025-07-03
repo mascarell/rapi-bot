@@ -35,6 +35,7 @@ import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
 import { startStreamStatusCheck } from './utils/twitch';
 import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
+import { getUptimeService } from './services/uptimeService';
 
 // Destructure only the necessary functions from util
 const {
@@ -1529,6 +1530,9 @@ function handleMessages() {
             }
 
             if (isMessageCommand(matchedCommand) && isMessageCommand(chatCommand)) {  // Add type guard check
+                // Increment command counter
+                getUptimeService().incrementCommands();
+                
                 if (matchedCommand.name === "content" && hasContentCreatorRole) {
                     await matchedCommand.execute(message, args);
                 } else if (!hasIgnoredRole) {
@@ -1733,6 +1737,8 @@ function handleSlashCommands() {
 
         try {
             if (isSlashCommand(command)) {  // Add type guard check
+                // Increment command counter
+                getUptimeService().incrementCommands();
                 await command.execute(interaction);
             }
         } catch (error) {

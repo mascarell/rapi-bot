@@ -10,42 +10,34 @@ The Loot and Waifus Bot is a Discord bot designed to manage daily resets and pro
 - **24/7 Music Playback**: Connects to a voice channel to play music continuously from a specified folder.
 - **Command Responses**: Responds to specific text commands with images, videos, or text messages.
 - **Role and Channel Management**: Interacts with specific roles and channels to provide tailored experiences.
-- **Chat Command Rate Limiting**: Prevents spam by limiting users to 3 chat commands per hour per guild.
+- **Hourly Rate Limiting**: Users are limited to 3 chat commands per hour, resetting at the top of every hour (UTC).
+- **/age Command**: Shows how long the bot has been running (system uptime).
+- **/spam Command**:
+  - `/spam check` shows your current spam status, including:
+    - Commands remaining
+    - Time until reset (top of the hour)
+    - Most used chat command
+    - Your usage rank
+    - Server average
+  - `/spam stats` (Moderator Only: requires 'mods' role or admin permission) shows:
+    - User activity
+    - Violation tracking
+    - System health
+    - Top violators
+    - Most spammed chat commands
+    - Recommendations
+  - `/spam reset` (Moderator Only) resets a user's rate limit in the current server.
 
-## Chat Command Rate Limiting
+## Permissions
 
-### TLDR
+- **Moderator commands** require the 'mods' role or Discord administrator permission.
+- The 'king' role is no longer required or checked.
 
-- **Limit**: 3 chat commands per hour per user per guild
-- **Scope**: All chat commands are automatically rate limited (except in #rapi-bot channel)
-- **Violator Tracking**: Users with 5+ attempts are tracked as violators
-- **Commands**: 
-  - `/spam check` - Check your status (ephemeral embed)
-  - `/spam stats` - View guild stats with top violators (Mods/King only)
-  - `/spam reset <user>` - Reset user limit (Mods/King only)
+## Notes
 
-### How It Works
-
-- Tracks usage per user per guild (not global)
-- Ignores #rapi-bot channel (allows unlimited spam there)
-- Automatically cleans up expired data every 2 hours
-- Shows temporary warning messages (auto-deleted after 5 seconds)
-- Tracks violators (users who attempt 5+ commands)
-- Uses slash commands with ephemeral responses
-- Requires Mods or King role for admin functions
-- Logs all rate limit events to console
-
-### Configuration
-
-Edit `src/utils/chatCommandRateLimiter.ts` to change limits:
-
-```typescript
-export const CHAT_COMMAND_RATE_LIMIT = {
-    maxCommands: 3,        // Commands per hour
-    windowMs: 60 * 60 * 1000,       // 1 hour
-    cleanupIntervalMs: 2 * 60 * 60 * 1000 // 2 hours
-} as const;
-```
+- All chat commands are dynamically rate-limited; no static list is maintained.
+- Rate limits reset for everyone at the top of each hour (UTC), not on a rolling window.
+- Stats and limits are tracked per server (guild) unless otherwise noted.
 
 ## Prerequisites
 
@@ -114,3 +106,7 @@ CLIENTID=your_discord_client_id
 - **Command Customization**: Add or modify commands by editing the files in the `src/commands` directory.
 
 For more detailed setup and configuration, refer to the official Discord documentation for bot setup and permissions.
+
+---
+
+For more details, see the code or use `/help` in Discord.

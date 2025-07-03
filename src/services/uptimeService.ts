@@ -11,6 +11,7 @@ export class UptimeService {
     private static instance: UptimeService;
     private startTime: number;
     private deploymentId: string;
+    private commandsExecuted: number = 0;
 
     private constructor() {
         this.startTime = Date.now();
@@ -42,6 +43,20 @@ export class UptimeService {
     }
 
     /**
+     * Increment command execution count
+     */
+    public incrementCommands(): void {
+        this.commandsExecuted++;
+    }
+
+    /**
+     * Get total commands executed
+     */
+    public getCommandsExecuted(): number {
+        return this.commandsExecuted;
+    }
+
+    /**
      * Get deployment information
      */
     public getDeploymentInfo() {
@@ -53,7 +68,8 @@ export class UptimeService {
             formattedUptime: this.formatDuration(uptime),
             startTime: this.startTime,
             startDate: startDate.toISOString(),
-            deploymentId: this.deploymentId
+            deploymentId: this.deploymentId,
+            commandsExecuted: this.commandsExecuted
         };
     }
 
@@ -92,6 +108,7 @@ export class UptimeService {
     public reset(): void {
         this.startTime = Date.now();
         this.deploymentId = this.generateDeploymentId();
+        this.commandsExecuted = 0;
     }
 }
 

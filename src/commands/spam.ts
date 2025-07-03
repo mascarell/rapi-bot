@@ -89,10 +89,21 @@ module.exports = {
         const userId = interaction.user.id;
         const remainingCommands = ChatCommandRateLimiter.getRemainingCommands(guild.id, userId);
         const remainingTime = ChatCommandRateLimiter.getRemainingTime(guild.id, userId);
-        
+        const stats = ChatCommandRateLimiter.getUsageStats(guild.id);
+        const hourKey = (new Date()).getUTCFullYear() + '-' + (new Date()).getUTCMonth() + '-' + (new Date()).getUTCDate() + '-' + (new Date()).getUTCHours();
+        const usageObj = (ChatCommandRateLimiter as any).usage?.[guild.id] || {};
+        const userUsage = usageObj[userId]?.hourKey === hourKey ? usageObj[userId].count : 0;
+        // Rank: sort all users by count descending, find index of this user
+        const allCounts = Object.values(usageObj).filter((u: any) => u.hourKey === hourKey).map((u: any) => u.count);
+        const sorted = [...allCounts].sort((a, b) => b - a);
+        const userRank = userUsage > 0 ? (sorted.indexOf(userUsage) + 1) : stats.totalUsers;
+        // Get most used command
+        const mostUsedCommand = stats.mostSpammedCommands.length > 0 ? stats.mostSpammedCommands[0] : null;
+        // Calculate server average
+        const serverAverage = stats.totalUsers > 0 ? (stats.totalUsage / stats.totalUsers).toFixed(1) : '0';
         const embed = new EmbedBuilder()
             .setColor(remainingCommands > 0 ? 0x00ff00 : 0xff0000)
-            .setTitle('🛡️ Rate Limit Status')
+            .setTitle('🛡️ Spam Status')
             .setDescription(`**Commander ${interaction.user}**, here's your current status:`)
             .addFields(
                 { 
@@ -106,9 +117,19 @@ module.exports = {
                     inline: true 
                 },
                 {
-                    name: 'ℹ️ Rate Limit Info',
-                    value: `• **${CHAT_COMMAND_RATE_LIMIT.maxCommands} commands per hour**\n• Resets automatically\n• Per-guild tracking`,
-                    inline: false
+                    name: '🔥 Most Used Chat Command',
+                    value: mostUsedCommand ? `"${mostUsedCommand.command}" (${mostUsedCommand.count} times)` : 'None yet',
+                    inline: true
+                },
+                {
+                    name: '🏆 Your Usage Rank',
+                    value: `#${userRank} of ${stats.totalUsers} users`,
+                    inline: true
+                },
+                {
+                    name: '📈 Server Average',
+                    value: `${serverAverage} commands/user`,
+                    inline: true
                 }
             )
             .setTimestamp()
@@ -116,7 +137,6 @@ module.exports = {
                 text: 'Stay safe on the surface, Commander!', 
                 iconURL: interaction.client.user?.displayAvatarURL() 
             });
-
         await interaction.reply({ embeds: [embed], ephemeral: true });
     },
 
@@ -130,12 +150,12 @@ module.exports = {
         // Check for admin permissions
         const member = await guild.members.fetch(interaction.user.id);
         const hasAdminRole = member.roles.cache.some((role: Role) => 
-            role.name.toLowerCase() === 'mods' || role.name.toLowerCase() === 'king'
+            role.name.toLowerCase() === 'mods'
         );
         
         if (!hasAdminRole && !member.permissions.has(PermissionFlagsBits.Administrator)) {
             await interaction.reply({ 
-                content: 'Commander, you need administrator permissions or the "mods"/"king" role to view statistics.', 
+                content: 'Commander, you need administrator permissions or the "mods" role to view statistics.', 
                 ephemeral: true 
             });
             return;
@@ -149,8 +169,8 @@ module.exports = {
         
         const embed = new EmbedBuilder()
             .setColor(0x0099ff)
-            .setTitle('📈 Spam Protection Statistics')
-            .setDescription(`**Comprehensive analysis for ${guild.name}**`)
+            .setTitle('📈 Spam Protection Statistics (Moderator Only)')
+            .setDescription(`**Comprehensive analysis for ${guild.name}**\n\n*Moderator Only: These stats are visible to users with the 'mods' role.*`)
             .addFields(
                 {
                     name: '👥 User Activity',
@@ -223,12 +243,12 @@ module.exports = {
         // Check for admin permissions
         const member = await guild.members.fetch(interaction.user.id);
         const hasAdminRole = member.roles.cache.some((role: Role) => 
-            role.name.toLowerCase() === 'mods' || role.name.toLowerCase() === 'king'
+            role.name.toLowerCase() === 'mods'
         );
         
         if (!hasAdminRole && !member.permissions.has(PermissionFlagsBits.Administrator)) {
             await interaction.reply({ 
-                content: 'Commander, you need administrator permissions or the "mods"/"king" role to reset rate limits.', 
+                content: 'Commander, you need administrator permissions or the "mods" role to reset rate limits.', 
                 ephemeral: true 
             });
             return;
