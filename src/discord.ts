@@ -34,6 +34,8 @@ import { Command, MessageCommand } from './utils/interfaces/Command.interface';
 import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
 import { startStreamStatusCheck } from './utils/twitch';
+import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
+import { getUptimeService } from './services/uptimeService';
 
 // Destructure only the necessary functions from util
 const {
@@ -794,6 +796,7 @@ const chatCommands: { [key: string]: Command } = {
             });
         },
     },
+
 };
 
 function getRandomQuietRapiPhrase() {
@@ -1450,6 +1453,12 @@ async function sendNikkeDailyResetMessage() {
     console.log("Scheduled daily interception message job to run every Nikke reset time.");
 }
 
+function getAllChatCommandNames(): string[] {
+    const messageCommands = Object.values(chatCommands)
+        .filter((cmd): cmd is MessageCommand => !('data' in cmd));
+    return messageCommands.map(cmd => cmd.name.toLowerCase());
+}
+
 function handleMessages() {
     bot.on("messageCreate", async (message) => {
         if (message.mentions.everyone || !message.guild || !message.member || message.author.bot) return;
@@ -1462,7 +1471,10 @@ function handleMessages() {
         // Check for sensitive terms in the message
         await checkSensitiveTerms(message);
 
-        const strippedContent = message.content.toLowerCase().replace(/https?:\/\/[^\s]+/g, '').replace(/<@!?\d+>/g, '').trim();
+        // Ignore rapi-bot channel for rate limiting
+        const isRapiBotChannel = message.channel.type === ChannelType.GuildText && (message.channel as TextChannel).name === 'rapi-bot';
+
+        const strippedContent = message.content.toLowerCase().replace(/https?:\/\/[\S]+/g, '').replace(/<@!?\d+>/g, '').trim();
         const args = message.content.startsWith(PRE) 
             ? message.content.slice(PRE.length).trim().split(/\s+/) 
             : [strippedContent];
@@ -1470,10 +1482,16 @@ function handleMessages() {
 
         if (!command) return;
 
+        // Dynamically get the list of chat command names
+        const allChatCommandNames = getAllChatCommandNames();
+        const isChatCommand = allChatCommandNames.includes(command);
+
         // Check if the command is a registered bot command
         const matchedCommand = bot.commands.get(command);
-        const chatCommand = Object.values(chatCommands).find(cmd => (cmd as MessageCommand).name.toLowerCase() === command);
-        if (!matchedCommand || !chatCommand || (chatCommand as MessageCommand).name.toLowerCase() !== command) {
+        const messageCommands = Object.values(chatCommands)
+            .filter((cmd): cmd is MessageCommand => !('data' in cmd));
+        const chatCommand = messageCommands.find(cmd => cmd.name.toLowerCase() === command);
+        if (!matchedCommand || !chatCommand || chatCommand.name.toLowerCase() !== command) {
             console.log(`Ignoring message: The command is either a registered slash command or not recognized as a chat command. Guild: ${message.guild.name}, Author: ${message.author.tag}, Command: ${command}`);
             return;
         }
@@ -1485,8 +1503,48 @@ function handleMessages() {
             const hasIgnoredRole = ignoredRole && message.member.roles.cache.has(ignoredRole.id);
             const hasContentCreatorRole = contentCreatorRole && message.member.roles.cache.has(contentCreatorRole.id);
 
-            if (isMessageCommand(matchedCommand)) {  // Add type guard check
-                if (command === "content" && hasContentCreatorRole) {
+            // Rate limit all chat commands (except in rapi-bot channel)
+            if (isChatCommand && !isRapiBotChannel) {
+                const guildId = message.guild.id;
+                const userId = message.author.id;
+                if (!ChatCommandRateLimiter.check(guildId, userId, command)) {
+                    const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
+                    const remainingSeconds = Math.ceil(remainingTime / 1000);
+                    // Check for excessive violations
+                    const violatorCount = (ChatCommandRateLimiter as any).violators?.[guildId]?.[userId] || 0;
+                    if (violatorCount >= 8) {
+                        // Timeout user for 5 minutes (300,000 ms)
+                        try {
+                            await message.member?.timeout(300000, 'Spamming chat commands (8+ violations in 1 hour)');
+                            await message.reply({
+                                content: `Commander ${message.author}, you have been timed out for 5 minutes due to excessive spam violations.`,
+                            });
+                        } catch (err) {
+                            console.error('Failed to timeout user:', err);
+                        }
+                        return;
+                    }
+                    // Send a temporary message that will be deleted after 5 seconds
+                    const warningMsg = await message.reply({
+                        content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.\n\nUse <#${message.guild.channels.cache.find(channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot')?.id || 'unknown'}> for unlimited commands.`
+                    });
+                    // Delete the warning message after 5 seconds to reduce chat noise
+                    setTimeout(async () => {
+                        try {
+                            await warningMsg.delete();
+                        } catch (error) {
+                            console.log('Could not delete rate limit warning message (likely already deleted)');
+                        }
+                    }, 5000);
+                    return;
+                }
+            }
+
+            if (isMessageCommand(matchedCommand) && isMessageCommand(chatCommand)) {  // Add type guard check
+                // Increment command counter
+                getUptimeService().incrementCommands();
+                
+                if (matchedCommand.name === "content" && hasContentCreatorRole) {
                     await matchedCommand.execute(message, args);
                 } else if (!hasIgnoredRole) {
                     await matchedCommand.execute(message, args);
@@ -1690,6 +1748,8 @@ function handleSlashCommands() {
 
         try {
             if (isSlashCommand(command)) {  // Add type guard check
+                // Increment command counter
+                getUptimeService().incrementCommands();
                 await command.execute(interaction);
             }
         } catch (error) {
@@ -1803,6 +1863,9 @@ function playNextSong(guildId: string) {
 
 async function initDiscordBot() {
     loadCommands();
+    
+    // Initialize chat command rate limiter
+    ChatCommandRateLimiter.init();
 
     bot.once(Events.ClientReady, async () => {
         try {
