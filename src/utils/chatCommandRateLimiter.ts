@@ -139,9 +139,14 @@ export class ChatCommandRateLimiter {
             Object.keys(this.usage[guildId]).forEach(userId => {
                 if (this.usage[guildId][userId].hourKey !== hourKey) {
                     delete this.usage[guildId][userId];
+                    // Also reset violator count for this user
+                    if (this.violators[guildId]) {
+                        delete this.violators[guildId][userId];
+                    }
                 }
             });
             if (Object.keys(this.usage[guildId]).length === 0) delete this.usage[guildId];
+            if (this.violators[guildId] && Object.keys(this.violators[guildId]).length === 0) delete this.violators[guildId];
         });
     }
 } 

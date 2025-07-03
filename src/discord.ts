@@ -1510,12 +1510,24 @@ function handleMessages() {
                 if (!ChatCommandRateLimiter.check(guildId, userId, command)) {
                     const remainingTime = ChatCommandRateLimiter.getRemainingTime(guildId, userId);
                     const remainingSeconds = Math.ceil(remainingTime / 1000);
-                    
+                    // Check for excessive violations
+                    const violatorCount = (ChatCommandRateLimiter as any).violators?.[guildId]?.[userId] || 0;
+                    if (violatorCount >= 8) {
+                        // Timeout user for 5 minutes (300,000 ms)
+                        try {
+                            await message.member?.timeout(300000, 'Spamming chat commands (8+ violations in 1 hour)');
+                            await message.reply({
+                                content: `Commander ${message.author}, you have been timed out for 5 minutes due to excessive spam violations.`,
+                            });
+                        } catch (err) {
+                            console.error('Failed to timeout user:', err);
+                        }
+                        return;
+                    }
                     // Send a temporary message that will be deleted after 5 seconds
                     const warningMsg = await message.reply({
                         content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.\n\nUse <#${message.guild.channels.cache.find(channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot')?.id || 'unknown'}> for unlimited commands.`
                     });
-                    
                     // Delete the warning message after 5 seconds to reduce chat noise
                     setTimeout(async () => {
                         try {
@@ -1524,7 +1536,6 @@ function handleMessages() {
                             console.log('Could not delete rate limit warning message (likely already deleted)');
                         }
                     }, 5000);
-                    
                     return;
                 }
             }

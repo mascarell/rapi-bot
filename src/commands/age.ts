@@ -19,35 +19,21 @@ module.exports = {
             const guildId = interaction.guildId;
             const serverCommands = guildId ? ChatCommandRateLimiter.getGuildCommandCount(guildId) : 0;
             const globalCommands = ChatCommandRateLimiter.getGlobalCommandCount();
+            const startedAt = new Date(deploymentInfo.startTime).toLocaleString();
             
             const embed = new EmbedBuilder()
                 .setColor(0x00ff00)
                 .setTitle('System Uptime')
                 .setDescription(`I have been running for ${deploymentInfo.formattedUptime}!`)
                 .addFields(
-                    {
-                        name: '📅 Started At',
-                        value: new Date(deploymentInfo.startTime).toLocaleString(),
-                        inline: false
-                    },
-                    {
-                        name: '⚡ Commands Executed (This Server)',
-                        value: serverCommands.toLocaleString(),
-                        inline: true
-                    },
-                    {
-                        name: '🌐 Servers Connected',
-                        value: serverCount.toString(),
-                        inline: true
-                    },
-                    {
-                        name: '🌍 Commands Executed (Global)',
-                        value: globalCommands.toLocaleString(),
-                        inline: true
-                    }
+                    { name: '📅 Started At', value: startedAt, inline: true },
+                    { name: '⚡ Commands (Server)', value: `**${serverCommands.toLocaleString()}**`, inline: true },
+                    { name: '\u200B', value: '\u200B', inline: true }, // Blank field to force new row
+                    { name: '🌐 Servers Connected', value: `**${serverCount}**`, inline: true },
+                    { name: '🌍 Commands (Global)', value: `**${globalCommands.toLocaleString()}**`, inline: true }
                 )
                 .setFooter({ 
-                    text: 'Stats are for this server unless otherwise specified. Stay safe on the surface, Commander!', 
+                    text: 'Stay safe on the surface, Commander!', 
                     iconURL: interaction.client.user?.displayAvatarURL() 
                 })
                 .setTimestamp();
