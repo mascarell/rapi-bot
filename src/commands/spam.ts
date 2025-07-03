@@ -12,29 +12,10 @@ import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCo
 const RAPI_BOT_THUMBNAIL_URL = process.env.CDN_DOMAIN_URL + '/assets/rapi-bot-thumbnail.jpg';
 
 /**
- * Spam Management Command
- * 
- * This command provides comprehensive spam control and monitoring functionality for chat commands.
- * It allows users to check their rate limit status and administrators to view detailed statistics
- * about command usage patterns and violators.
- * 
- * Features:
- * - Personal rate limit status checking
- * - Administrative statistics with detailed metrics
- * - Top violator tracking
- * - Most spammed command analysis
- * - System health monitoring
- * 
- * Rate Limit Configuration:
- * - 3 commands per hour per user per guild
- * - Violators tracked after 5+ attempts
- * - Automatic cleanup every 2 hours
- * 
- * @author Rapi Bot Development Team
- * @version 2.0.0
- * @since 2024-01-01
+ * Command export for Discord.js
+ * Handles rate limit checking and admin management
  */
-const command = {
+module.exports = {
     data: new SlashCommandBuilder()
         .setName('spam')
         .setDescription('Manage and monitor chat command spam protection')
@@ -47,12 +28,6 @@ const command = {
             subcommand
                 .setName('stats')
                 .setDescription('View detailed spam statistics (Admin only)')
-                .addStringOption(option =>
-                    option
-                        .setName('guild')
-                        .setDescription('Guild ID to check stats for (defaults to current guild)')
-                        .setRequired(false)
-                )
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -166,8 +141,7 @@ const command = {
             return;
         }
 
-        const targetGuildId = interaction.options.getString('guild') || guild.id;
-        const stats = ChatCommandRateLimiter.getUsageStats(targetGuildId);
+        const stats = ChatCommandRateLimiter.getUsageStats(guild.id);
         
         // Calculate additional metrics
         const avgUsagePerUser = stats.totalUsers > 0 ? (stats.totalUsage / stats.totalUsers).toFixed(1) : '0';
@@ -325,6 +299,4 @@ const command = {
         
         return recommendations;
     }
-};
-
-export default command; 
+}; 

@@ -1512,7 +1512,7 @@ function handleMessages() {
                     
                     // Send a temporary message that will be deleted after 5 seconds
                     const warningMsg = await message.reply({
-                        content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.`
+                        content: `Commander ${message.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.\n\nUse <#${message.guild.channels.cache.find(channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot')?.id || 'unknown'}> for unlimited commands.`
                     });
                     
                     // Delete the warning message after 5 seconds to reduce chat noise
