@@ -1112,8 +1112,23 @@ function sendRandomMessages() {
             }
 
             try {
-                const message = getRandomRapiMessage();
-                const sentMessage = await channel.send(message);
+                const rapiMessage = getRandomRapiMessage();
+                const messageOptions: any = { content: rapiMessage.text };
+                
+                // Add image if configured for this message
+                if (rapiMessage.imageConfig) {
+                    const randomCdnMediaUrl = await getRandomCdnMediaUrl(
+                        rapiMessage.imageConfig.cdnPath,
+                        guild.id,
+                        {
+                            extensions: rapiMessage.imageConfig.extensions || [...DEFAULT_IMAGE_EXTENSIONS],
+                            trackLast: rapiMessage.imageConfig.trackLast || 5
+                        }
+                    );
+                    messageOptions.files = [randomCdnMediaUrl];
+                }
+                
+                const sentMessage = await channel.send(messageOptions);
                 const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
                 if (emoji) {
                     await sentMessage.react(emoji);

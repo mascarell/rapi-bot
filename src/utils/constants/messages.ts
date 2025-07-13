@@ -1,37 +1,67 @@
-export const rapiMessages = [
-    `You're too quiet, Commander, is everything alright?`,
-    `Commander, Anis was just joking with the Christmas present…`,
-    `Commander! When is the next mission?`,
-    `Please take care next time you go to the surface Commander.`,
-    `Don't push yourself too hard Commander!`,
-    `No matter what you think of us, we'll always be by your side.`,
-    `Commander, I'll protect you.`,
-    `Lap of discipline`,
-    `Is it time to break Syuen ribs again, Commander?`,
-    `I found a wet sock with a weird smell under your bed Commander, care to explain?`,
-    `Marian please stop wearing your underwear inside out...`,
-    `Commander, why do you bark every time you see Makima?`,
-    `Scarlet or Modernia? What kind of question is that Commander? The answer is obvious...`,
-    `I can't go out with you today Commander, there's a lot of paperwork to do.`,
-    `Commander... did you really marry Sakura?`,
-    `Those cookies were the snacks of Biscuit. Did you really ate them Commander?`,
-    `Commander, why do you have a picture of Andersen on your wallet?`,
-    `Commander, did you spend the night at Coin Rush again?`,
-    `Commander, people are saying you kissed Blanc and Noir... is that true?`,
-    `Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`,
-    `I guess Rosanna was right about idiots living longer.`,
-    `Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
-    `Waterpower? I don't know what that is Commander, but it sounds kinda weak.`,
-    `Commander! Is it Volt or Bolt?`,
-    `Commander, Admi was asking about Ruru, do you know where she is?`,
-    `The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`,
-    `Mast? Who's that? Doesn't ring a bell.`,
-    `Commander, did you really tackle Crow? How did you do it?`,
-    `Age is just a number? Commander, I'm calling ACPU`,
-    `What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`,
-    `Commander, what did you want to ask about Biscuit?`,
-    `Commander, 61% is more than enough, stop complaining.`,
-    `Commander, Ade said that I need to try a maid outfit, what do you think?`,
+// Define message types for better organization
+export interface RapiMessage {
+    text: string;
+    imageConfig?: {
+        cdnPath: string;
+        trackLast?: number;
+        extensions?: string[];
+    };
+}
+
+// Helper function to create messages with image configs
+export function createRapiMessage(text: string, imageConfig?: RapiMessage['imageConfig']): RapiMessage {
+    return { text, imageConfig };
+}
+
+// Helper function to create image configs
+export function createImageConfig(cdnPath: string, trackLast: number = 5, extensions: string[] = ['.gif', '.png', '.jpg', '.webp']) {
+    return { cdnPath, trackLast, extensions };
+}
+
+export const rapiMessages: RapiMessage[] = [
+    createRapiMessage(`You're too quiet, Commander, is everything alright?`),
+    createRapiMessage(`Commander, Anis was just joking with the Christmas present…`),
+    createRapiMessage(`Commander! When is the next mission?`),
+    createRapiMessage(`Please take care next time you go to the surface Commander.`),
+    createRapiMessage(`Don't push yourself too hard Commander!`),
+    createRapiMessage(`No matter what you think of us, we'll always be by your side.`),
+    createRapiMessage(`Commander, I'll protect you.`),
+    createRapiMessage(`Lap of discipline`),
+    createRapiMessage(`Is it time to break Syuen ribs again, Commander?`),
+    createRapiMessage(`I found a wet sock with a weird smell under your bed Commander, care to explain?`),
+    createRapiMessage(`Marian please stop wearing your underwear inside out...`),
+    createRapiMessage(`Commander, why do you bark every time you see Makima?`),
+    createRapiMessage(`Scarlet or Modernia? What kind of question is that Commander? The answer is obvious...`),
+    createRapiMessage(`I can't go out with you today Commander, there's a lot of paperwork to do.`),
+    createRapiMessage(`Commander... did you really marry Sakura?`),
+    createRapiMessage(`Those cookies were the snacks of Biscuit. Did you really ate them Commander?`),
+    createRapiMessage(`Commander, why do you have a picture of Andersen on your wallet?`),
+    createRapiMessage(`Commander, did you spend the night at Coin Rush again?`),
+    createRapiMessage(`Commander, people are saying you kissed Blanc and Noir... is that true?`),
+    createRapiMessage(`Neon said she saw you leaving room 805 at the hotel, what was that about Commander, did you have a meeting?`),
+    createRapiMessage(`I guess Rosanna was right about idiots living longer.`),
+    createRapiMessage(
+        `Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`,
+        createImageConfig("commands/swimsuit/", 5)
+    ),
+    createRapiMessage(`Waterpower? I don't know what that is Commander, but it sounds kinda weak.`),
+    createRapiMessage(`Commander! Is it Volt or Bolt?`),
+    createRapiMessage(`Commander, Admi was asking about Ruru, do you know where she is?`),
+    createRapiMessage(`The Golden Ship? Commander you are already old enough to believe in that stuff, please get back to work.`),
+    createRapiMessage(`Mast? Who's that? Doesn't ring a bell.`),
+    createRapiMessage(`Commander, did you really tackle Crow? How did you do it?`),
+    createRapiMessage(`Age is just a number? Commander, I'm calling ACPU`),
+    createRapiMessage(`What do you mean my voice sounds similar to someone else? Who are you thinking about Commander? sigh...`),
+    createRapiMessage(`Commander, what did you want to ask about Biscuit?`),
+    createRapiMessage(`Commander, 61% is more than enough, stop complaining.`),
+    createRapiMessage(
+        `Commander, it's so hot today... maybe I should wear something more... comfortable? *winks* What do you think, Commander?`,
+        createImageConfig("commands/swimsuit/", 5)
+    ),
+    createRapiMessage(
+        `Commander, Neon keeps saying this swimsuit makes me look... distracting. What do you think? *smirks*`,
+        createImageConfig("commands/swimsuit/", 5)
+    ),
 ];
 
 export const readNikkeMessages = [
