@@ -1113,12 +1113,40 @@ function sendRandomMessages() {
 
             try {
                 const message = getRandomRapiMessage();
-                const sentMessage = await channel.send(message);
-                const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
-                if (emoji) {
-                    await sentMessage.react(emoji);
+                const swimsuitMessage = `Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`;
+                
+                // Check if the swimsuit message was chosen
+                if (message === swimsuitMessage) {
+                    // Get a random image for the swimsuit message
+                    const randomCdnMediaUrl = await getRandomCdnMediaUrl(
+                        "commands/swimsuit/",
+                        guild.id,
+                        {
+                            extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                            trackLast: 5
+                        }
+                    );
+                    
+                    const sentMessage = await channel.send({
+                        content: message,
+                        files: [randomCdnMediaUrl]
+                    });
+                    
+                    const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
+                    if (emoji) {
+                        await sentMessage.react(emoji);
+                    } else {
+                        console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
+                    }
                 } else {
-                    console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
+                    // Send normal message without image
+                    const sentMessage = await channel.send(message);
+                    const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
+                    if (emoji) {
+                        await sentMessage.react(emoji);
+                    } else {
+                        console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
+                    }
                 }
             } catch (error) {
                 logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending random message');
