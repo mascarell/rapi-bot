@@ -1112,41 +1112,28 @@ function sendRandomMessages() {
             }
 
             try {
-                const message = getRandomRapiMessage();
-                const swimsuitMessage = `Commander! Anis said that this swimsuit is better than my normal outfit for fighting Raptures, what do you think?`;
+                const rapiMessage = getRandomRapiMessage();
+                const messageOptions: any = { content: rapiMessage.text };
                 
-                // Check if the swimsuit message was chosen
-                if (message === swimsuitMessage) {
-                    // Get a random image for the swimsuit message
+                // Add image if configured for this message
+                if (rapiMessage.imageConfig) {
                     const randomCdnMediaUrl = await getRandomCdnMediaUrl(
-                        "commands/swimsuit/",
+                        rapiMessage.imageConfig.cdnPath,
                         guild.id,
                         {
-                            extensions: [...DEFAULT_IMAGE_EXTENSIONS],
-                            trackLast: 5
+                            extensions: rapiMessage.imageConfig.extensions || [...DEFAULT_IMAGE_EXTENSIONS],
+                            trackLast: rapiMessage.imageConfig.trackLast || 5
                         }
                     );
-                    
-                    const sentMessage = await channel.send({
-                        content: message,
-                        files: [randomCdnMediaUrl]
-                    });
-                    
-                    const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
-                    if (emoji) {
-                        await sentMessage.react(emoji);
-                    } else {
-                        console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
-                    }
+                    messageOptions.files = [randomCdnMediaUrl];
+                }
+                
+                const sentMessage = await channel.send(messageOptions);
+                const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
+                if (emoji) {
+                    await sentMessage.react(emoji);
                 } else {
-                    // Send normal message without image
-                    const sentMessage = await channel.send(message);
-                    const emoji = channel.guild.emojis.cache.find(emoji => emoji.name === 'rapidd');
-                    if (emoji) {
-                        await sentMessage.react(emoji);
-                    } else {
-                        console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
-                    }
+                    console.warn(`Emoji 'rapidd' not found in guild ${guild.name}`);
                 }
             } catch (error) {
                 logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending random message');
