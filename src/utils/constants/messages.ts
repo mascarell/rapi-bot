@@ -55,8 +55,12 @@ export const rapiMessages: RapiMessage[] = [
     createRapiMessage(`Commander, what did you want to ask about Biscuit?`),
     createRapiMessage(`Commander, 61% is more than enough, stop complaining.`),
     createRapiMessage(
-        `Commander, Ade said that I need to try a maid outfit, what do you think?`,
-        createImageConfig("commands/maidOutfit/", 3)
+        `Commander, it's so hot today... maybe I should wear something more... comfortable? *winks* What do you think, Commander?`,
+        createImageConfig("commands/swimsuit/", 5)
+    ),
+    createRapiMessage(
+        `Commander, Neon keeps saying this swimsuit makes me look... distracting. What do you think? *smirks*`,
+        createImageConfig("commands/swimsuit/", 5)
     ),
 ];
 
