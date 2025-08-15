@@ -1784,10 +1784,19 @@ async function checkScarrowMention(message: Message): Promise<void> {
             // Try to find the salute emoji in the guild, leave blank if not found
             const saluteEmoji = message.guild.emojis.cache.find(emoji => emoji.name === 'salute') || '';
             
-            await message.reply({
+            const replyMessage = await message.reply({
                 content: `Thank You Commander <@${SCARROW_USER_ID}> ${saluteEmoji}`,
                 files: [randomCdnMediaUrl]
             });
+            
+            // React with salute emoji if available
+            if (saluteEmoji) {
+                try {
+                    await replyMessage.react(saluteEmoji);
+                } catch (error) {
+                    console.warn(`Failed to react with salute emoji: ${error}`);
+                }
+            }
         }
     } catch (error) {
         // Log error but don't throw to avoid breaking message processing
