@@ -1781,7 +1781,11 @@ async function checkScarrowMention(message: Message): Promise<void> {
                 }
             );
             
+            // Try to find the salute emoji in the guild, leave blank if not found
+            const saluteEmoji = message.guild.emojis.cache.find(emoji => emoji.name === 'salute') || '';
+            
             await message.reply({
+                content: `Thank You Commander <@${SCARROW_USER_ID}> ${saluteEmoji}`,
                 files: [randomCdnMediaUrl]
             });
         }
