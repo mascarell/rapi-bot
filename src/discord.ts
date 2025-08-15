@@ -1486,6 +1486,9 @@ function handleMessages() {
         // Check for sensitive terms in the message
         await checkSensitiveTerms(message);
 
+        // Check for scarrow mentions
+        await checkScarrowMention(message);
+
         // Ignore rapi-bot channel for rate limiting
         const isRapiBotChannel = message.channel.type === ChannelType.GuildText && (message.channel as TextChannel).name === 'rapi-bot';
 
@@ -1746,6 +1749,49 @@ async function handleError(message: Message, error: unknown): Promise<void> {
             guildName,
             error instanceof Error ? error : new Error(String(error)),
             'checkSensitiveTerms'
+        );
+    }
+}
+
+/**
+ * Checks if a message mentions scarrow or the specific user ID and responds with an image
+ * @param message - Discord message to check
+ * @returns Promise<void>
+ */
+async function checkScarrowMention(message: Message): Promise<void> {
+    try {
+        // Early exit conditions
+        if (!message.guild?.id || !message.member || message.author.bot) {
+            return;
+        }
+
+        const SCARROW_USER_ID = '526213488096313354';
+        const messageContent = message.content.toLowerCase();
+        
+        // Check if message mentions scarrow by name or by user ID
+        const mentionsScarrowByName = messageContent.includes('scarrow');
+        const mentionsScarrowById = message.mentions.users.has(SCARROW_USER_ID);
+        
+        if (mentionsScarrowByName || mentionsScarrowById) {
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
+                "commands/scarrow/",
+                message.guild.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                }
+            );
+            
+            await message.reply({
+                files: [randomCdnMediaUrl]
+            });
+        }
+    } catch (error) {
+        // Log error but don't throw to avoid breaking message processing
+        logError(
+            message.guild?.id || 'UNKNOWN',
+            message.guild?.name || 'UNKNOWN',
+            error instanceof Error ? error : new Error(String(error)),
+            'checkScarrowMention'
         );
     }
 }
