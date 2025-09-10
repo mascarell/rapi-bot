@@ -1,92 +1,107 @@
 import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { enforceChannelRestriction } from '../utils/channelRestrictions';
+
+const rapiBallResponses = [
+    // 8-ball style affirmative responses
+    `Affirmative, Commander. The probability of success is acceptable.`,
+    `Yes. Although Anis will probably find a way to mess it up.`,
+    `Certainly. Just don't let it go to your head.`,
+    `The data suggests... yes. Proceed with caution.`,
+    `Without a doubt. Even Neon could figure that one out.`,
+    `That's a definite yes.`,
+    `About as certain as my next headshot. Very.`,
+    `Tactical assessment complete. Proceed with confidence.`,
+    `All systems indicate success. Move forward, Commander.`,
+    
+    // 8-ball style negative responses
+    `Negative, Commander. That's about as likely as Syuen apologizing.`,
+    `No. And before you ask again, still no.`,
+    `My calculations show a 0.01% chance. So... no.`,
+    `Absolutely not. Did you hit your head during the last mission?`,
+    `The answer is no. Please return to your paperwork.`,
+    `Dorothy's already hacked the future. She says no.`,
+    `Even the Legendary Commander couldn't pull that off.`,
+    `The whole Goddess Squad together couldn't make that happen.`,
+    `You'd have better luck arm-wrestling a Tyrant.`,
+    `That's a hard no, Commander. Accept it and move on.`,
+    `Not happening. File that under 'impossible missions'.`,
+    
+    // 8-ball style uncertain responses
+    `Unclear. Try again when you're making more sense.`,
+    `Cannot compute. Your question lacks basic logic.`,
+    `Ask again later. I'm dealing with Anis's latest disaster.`,
+    `Insufficient data. Unlike your confidence levels.`,
+    `Reply hazy. Much like your strategic planning.`,
+    `Data analysis inconclusive. Reassess your parameters.`,
+    `The answer eludes even my enhanced capabilities.`,
+    
+    // 8-ball style maybe responses
+    `Perhaps. But don't get your hopes up, Commander.`,
+    `It's possible. About as possible as you completing paperwork on time.`,
+    `Maybe. The odds are better than your aim, at least.`,
+    `Potentially. Though I've seen you defy worse odds.`,
+    `50-50 chance. Like flipping a coin, but less reliable.`,
+    `The probability exists, however minimal.`,
+    `Not impossible, just highly improbable.`,
+    `I've seen stranger things happen on the Ark.`,
+    `Combat data suggests... it could go either way.`,
+    
+    // Sarcastic/Rapi personality responses
+    `Commander, that's classified as 'terrible idea #47' in my database.`,
+    `...All humans have questionable ideas. Yours are just more questionable.`,
+    `Signs point to you needing more coffee, Commander.`,
+    `My systems indicate... you already know the answer.`,
+    `Error 404: Common sense not found in your query.`,
+    `Processing... Processing... Still a bad idea.`,
+    `The Raptures have a better chance of surrendering.`,
+    `I'd rather face a Tyrant class alone.`,
+    `Commander, even Product 23 would say no to that.`,
+    `My tactical assessment: Absolutely not recommended.`,
+    `The Ark Central Government is more likely to be transparent.`,
+    `That's less likely than finding Marian's missing memories.`,
+    `I've run 1,000 simulations. None ended well.`,
+    `My analysis suggests you need a reality check, Commander.`,
+    `That would require defying several laws of physics.`,
+    `Even Shifty wouldn't bet on those odds.`,
+    `I'm detecting high levels of delusion in your question.`,
+    `Have you considered consulting a medical professional?`,
+    `That's about as tactical as Anis's spending habits.`,
+    `The probability matrix just laughed at your question.`,
+    `My enhanced processing power is wasted on this question.`,
+    `I've faced Heretics with better ideas than that.`,
+    `That plan has more holes than the Ark's security.`,
+    `Commander, your optimism is both admirable and concerning.`,
+    `I'd need to downgrade my intelligence to agree with that.`,
+    `Even in my most reckless state, I wouldn't attempt that.`,
+    `The answer is etched into the very fabric of 'no'.`,
+    `My combat instincts are screaming 'abort mission'.`,
+    `That's what we in the business call 'suicide with extra steps'.`,
+];
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('rapiball')
-        .setDescription('8ball, but its Rapi'),
+        .setDescription('Ask Rapi a question and receive her tactical assessment')
+        .addStringOption(option =>
+            option.setName('question')
+                .setDescription('Your question for Rapi')
+                .setRequired(true)),
     async execute(interaction: CommandInteraction) {
-        const responses = [
-            'Rapi says it is certain.',
-            'Rapi is decidedly so.',
-            'Rapi says without a doubt.',
-            'Rapi says yes - definitely.',
-            'Rapi says you may rely on it.',
-            'Rapi says as I see it, yes.',
-            'Rapi says most likely.',
-            'Rapi says outlook good.',
-            'Rapi says yes.',
-            'Rapi says signs point to yes.',
-            'Rapi says reply hazy, try again.',
-            'Rapi says ask again later.',
-            'Rapi says better not tell you now.',
-            'Rapi says cannot predict now.',
-            'Rapi says concentrate and ask again.',
-            'Rapi says don\'t count on it.',
-            'Rapi says my reply is no.',
-            'Rapi says my sources say no.',
-            'Rapi says outlook not so good.',
-            'Rapi says very doubtful.',
-            'Rapi says seggs = more child support',
-            'Rapi says no, you cannot have seggs with Anis',
-            'Rapi says Commander, that\'s classified information...',
-            'Rapi says *yawns* too sleepy to answer now',
-            'Rapi says this question needs tactical analysis',
-            'Rapi says let me check the Outpost records first',
-            'Rapi says that\'s above my clearance level',
-            'Rapi says focus on the mission instead',
-            'Rapi says ask me after maintenance',
-            'Rapi says the Ark archives say yes',
-            'Rapi says that\'s a negative, Commander',
-            'Rapi says Commander... that\'s kind of weird...',
-            'Rapi says maybe ask Shifty instead?',
-            'Rapi says *looks at you suspiciously*',
-            'Rapi says Commander, are you procrastinating again?',
-            'Rapi says did you finish your dailies first?',
-            'Rapi says *too busy gaming to answer*',
-            'Rapi says Commander, please be serious...',
-            'Rapi says *sighs* not this again Commander',
-            'Rapi says have you checked the latest mission briefing?',
-            'Rapi says let me consult with the squad first',
-            'Rapi says that\'s a tactical error, Commander',
-            'Rapi says Commander, shouldn\'t you be on patrol?',
-            'Rapi says *checks her comms device*... No',
-            'Rapi says that\'s not in the operation manual',
-            'Rapi says let me check with HQ',
-            'Rapi says the odds are in your favor.',
-            'Rapi says I\'ll need more data for that.',
-            'Rapi says the mission parameters are unclear.',
-            'Rapi says I\'ll get back to you on that.',
-            'Rapi says that\'s a strategic decision, Commander.',
-            'Rapi says I\'m not authorized to disclose that.',
-            'Rapi says let\'s keep our focus on the objective.',
-            'Rapi says I\'ll need to run a diagnostic first.',
-            'Rapi says that\'s a question for the higher-ups.',
-            'Rapi says I\'ll need to consult the archives.',
-            'Rapi says did you really just ask that?',
-            'Rapi says maybe if you level up first.',
-            'Rapi says I\'m not your personal guidebook.',
-            'Rapi says try using your brain, Commander.',
-            'Rapi says I\'m not a cheat code, you know.',
-            'Rapi says maybe if you grind a bit more.',
-            'Rapi says I\'m not here to hold your hand.',
-            'Rapi says you might want to rethink that strategy.',
-            'Rapi says I\'m not your in-game tutorial.',
-            'Rapi says maybe you should read the manual.',
-            'Rapi says Commander, are you sure you want to share Anis?',
-            'Rapi says maybe you should focus on your own mission, Commander.',
-            'Rapi says I heard Anis has been spending time with another Commander.',
-            'Rapi says maybe you should ask Anis about her other Commanders.',
-            'Rapi says Commander, are you feeling a bit left out?',
-            'Rapi says maybe Neon is busy with someone else right now.',
-            'Rapi says Commander, do you really want to know what Neon is up to?',
-            'Rapi says maybe Neon has her own secrets to keep.',
-            'Rapi says Commander, are you sure you can handle the truth about Neon?',
-            'Rapi says maybe Neon is exploring other options.',
-        ];
-        const responseIndex = Math.floor(Math.random() * responses.length);
-        const response = responses[responseIndex];
+        // Check channel restriction
+        const isRestricted = await enforceChannelRestriction(interaction, 'rapi-bot');
+        if (isRestricted) return;
+
+        // Get the user's question
+        const question = interaction.options.get('question')?.value as string;
+        
+        // Get a random response
+        const response = rapiBallResponses[Math.floor(Math.random() * rapiBallResponses.length)];
+        
+        // Build the response
+        const responseContent = `**Question:** ${question}\n\n **${response}**`;
+        
         await interaction.reply({
-            content: `<:literawooo:1056600445558210632> ${response}`,
+            content: responseContent,
             ephemeral: false,
         });
     },

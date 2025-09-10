@@ -5,3 +5,6 @@ export * from './constants/towerRotation';
 
 // Interfaces
 export * from './interfaces/voiceConnectionData.interface';
+
+// Utilities
+export * from './channelRestrictions';
