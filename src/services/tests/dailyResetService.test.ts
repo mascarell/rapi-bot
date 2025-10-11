@@ -281,4 +281,67 @@ describe('DailyResetService', () => {
             expect(afterSendSpy).toHaveBeenCalled();
         });
     });
+
+    describe('Dev Mode', () => {
+        it('should use dev mode interval when NODE_ENV is development', () => {
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'development';
+
+            const consoleSpy = vi.spyOn(console, 'log');
+
+            const service = new DailyResetService(mockBot, { games: [testConfig], devModeInterval: 5 });
+            service.initializeSchedules();
+
+            // Check that dev mode warning was logged
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringContaining('⚠️  DEV MODE: Daily reset messages will trigger every 5 minutes')
+            );
+
+            // Check that schedule description mentions dev mode
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringContaining('every 5 minutes (DEV MODE)')
+            );
+
+            process.env.NODE_ENV = originalEnv;
+        });
+
+        it('should use normal schedule when NODE_ENV is production', () => {
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
+
+            const consoleSpy = vi.spyOn(console, 'log');
+
+            const service = new DailyResetService(mockBot, { games: [testConfig] });
+            service.initializeSchedules();
+
+            // Check that dev mode warning was NOT logged
+            expect(consoleSpy).not.toHaveBeenCalledWith(
+                expect.stringContaining('⚠️  DEV MODE')
+            );
+
+            // Check that normal daily schedule was used
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringContaining('0 12 * * * (UTC)')
+            );
+
+            process.env.NODE_ENV = originalEnv;
+        });
+
+        it('should use custom dev mode interval if provided', () => {
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'development';
+
+            const consoleSpy = vi.spyOn(console, 'log');
+
+            const service = new DailyResetService(mockBot, { games: [testConfig], devModeInterval: 10 });
+            service.initializeSchedules();
+
+            // Check that custom interval was used
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringContaining('every 10 minutes')
+            );
+
+            process.env.NODE_ENV = originalEnv;
+        });
+    });
 });

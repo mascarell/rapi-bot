@@ -128,4 +128,11 @@ export interface DailyResetConfig {
  */
 export interface DailyResetServiceConfig {
     games: DailyResetConfig[];
+
+    /**
+     * Optional dev mode interval in minutes
+     * When NODE_ENV is 'development', schedules will use this interval instead of daily resets
+     * @default 5
+     */
+    devModeInterval?: number;
 }

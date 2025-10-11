@@ -11,10 +11,18 @@ export class DailyResetService {
     private bot: Client;
     private configs: DailyResetConfig[];
     private scheduledJobs: Map<string, schedule.Job> = new Map();
+    private devModeInterval: number;
+    private isDevelopment: boolean;
 
     constructor(bot: Client, config: DailyResetServiceConfig) {
         this.bot = bot;
         this.configs = config.games;
+        this.devModeInterval = config.devModeInterval || 5;
+        this.isDevelopment = process.env.NODE_ENV === 'development';
+
+        if (this.isDevelopment) {
+            console.log(`⚠️  DEV MODE: Daily reset messages will trigger every ${this.devModeInterval} minutes instead of daily schedules.`);
+        }
     }
 
     /**
@@ -30,14 +38,25 @@ export class DailyResetService {
      * Schedule a daily reset message for a specific game
      */
     private scheduleResetMessage(config: DailyResetConfig): void {
-        const cronTime = `${config.resetTime.minute} ${config.resetTime.hour} * * *`;
+        let cronTime: string;
+        let scheduleDescription: string;
+
+        if (this.isDevelopment) {
+            // Dev mode: Run every N minutes
+            cronTime = `*/${this.devModeInterval} * * * *`;
+            scheduleDescription = `every ${this.devModeInterval} minutes (DEV MODE)`;
+        } else {
+            // Production mode: Run at configured daily time
+            cronTime = `${config.resetTime.minute} ${config.resetTime.hour} * * *`;
+            scheduleDescription = `${cronTime} (${config.timezone})`;
+        }
 
         const job = schedule.scheduleJob(cronTime, async () => {
             await this.sendResetMessage(config);
         });
 
         this.scheduledJobs.set(config.game, job);
-        console.log(`Scheduled daily reset message for ${config.game} at ${cronTime} (${config.timezone})`);
+        console.log(`Scheduled daily reset message for ${config.game} at ${scheduleDescription}`);
     }
 
     /**
