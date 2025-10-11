@@ -36,6 +36,8 @@ import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
 import { startStreamStatusCheck } from './utils/twitch';
 import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
 import { getUptimeService } from './services/uptimeService';
+import { DailyResetService } from './services/dailyResetService';
+import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 
 // Destructure only the necessary functions from util
 const {
@@ -1145,328 +1147,8 @@ function sendRandomMessages() {
 }
 
 
-/**
- * Schedules and sends a daily reset message for the Blue Archive game.
- * The message includes a checklist of daily assignments for players.
- * 
- * The reset message is sent to a channel named "blue-archive" in each guild.
- * 
- * If the channel is not found, a log message is printed.
- * 
- * The message is sent as an embedded message with a title, description, fields, and an image.
- * The image is randomly selected from a set of CDN media keys.
- * 
- * If an error occurs while sending the message, it is logged using the logError function.
- * 
- * The reset time is set to 7:00 PM UTC.
- */
-async function sendBlueArchiveDailyResetMessage() {
-    const blueArchiveResetTime = moment.tz({ hour: 19, minute: 0 }, "UTC");
-    const cronTime = `${blueArchiveResetTime.minute()} ${blueArchiveResetTime.hour()} * * *`;
 
-    schedule.scheduleJob(cronTime, async () => {            
-        bot.guilds.cache.forEach(async (guild) => {
-            const channel = findChannelByName(guild, "blue-archive");
-            if (!channel) {
-                console.log(`Channel 'blue-archive' not found in server: ${guild.name}.`);
-                return;
-            }
-    
-            try {
-                const embed = new EmbedBuilder()
-                    .setAuthor({ 
-                        name: 'Rapi BOT', 
-                        iconURL: RAPI_BOT_THUMBNAIL_URL 
-                    })
-                    .setThumbnail(BLUE_ARCHIVE_LOGO_URL)
-                    .setTitle(`ATTENTION SENSEIS!`)
-                    .setDescription(
-                        `Server has been reset! Here's some of Today's **Daily Assignments** Checklist:\n`
-                    )
-                    .addFields(
-                        { name: '**Hard Mode**', value: 'Farm Hard Mode **If You Have Stamina**.' },
-                        { name: '**Stamina Usage**', value: 'Ensure you are **Burning ALL Your Stamina**.' },
-                        { name: '**Bounty Reward**', value: 'Clear the Bounty for the Rewards.' },
-                        { name: '**Be A Good Sensei**', value: 'Check on your **Students** at the Cafe.' },
-                        { name: '**Tactical Challenge Shop**', value: 'Buy Stamina from the Tactical Challenge Shop **If There are Double Rewards**.' },
-                        { name: '**Normal Shop**', value: 'Buy Materials and Balls from the Normal Shop.' },
-                    )
-                    .setColor(0x3498DB)
-                    .setTimestamp()
-                    .setFooter({   
-                        text: 'Sensei, please help me with my homework?',
-                        iconURL: RAPI_BOT_THUMBNAIL_URL
-                    });
 
-                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
-                    "dailies/blue-archive/",
-                    guild.id,
-                    {
-                        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
-                        trackLast: 10
-                    }
-                );
-                
-                embed.setImage(randomCdnMediaUrl);
-                    await channel.send({ 
-                        embeds: [embed],
-                    });
-            } catch (error) {
-                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending Blue Archive daily reset message');
-            }
-        });
-    });
-}
-
-/**
- * Schedules and sends a daily reset message for the Girls' Frontline 2 game.
- * The message includes a checklist of daily quests for players to complete.
- * 
- * The reset message is sent to a channel named "girls-frontline-2" in each guild.
- * If the channel is not found, a log message is printed.
- * 
- * The message is sent as an embedded message with a title, description, fields, and an image.
- * The image is randomly selected from a set of CDN media keys.
- * 
- * If an error occurs while sending the message, it is logged using the logError function.
- * 
- * The reset time is set to 9:00 AM UTC.
- */
-async function sendGFL2DailyResetMessage() {
-    const darkWinterDailyResetTime = moment.tz({ hour: 9, minute: 0 }, "UTC");
-    const cronTime = `${darkWinterDailyResetTime.minute()} ${darkWinterDailyResetTime.hour()} * * *`;
-
-    schedule.scheduleJob(cronTime, async () => {            
-        bot.guilds.cache.forEach(async (guild) => {
-            const channel = findChannelByName(guild, "girls-frontline-2");
-            if (!channel) {
-                console.log(`Channel 'girls-frontline-2' not found in server: ${guild.name}.`);
-                return;
-            }
-
-            try {                
-                
-                const embed = new EmbedBuilder()
-                    .setAuthor({ 
-                        name: 'Rapi BOT', 
-                        iconURL: RAPI_BOT_THUMBNAIL_URL 
-                    })
-                    .setThumbnail(GFL2_LOGO_URL)
-                    .setTitle(`ATTENTION DARKWINTER COMMANDERS!`)
-                    .setDescription(
-                        `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`
-                    )
-                    .addFields(
-                        { name: '**Gunsmoke Frontline**', value: 'Do Your **Daily Patrol** and **Gunsmoke Hits**!' },
-                        { name: '**Daily Free Gift Pack**', value: 'Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**' },
-                        { name: '**Daily Sign-in**', value: 'Complete Daily Sign-in' },
-                        { name: '**Dormitory**', value: 'Enter The Dormitory And **Check on Your WAIFU**' },
-                        { name: '**Supply Mission**', value: 'Clear 1 Supply Mission' },
-                        { name: '**Combat Simulation**', value: 'Clear 1 Combat Simulation (Don\'t Forgot about Combat Exercise!)' },
-                        { name: '**Intelligence Puzzles**', value: 'Consume 120 Intelligence Puzzles (Sweep your desired supply mission if you have the stamina to do so)' }
-                    )
-                    .setColor(0xE67E22)
-                    .setTimestamp()
-                    .setFooter({   
-                        text: 'Commander, ready for the next mission?',
-                        iconURL: RAPI_BOT_THUMBNAIL_URL
-                    });
-
-                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
-                    "dailies/girls-frontline-2/",
-                    guild.id,
-                    {
-                        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
-                        trackLast: 10
-                    }
-                );
-
-                embed.setImage(randomCdnMediaUrl);
-
-                await channel.send({ 
-                    embeds: [embed],
-                });
-            } catch (error) {
-                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending GFL2 daily reset message');
-            }
-        });
-    });
-}
-
-/**
- * Schedules and sends a daily reset message for the Nikke game.
- * The message includes a checklist of daily missions for players to complete.
- * 
- * The reset message is sent to a channel named "nikke" in each guild.
- * If the channel is not found, a log message is printed.
- * 
- * The message is sent as an embedded message with a title, description, fields, and an image.
- * The image is randomly selected from a set of CDN media keys.
- * 
- * If an error occurs while sending the message, it is logged using the logError function.
- * 
- * The reset time is set to 8:00 PM UTC.
- * 
- * The message also includes a reaction collector for the "🤢", "🤮", "🤒", and "😷" emojis.
- * If a reaction is collected, a random quiet Rapi phrase is sent to the channel.
- * 
- * The message also includes a message collector for the "good girl" keyword.
- * If the keyword is detected, the user is thanked and a "sefhistare:1124869893880283306" emoji is reacted to the message.
- */
-async function sendNikkeDailyResetMessage() {
-    const nikkeDailyResetTime = moment.tz({ hour: 20, minute: 0 }, "UTC");
-    const cronTime = `${nikkeDailyResetTime.minute()} ${nikkeDailyResetTime.hour()} * * *`;
-
-    schedule.scheduleJob(cronTime, async () => {
-        const currentDayOfYear = moment().dayOfYear();
-        const bosses = getBosses();
-        const bossName = bosses[currentDayOfYear % bosses.length];
-        const towerRotation = getTribeTowerRotation();
-        const currentDayOfWeek = new Date().getDay();
-
-        bot.guilds.cache.forEach(async (guild) => {
-            try {
-                const channel = findChannelByName(guild, "nikke");
-                if (!channel) {
-                    console.log(`Channel 'nikke' not found in server: ${guild.name}.`);
-                    return;
-                }
-
-                const role = findRoleByName(guild, "Nikke");
-                if (role) {
-                    await channel.send(`${role.toString()}`);
-                }
-                const embed = new EmbedBuilder()
-                    .setAuthor({ 
-                        name: 'Rapi BOT', 
-                        iconURL: RAPI_BOT_THUMBNAIL_URL 
-                    })
-                    .setThumbnail(NIKKE_LOGO_URL)
-                    .setTitle('ATTENTION COMMANDERS!')
-                    .setDescription(
-                        `Server has been reset! Here's some of Today's **Daily Missions** Checklist:\n`
-                    )
-                    .addFields(
-                        { name: '**Daily Free Package**', value: `Check **Cash Shop** and under **Oridinary Package Tab** under **Daily** For **Daily Free Package**` },
-                        { name: '**Advise Nikkes**', value: 'Go Talk To Your **WAIFUS**. Advise Nikkes 2 Time(s)'},
-                        { name: '**Social**', value: 'Send Social Points 1 Time(s). Support your **FRIENDS**'},
-                        { name: '**Tribe Tower**', value: `Tribe tower is open for **${towerRotation[currentDayOfWeek % towerRotation.length]}**.`},
-                        { name: '**Anomaly Interception**', value: '**Prioritize this over Special Interception**\n Clear Anomaly Interception 1 Time(s) if unlocked\n' },
-                        { name: '**Special Interception**', value: `Clear Special Interception 1 Time(s). We have to fight **${bossName}**` },
-                        { name: '**Simulation Room**', value: 'Challenge Simulation Room 1 Time(s)' },
-                        { name: '**Simulation Room: Overclock**', value: 'Clear Simulation Room: Overclock if you have not already' },
-                        { name: '**Outpost Bulletin Board**', value: 'Dispatch 3 Time(s)' },
-                        { name: '**Outpost Defense**', value: 'Claim Outpost Defense Rewards Twice' },
-                        { name: '**Outpost Defense**', value: 'Wipe Out 1 Time(s)' },                
-                    )
-                    .setColor(0x3498DB)
-                    .setTimestamp()
-                    .setFooter({   
-                        text: 'Stay safe on the surface, Commanders!',
-                        iconURL: RAPI_BOT_THUMBNAIL_URL
-                    });
-                    
-                const randomCdnMediaUrl = await getRandomCdnMediaUrl(
-                    "dailies/nikke/",
-                    guild.id,
-                    {
-                        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
-                        trackLast: 10
-                    }
-                );
-
-                embed.setImage(randomCdnMediaUrl);
-    
-                const sentEmbed = await channel.send({
-                    embeds: [embed]
-                });
-
-                // Create reaction collector for the embed message
-                const reactionFilter = (reaction: any, user: any) => {
-                    return ['🤢', '🤮', '🤒', '😷'].includes(reaction.emoji.name) && !user.bot;
-                };
-
-                const reactionCollector = sentEmbed.createReactionCollector({
-                    filter: reactionFilter,
-                    time: 15 * 1000 // 15 seconds
-                });
-
-                reactionCollector.on('collect', async (reaction, user) => {
-                    console.log(`Collected ${reaction.emoji.name} reaction from ${user.tag} on daily reset message in guild: ${guild.name}`);
-                    try {
-                        const message = getRandomQuietRapiPhrase();
-                        const randomCdnMediaUrl = await getRandomCdnMediaUrl(
-                            "commands/quietRapi/",
-                            guild.id,
-                            {
-                                extensions: [...DEFAULT_IMAGE_EXTENSIONS],
-                                trackLast: 10
-                            }
-                        );
-
-                        await channel.send({
-                            content: `<@${user.id}>, ${message}`,
-                            files: [randomCdnMediaUrl]
-                        });
-                    } catch (error) {
-                        logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Handling nauseated reaction');
-                    }
-                });
-
-                reactionCollector.on('end', collected => {
-                    console.log(`Reaction collector ended. Collected ${collected.size} reactions in guild: ${guild.name}`);
-                });
-
-                // Existing good girl collector
-                const messageCollector = channel.createMessageCollector({ 
-                    filter: (response: Message) => response.content.toLowerCase().includes("good girl") && !response.author.bot,
-                    time: 15 * 1000 // 15 seconds
-                });
-
-                let firstResponseHandled = false;
-
-                messageCollector.on('collect', async (m: Message) => {
-                    if (!firstResponseHandled) {
-                        firstResponseHandled = true;
-                        try {
-                            await m.react("❤");
-                            const thankYouMessages = [
-                                `Your swiftness is unmatched, Commander ${m.author}. It's impressive.`,
-                                `Your alertness honors us all, Commander ${m.author}.`,
-                                `Your swift response is commendable, Commander ${m.author}.`
-                            ];
-                            await m.reply(thankYouMessages[Math.floor(Math.random() * thankYouMessages.length)]);
-                        } catch (error) {
-                            if (error instanceof Error) {
-                                logError(guild.id, guild.name, error, 'Handling first response');
-                            } else {
-                                logError(guild.id, guild.name, new Error(String(error)), 'Handling first response');
-                            }
-                        }
-                    } else {
-                        try {
-                            await m.react("sefhistare:1124869893880283306");
-                            m.reply(`Commander ${m.author}... I expected better...`);
-                        } catch (error) {
-                            if (error instanceof Error) {
-                                logError(guild.id, guild.name, error, 'Handling subsequent responses');
-                            } else {
-                                logError(guild.id, guild.name, new Error(String(error)), 'Handling subsequent responses');
-                            }
-                        }
-                    }
-                });
-
-                messageCollector.on('end', (collected: ReadonlyCollection<string, Message<boolean>>) => {
-                    console.log(`Collector stopped. Collected ${collected.size} responses for server: ${guild.name}.`);
-                });
-            } catch (error) {
-                logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending daily interception message');
-            }
-        });
-    });
-    console.log("Scheduled daily interception message job to run every Nikke reset time.");
-}
 
 function getAllChatCommandNames(): string[] {
     const messageCommands = Object.values(chatCommands)
@@ -1937,7 +1619,7 @@ function playNextSong(guildId: string) {
 
 async function initDiscordBot() {
     loadCommands();
-    
+
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();
 
@@ -1946,9 +1628,11 @@ async function initDiscordBot() {
             setBotActivity();
             greetNewMembers();
             sendRandomMessages();
-            sendNikkeDailyResetMessage();
-            sendBlueArchiveDailyResetMessage();
-            sendGFL2DailyResetMessage();
+
+            // Initialize daily reset service
+            const dailyResetService = new DailyResetService(bot, dailyResetServiceConfig);
+            dailyResetService.initializeSchedules();
+
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
