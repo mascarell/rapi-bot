@@ -107,6 +107,61 @@ CLIENTID=your_discord_client_id
 
 For more detailed setup and configuration, refer to the official Discord documentation for bot setup and permissions.
 
+## Managing Daily Reset Messages
+
+The bot uses a modular daily reset service to send automated messages for multiple games. To add or remove games:
+
+### Adding a New Game
+
+1. **Edit `src/utils/data/gamesResetConfig.ts`**:
+   - Add a logo URL constant at the top (e.g., `const GAME_LOGO_URL = ...`)
+   - Create a new config object following the `DailyResetConfig` interface:
+     ```typescript
+     const newGameResetConfig: DailyResetConfig = {
+       game: 'Game Name',
+       channelName: 'discord-channel-name',
+       roleName: 'RoleName', // Optional - omit if no role ping needed
+       resetTime: { hour: 19, minute: 0 }, // UTC time
+       timezone: 'UTC',
+       embedConfig: {
+         title: 'ATTENTION PLAYERS!',
+         description: 'Your message here',
+         color: 0x00FF00, // Hex color code
+         footer: { text: 'Footer text', iconURL: RAPI_BOT_THUMBNAIL_URL },
+         thumbnail: GAME_LOGO_URL,
+         author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL }
+       },
+       checklist: [
+         { name: '**Task Name**', value: 'Task description' }
+       ],
+       mediaConfig: {
+         cdnPath: 'dailies/game-name/', // Path to images on CDN
+         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+         trackLast: 10
+       }
+     };
+     ```
+   - Add your config to the `dailyResetServiceConfig.games` array
+
+2. **Upload media assets**:
+   - Add images/GIFs to your CDN at the path specified in `mediaConfig.cdnPath`
+   - Add a game logo to `assets/logos/` on your CDN
+
+3. **Restart the bot** for changes to take effect
+
+### Removing a Game
+
+1. **Edit `src/utils/data/gamesResetConfig.ts`**:
+   - Remove the game's config object
+   - Remove its logo URL constant
+   - Remove it from the `dailyResetServiceConfig.games` array
+
+2. **Restart the bot** for changes to take effect
+
+### Dev Mode Testing
+
+When `NODE_ENV=development`, daily reset messages trigger every 5 minutes instead of at their scheduled times, making it easy to test changes without waiting.
+
 ---
 
 For more details, see the code or use `/help` in Discord.
