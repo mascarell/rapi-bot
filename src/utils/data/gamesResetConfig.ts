@@ -6,9 +6,9 @@ import { logError } from '../util';
 
 // Asset URLs (shared across configurations)
 const RAPI_BOT_THUMBNAIL_URL = `${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`;
-const GFL2_LOGO_URL = `${cdnDomainUrl}/assets/logos/gfl2-logo.png`;
 const NIKKE_LOGO_URL = `${cdnDomainUrl}/assets/logos/nikke-logo.png`;
 const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`;
+const TRICKAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickal-logo.png`;
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
@@ -219,38 +219,30 @@ const blueArchiveResetConfig: DailyResetConfig = {
 };
 
 /**
- * Configuration for Girls' Frontline 2 daily reset message
+ * Configuration for Trickal Chibi Go daily reset message
  */
-const gfl2ResetConfig: DailyResetConfig = {
-    game: "Girls' Frontline 2: Exilium",
-    channelName: 'girls-frontline-2',
-    resetTime: { hour: 9, minute: 0 },
+const trickalResetConfig: DailyResetConfig = {
+    game: 'Trickal: Chibi Go',
+    channelName: 'trickal-chibi-go',
+    resetTime: { hour: 19, minute: 0 },
     timezone: 'UTC',
     embedConfig: {
-        title: 'ATTENTION DARKWINTER COMMANDERS!',
-        description: `Server has been reset! Here's some of Today's **Daily Quests** Checklist:\n`,
-        color: 0xE67E22,
+        title: 'ATTENTION ENLIGHTENED ONES!',
+        description: 'Server has been reset!\n\nDaily checklist will be updated soon once approved by our glorious leader **El Shafto**!',
+        color: 0x00FF00,
         footer: {
-            text: 'Commander, ready for the next mission?',
+            text: 'Stay tuned for updates!',
             iconURL: RAPI_BOT_THUMBNAIL_URL
         },
-        thumbnail: GFL2_LOGO_URL,
+        thumbnail: TRICKAL_LOGO_URL,
         author: {
             name: 'Rapi BOT',
             iconURL: RAPI_BOT_THUMBNAIL_URL
         }
     },
-    checklist: [
-        { name: '**Gunsmoke Frontline**', value: 'Do Your **Daily Patrol** and **Gunsmoke Hits**!' },
-        { name: '**Daily Free Gift Pack**', value: 'Check **Shop** and under **Standard Package Tab** For **Daily Free Gift Pack**' },
-        { name: '**Daily Sign-in**', value: 'Complete Daily Sign-in' },
-        { name: '**Dormitory**', value: 'Enter The Dormitory And **Check on Your WAIFU**' },
-        { name: '**Supply Mission**', value: 'Clear 1 Supply Mission' },
-        { name: '**Combat Simulation**', value: 'Clear 1 Combat Simulation (Don\'t Forgot about Combat Exercise!)' },
-        { name: '**Intelligence Puzzles**', value: 'Consume 120 Intelligence Puzzles (Sweep your desired supply mission if you have the stamina to do so)' }
-    ],
+    checklist: [],
     mediaConfig: {
-        cdnPath: 'dailies/girls-frontline-2/',
+        cdnPath: 'dailies/trickal/',
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     }
@@ -263,6 +255,6 @@ export const dailyResetServiceConfig: DailyResetServiceConfig = {
     games: [
         nikkeResetConfig,
         blueArchiveResetConfig,
-        gfl2ResetConfig
+        trickalResetConfig
     ]
 };
