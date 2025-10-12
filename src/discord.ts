@@ -1043,7 +1043,7 @@ function setBotActivity() {
             status: PresenceUpdateStatus.Online,
         },
         {
-            name: "Trickal RE:VIVE",
+            name: "Trickcal RE:VIVE",
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },

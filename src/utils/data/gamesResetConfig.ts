@@ -8,7 +8,7 @@ import { logError } from '../util';
 const RAPI_BOT_THUMBNAIL_URL = `${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`;
 const NIKKE_LOGO_URL = `${cdnDomainUrl}/assets/logos/nikke-logo.png`;
 const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`;
-const TRICKAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickal-logo.png`;
+const TRICKCAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickcal-logo.png`;
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
@@ -219,11 +219,11 @@ const blueArchiveResetConfig: DailyResetConfig = {
 };
 
 /**
- * Configuration for Trickal Chibi Go daily reset message
+ * Configuration for Trickcal Chibi Go daily reset message
  */
-const trickalResetConfig: DailyResetConfig = {
-    game: 'Trickal: Chibi Go',
-    channelName: 'trickal-chibi-go',
+const trickcalResetConfig: DailyResetConfig = {
+    game: 'Trickcal: Chibi Go',
+    channelName: 'trickcal-chibi-go',
     resetTime: { hour: 19, minute: 0 },
     timezone: 'UTC',
     embedConfig: {
@@ -234,7 +234,7 @@ const trickalResetConfig: DailyResetConfig = {
             text: 'Stay tuned for updates!',
             iconURL: RAPI_BOT_THUMBNAIL_URL
         },
-        thumbnail: TRICKAL_LOGO_URL,
+        thumbnail: TRICKCAL_LOGO_URL,
         author: {
             name: 'Rapi BOT',
             iconURL: RAPI_BOT_THUMBNAIL_URL
@@ -242,7 +242,7 @@ const trickalResetConfig: DailyResetConfig = {
     },
     checklist: [],
     mediaConfig: {
-        cdnPath: 'dailies/trickal/',
+        cdnPath: 'dailies/trickcal/',
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     }
@@ -255,6 +255,6 @@ export const dailyResetServiceConfig: DailyResetServiceConfig = {
     games: [
         nikkeResetConfig,
         blueArchiveResetConfig,
-        trickalResetConfig
+        trickcalResetConfig
     ]
 };
