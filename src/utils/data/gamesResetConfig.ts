@@ -236,11 +236,11 @@ const trickcalResetConfig: DailyResetConfig = {
     resetTime: { hour: 19, minute: 0 },
     timezone: 'UTC',
     embedConfig: {
-        title: 'ATTENTION ENLIGHTENED ONES!',
-        description: 'Server has been reset!\n\nDaily checklist will be updated soon once approved by our glorious leader **El Shafto**!',
-        color: 0x00FF00,
+        title: 'GREETINGS, DELIVERERS!',
+        description: `Welcome back, Masters! Youngchun has prepared today's tasks to maintain order in Elias.\n\nHere are your **Daily Missions** for the Yggdrasil Order:`,
+        color: 0x90EE90,
         footer: {
-            text: 'Stay tuned for updates!',
+            text: 'May Yggdrasil watch over you, Deliverers!',
             iconURL: RAPI_BOT_THUMBNAIL_URL
         },
         thumbnail: TRICKCAL_LOGO_URL,
@@ -249,7 +249,15 @@ const trickcalResetConfig: DailyResetConfig = {
             iconURL: RAPI_BOT_THUMBNAIL_URL
         }
     },
-    checklist: [],
+    checklist: [
+        { name: '**Daily Login**', value: 'Receive **Yggdrasil\'s Blessing** by logging in' },
+        { name: '**Yggdrasil Relics**', value: 'Claim sacred **Relic Resources** from the World Tree' },
+        { name: '**Candy Management**', value: 'Use **Candy** and **Star Candy** to keep supplies flowing' },
+        { name: '**Battle Preparation**', value: 'Claim **Battle Supplies** and visit the **Store**' },
+        { name: '**Banquet Hall**', value: 'Dine with your **Apostles** to strengthen bonds' },
+        { name: '**Daily Schedule**', value: 'Complete assigned **Schedules** for the Order' },
+        { name: '**Pet Care**', value: 'Collect gifts from your loyal **Pets**' }
+    ],
     mediaConfig: {
         cdnPath: 'dailies/trickcal/',
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
