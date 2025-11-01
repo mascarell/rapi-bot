@@ -261,15 +261,23 @@ export class DailyResetService {
 
         // Add random media image if configured
         if (config.mediaConfig) {
-            const randomMediaUrl = await getRandomCdnMediaUrl(
-                config.mediaConfig.cdnPath,
-                guild.id,
-                {
-                    extensions: config.mediaConfig.extensions,
-                    trackLast: config.mediaConfig.trackLast
+            try {
+                const randomMediaUrl = await getRandomCdnMediaUrl(
+                    config.mediaConfig.cdnPath,
+                    guild.id,
+                    {
+                        extensions: config.mediaConfig.extensions,
+                        trackLast: config.mediaConfig.trackLast
+                    }
+                );
+                // Only set image if we got a valid URL
+                if (randomMediaUrl && randomMediaUrl.startsWith('http')) {
+                    embed.setImage(randomMediaUrl);
                 }
-            );
-            embed.setImage(randomMediaUrl);
+            } catch (error) {
+                // Log but don't fail the entire message if media fetch fails
+                console.log(`Failed to fetch media for ${config.game} in guild ${guild.name}: ${error}`);
+            }
         }
 
         return embed;
@@ -314,15 +322,23 @@ export class DailyResetService {
 
         // Add random media image if configured
         if (config.mediaConfig) {
-            const randomMediaUrl = await getRandomCdnMediaUrl(
-                config.mediaConfig.cdnPath,
-                guild.id,
-                {
-                    extensions: config.mediaConfig.extensions,
-                    trackLast: config.mediaConfig.trackLast
+            try {
+                const randomMediaUrl = await getRandomCdnMediaUrl(
+                    config.mediaConfig.cdnPath,
+                    guild.id,
+                    {
+                        extensions: config.mediaConfig.extensions,
+                        trackLast: config.mediaConfig.trackLast
+                    }
+                );
+                // Only set image if we got a valid URL
+                if (randomMediaUrl && randomMediaUrl.startsWith('http')) {
+                    embed.setImage(randomMediaUrl);
                 }
-            );
-            embed.setImage(randomMediaUrl);
+            } catch (error) {
+                // Log but don't fail the entire message if media fetch fails
+                console.log(`Failed to fetch warning media for ${config.game} in guild ${guild.name}: ${error}`);
+            }
         }
 
         return embed;
