@@ -52,6 +52,28 @@ export interface MediaConfig {
 export type DynamicFieldGenerator = (currentDate: Date) => EmbedField[];
 
 /**
+ * Configuration for warning messages sent before daily reset
+ */
+export interface WarningConfig {
+    /**
+     * Whether warning messages are enabled for this game
+     */
+    enabled: boolean;
+
+    /**
+     * How many minutes before the reset to send the warning
+     * @default 60 (1 hour)
+     */
+    minutesBefore: number;
+
+    /**
+     * Optional custom embed configuration for warning messages
+     * If not provided, a default warning embed will be used
+     */
+    embedConfig?: Partial<EmbedConfig>;
+}
+
+/**
  * Optional hook functions for custom behavior
  */
 export interface ResetMessageHooks {
@@ -121,6 +143,12 @@ export interface DailyResetConfig {
      * Optional hooks for custom behavior
      */
     hooks?: ResetMessageHooks;
+
+    /**
+     * Optional warning message configuration
+     * When enabled, sends a warning message before the daily reset
+     */
+    warningConfig?: WarningConfig;
 }
 
 /**
