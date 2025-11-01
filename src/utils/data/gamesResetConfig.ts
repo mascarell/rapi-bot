@@ -9,6 +9,7 @@ const RAPI_BOT_THUMBNAIL_URL = `${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`;
 const NIKKE_LOGO_URL = `${cdnDomainUrl}/assets/logos/nikke-logo.png`;
 const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`;
 const TRICKCAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickcal-logo.png`;
+const CHAOS_ZERO_NIGHTMARE_LOGO_URL = `${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`;
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
@@ -94,6 +95,10 @@ const nikkeResetConfig: DailyResetConfig = {
         cdnPath: 'dailies/nikke/',
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
+    },
+    warningConfig: {
+        enabled: true,
+        minutesBefore: 60
     },
     hooks: {
         afterSend: async (message: Message, guildId: string, bot: Client) => {
@@ -215,6 +220,10 @@ const blueArchiveResetConfig: DailyResetConfig = {
         cdnPath: 'dailies/blue-archive/',
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
+    },
+    warningConfig: {
+        enabled: true,
+        minutesBefore: 60
     }
 };
 
@@ -245,6 +254,53 @@ const trickcalResetConfig: DailyResetConfig = {
         cdnPath: 'dailies/trickcal/',
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
+    },
+    warningConfig: {
+        enabled: true,
+        minutesBefore: 60
+    }
+};
+
+/**
+ * Configuration for Chaos Zero Nightmare daily reset message
+ * Resets 2 hours before Nikke (18:00 UTC vs 20:00 UTC)
+ */
+const chaosZeroNightmareResetConfig: DailyResetConfig = {
+    game: 'Chaos Zero Nightmare',
+    channelName: 'chaos-zero-nightmare',
+    resetTime: { hour: 18, minute: 0 },
+    timezone: 'UTC',
+    embedConfig: {
+        title: '⚠️ ATTENTION PROTOS!',
+        description: `Dear Protos, it's time for your daily breakdown session.\n\nHere are today's **Essential Activities** to survive another day in Chaos Zero:`,
+        color: 0x9B30FF,
+        footer: {
+            text: 'Stay vigilant, Protos. The nightmare never sleeps.',
+            iconURL: RAPI_BOT_THUMBNAIL_URL
+        },
+        thumbnail: CHAOS_ZERO_NIGHTMARE_LOGO_URL,
+        author: {
+            name: 'Rapi BOT',
+            iconURL: RAPI_BOT_THUMBNAIL_URL
+        }
+    },
+    checklist: [
+        { name: '**Morning Routine**', value: 'Grab **Coffee** and collect **Aether** at **Garden Café**. Complete the **Daily Order**' },
+        { name: '**Policy Office**', value: 'Check out **Pending Policies** to be implemented in the office' },
+        { name: '**Starshine Diner**', value: 'Head to **Starshine Diner** to have a meal before entering **Chaos**' },
+        { name: '**Simulation Training**', value: 'Burn all **Aether** on Simulations for materials and experience' },
+        { name: '**Daily Missions**', value: 'Complete all missions for **Crystals** and **Coordinates**' },
+        { name: '**Partner Communication**', value: 'Use **Communication Passes** for **Affinity** gains and bonus **Crystals**' },
+        { name: '**Shop & Rewards**', value: 'Visit **Nono\'s Shop** and claim **Login Rewards** from Mail' }
+    ],
+    mediaConfig: {
+        cdnPath: 'dailies/chaos-zero-nightmare/',
+        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+        trackLast: 10
+    },
+    warningConfig: {
+        enabled: true,
+        minutesBefore: 60
     }
 };
 
@@ -255,6 +311,7 @@ export const dailyResetServiceConfig: DailyResetServiceConfig = {
     games: [
         nikkeResetConfig,
         blueArchiveResetConfig,
-        trickcalResetConfig
+        trickcalResetConfig,
+        chaosZeroNightmareResetConfig
     ]
 };
