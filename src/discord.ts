@@ -159,10 +159,19 @@ const chatCommands: { [key: string]: Command } = {
                     trackLast: 20
                 }
             );
-            
-            await msg.reply({
-                files: [randomCdnMediaUrl]
-            });
+
+            try {
+                await msg.reply({
+                    files: [randomCdnMediaUrl]
+                });
+            } catch (error: any) {
+                // Handle file size limit errors (Discord's 10MB limit for non-boosted servers)
+                if (error.code === 40005 || error.status === 413) {
+                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
+                } else {
+                    throw error; // Re-throw other errors to be handled by the main error handler
+                }
+            }
         },
     },
     booty: {
@@ -176,10 +185,19 @@ const chatCommands: { [key: string]: Command } = {
                     trackLast: 20
                 }
             );
-            
-            await msg.reply({
-                files: [randomCdnMediaUrl]
-            });
+
+            try {
+                await msg.reply({
+                    files: [randomCdnMediaUrl]
+                });
+            } catch (error: any) {
+                // Handle file size limit errors (Discord's 10MB limit for non-boosted servers)
+                if (error.code === 40005 || error.status === 413) {
+                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
+                } else {
+                    throw error; // Re-throw other errors to be handled by the main error handler
+                }
+            }
         },
     },
     skillissue: {
@@ -192,11 +210,20 @@ const chatCommands: { [key: string]: Command } = {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS, ...DEFAULT_VIDEO_EXTENSIONS],
                 }
             );
-            
-            await msg.reply({
-                content: `It sounds like you have some skill issues Commander.`,
-                files: [randomCdnMediaUrl]
-            });
+
+            try {
+                await msg.reply({
+                    content: `It sounds like you have some skill issues Commander.`,
+                    files: [randomCdnMediaUrl]
+                });
+            } catch (error: any) {
+                // Handle file size limit errors (Discord's 10MB limit for non-boosted servers)
+                if (error.code === 40005 || error.status === 413) {
+                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
+                } else {
+                    throw error; // Re-throw other errors to be handled by the main error handler
+                }
+            }
         },
     },
     skillissueiphone: {
@@ -757,11 +784,20 @@ const chatCommands: { [key: string]: Command } = {
                     extensions: [...DEFAULT_IMAGE_EXTENSIONS],
                 }
             );
-            
-            await msg.reply({
-                content: `${msg.author}, ${getRandomQuietRapiPhrase()}`,
-                files: [randomCdnMediaUrl]
-            });
+
+            try {
+                await msg.reply({
+                    content: `${msg.author}, ${getRandomQuietRapiPhrase()}`,
+                    files: [randomCdnMediaUrl]
+                });
+            } catch (error: any) {
+                // Handle file size limit errors (Discord's 10MB limit for non-boosted servers)
+                if (error.code === 40005 || error.status === 413) {
+                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
+                } else {
+                    throw error; // Re-throw other errors to be handled by the main error handler
+                }
+            }
         },
     },
     entertainmentttt: {
@@ -775,10 +811,19 @@ const chatCommands: { [key: string]: Command } = {
                     extensions: [...DEFAULT_VIDEO_EXTENSIONS],
                 }
             );
-            
-            await msg.reply({
-                files: [randomCdnMediaUrl]
-            });
+
+            try {
+                await msg.reply({
+                    files: [randomCdnMediaUrl]
+                });
+            } catch (error: any) {
+                // Handle file size limit errors (Discord's 10MB limit for non-boosted servers)
+                if (error.code === 40005 || error.status === 413) {
+                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
+                } else {
+                    throw error; // Re-throw other errors to be handled by the main error handler
+                }
+            }
         },
     },
     casualUnion: {
