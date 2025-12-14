@@ -10,6 +10,7 @@ const NIKKE_LOGO_URL = `${cdnDomainUrl}/assets/logos/nikke-logo.png`;
 const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`;
 const TRICKCAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickcal-logo.png`;
 const CHAOS_ZERO_NIGHTMARE_LOGO_URL = `${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`;
+const LOST_SWORD_LOGO_URL = `${cdnDomainUrl}/assets/logos/lost-sword-logo.webp`;
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
@@ -313,6 +314,50 @@ const chaosZeroNightmareResetConfig: DailyResetConfig = {
 };
 
 /**
+ * Configuration for Lost Sword: Tales of Britannia daily reset message
+ * Resets at 15:00 UTC
+ */
+const lostSwordResetConfig: DailyResetConfig = {
+    game: 'Lost Sword: Tales of Britannia',
+    channelName: 'lost-sword',
+    resetTime: { hour: 15, minute: 0 },
+    timezone: 'UTC',
+    embedConfig: {
+        title: 'GREETINGS, SWORDBRINGERS!',
+        description: `Hi Swordbringers! The server has reset and Britannia awaits your return.\n\nHere are your **Daily Tasks** to aid Princess Elizabeth:`,
+        color: 0xFFD700,
+        footer: {
+            text: 'May Excalibur guide your path, Swordbringers!',
+            iconURL: RAPI_BOT_THUMBNAIL_URL
+        },
+        thumbnail: LOST_SWORD_LOGO_URL,
+        author: {
+            name: 'Rapi BOT',
+            iconURL: RAPI_BOT_THUMBNAIL_URL
+        }
+    },
+    checklist: [
+        { name: '**Daily Dungeons**', value: 'Clear **EXP Dungeons** and **Daily Dungeons** to level up your characters' },
+        { name: '**Stonehenge Domain**', value: 'Farm **Stonehenge** for the full 10-minute timer for gear drops' },
+        { name: '**Daily Raid**', value: 'Challenge the **Daily Raid** boss for rewards (rotates by element)' },
+        { name: '**Boss & Party Raids**', value: 'Use your **3 Boss Raid** entries and **1 Party Raid** entry' },
+        { name: '**Guild Activities**', value: 'Check-in, **Donate** to your guild, and participate in **Guild Raids**' },
+        { name: '**Character Affection**', value: 'Use your **6 daily conversations** with characters for affection and Diamonds' },
+        { name: '**Shop & Mail**', value: 'Claim **Free Daily Items** from the shop and check **Mail** for rewards' },
+        { name: '**Treasure Hunt**', value: 'Collect your **Treasure Hunt** rewards before they expire' }
+    ],
+    mediaConfig: {
+        cdnPath: 'dailies/lost-sword/',
+        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+        trackLast: 10
+    },
+    warningConfig: {
+        enabled: true,
+        minutesBefore: 60
+    }
+};
+
+/**
  * Export all game reset configurations
  */
 export const dailyResetServiceConfig: DailyResetServiceConfig = {
@@ -320,6 +365,7 @@ export const dailyResetServiceConfig: DailyResetServiceConfig = {
         nikkeResetConfig,
         blueArchiveResetConfig,
         trickcalResetConfig,
-        chaosZeroNightmareResetConfig
+        chaosZeroNightmareResetConfig,
+        lostSwordResetConfig
     ]
 };
