@@ -522,6 +522,33 @@ const chatCommands: { [key: string]: Command } = {
             });
         },
     },
+    ikuyo: {
+        name: "lets go!",
+        description: "Ikuyo, AZX! - NIKKE train motivation",
+        async execute(msg: Message) {
+            const randomCdnMediaUrl = await getRandomCdnMediaUrl(
+                "commands/ikuyo/",
+                msg.guild!.id,
+                {
+                    extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+                    trackLast: 20
+                }
+            );
+
+            try {
+                await msg.reply({
+                    content: "Ikuyo, AZX!",
+                    files: [randomCdnMediaUrl]
+                });
+            } catch (error: any) {
+                if (error.code === 40005 || error.status === 413) {
+                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
+                } else {
+                    throw error;
+                }
+            }
+        },
+    },
     damngravedigger: {
         name: "damn gravedigger",
         description: "damn gravedigger",
