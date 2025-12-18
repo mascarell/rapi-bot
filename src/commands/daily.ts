@@ -1,5 +1,5 @@
 // Dependencies
-import { SlashCommandBuilder, CommandInteraction, AutocompleteInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 import moment from 'moment-timezone';
 import gamesData from '../utils/data/gamesData';
 
@@ -19,7 +19,7 @@ module.exports = {
                         .setAutocomplete(true)
                 )
         ),
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         const gameName = (interaction.options.get('game')?.value as string || 'nikke').toLowerCase();
         const gameData = gamesData.find((game) => game.game.toLowerCase().includes(gameName));
 

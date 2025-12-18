@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { enforceChannelRestriction } from '../utils/channelRestrictions';
 
 const rapiBallResponses = [
@@ -86,7 +86,7 @@ module.exports = {
             option.setName('question')
                 .setDescription('Your question for Rapi')
                 .setRequired(true)),
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         // Check channel restriction
         const isRestricted = await enforceChannelRestriction(interaction, 'rapi-bot');
         if (isRestricted) return;

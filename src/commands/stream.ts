@@ -1,6 +1,6 @@
 import {
     SlashCommandBuilder,
-    CommandInteraction,
+    ChatInputCommandInteraction,
     TextChannel,
 } from 'discord.js';
 import { checkStreamStatus } from '../utils/twitch';
@@ -14,7 +14,7 @@ module.exports = {
                 .setDescription('The URL of the stream (optional)')
                 .setRequired(true)
         ),
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         if (interaction.commandName !== 'stream') return;
         const url = interaction.options.get('url')?.value as string;
         const twitchLink = `https://www.twitch.tv/sefhi_922`;
