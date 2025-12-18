@@ -4,8 +4,15 @@ FROM node:18
 # Set the working directory in the container
 WORKDIR /app
 
-# Update apt-get and install FFmpeg
-RUN apt-get update && apt-get install -y ffmpeg
+# Update apt-get and install FFmpeg + build tools for @discordjs/opus
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    python3 \
+    make \
+    g++ \
+    libtool \
+    autoconf \
+    automake
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
