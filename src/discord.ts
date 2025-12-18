@@ -19,6 +19,7 @@ import {
     createAudioResource,
     VoiceConnectionStatus,
     AudioPlayerStatus,
+    entersState,
 } from '@discordjs/voice';
 import path from "path";
 import fs from "fs";
@@ -1649,6 +1650,23 @@ async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
             console.log(`Bot connected to voice channel in guild ${guildId}`);
             playNextSong(guildId);
         });
+
+        // Handle disconnection with reconnection attempt
+        connection.on(VoiceConnectionStatus.Disconnected, async () => {
+            try {
+                // Try to reconnect within 5 seconds
+                await Promise.race([
+                    entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                    entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                ]);
+                console.log(`Voice connection reconnecting for guild ${guildId}`);
+            } catch (error) {
+                // Failed to reconnect - destroy and cleanup
+                connection.destroy();
+                voiceConnections.delete(guildId);
+                console.log(`Voice connection destroyed for guild ${guildId} after disconnect`);
+            }
+        });
     } catch (error) {
         if (error instanceof Error) {
             logError(guildId, 'UNKNOWN', error, 'Connecting to voice channel');
@@ -1667,10 +1685,27 @@ function playNextSong(guildId: string) {
         const { connection, playlist, currentSongIndex = 0 } = voiceConnectionData;
         const nextIndex = (currentSongIndex + 1) % playlist.length;
         const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
+
+        // Skip missing files
+        if (!fs.existsSync(songPath)) {
+            console.warn(`Radio file not found: ${songPath}, skipping...`);
+            voiceConnectionData.currentSongIndex = nextIndex;
+            playNextSong(guildId);
+            return;
+        }
+
         const resource = createAudioResource(songPath);
 
         if (!voiceConnectionData.player) {
             voiceConnectionData.player = createAudioPlayer();
+
+            // Handle player errors - skip to next song
+            voiceConnectionData.player.on('error', (error: Error) => {
+                console.error(`Audio player error: ${error.message}`);
+                logError(guildId, 'RADIO', error, 'Audio player error');
+                playNextSong(guildId);
+            });
+
             voiceConnectionData.player.on(AudioPlayerStatus.Idle, () => {
                 playNextSong(guildId);
             });
