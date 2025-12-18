@@ -176,7 +176,7 @@ describe('Radio Playback', () => {
                 adapterCreator: vi.fn() as any,
             });
 
-            vi.mocked(entersState).mockResolvedValue(connection);
+            vi.mocked(entersState).mockResolvedValue(connection as any);
 
             await Promise.race([
                 entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
