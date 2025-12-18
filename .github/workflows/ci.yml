@@ -25,6 +25,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Install Build Tools for @discordjs/opus
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 make g++ libtool autoconf automake
+
       - name: Install Dependencies
         run: npm ci
 
