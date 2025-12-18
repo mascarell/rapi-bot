@@ -20,6 +20,7 @@ import {
     VoiceConnectionStatus,
     AudioPlayerStatus,
     entersState,
+    StreamType,
 } from '@discordjs/voice';
 import path from "path";
 import fs from "fs";
@@ -1006,7 +1007,8 @@ function loadCommands() {
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         import(filePath).then(commandModule => {
-            const command = commandModule.default;
+            // Handle both default export and direct module.exports
+            const command = commandModule.default || commandModule;
             if (isSlashCommand(command)) {
                 bot.commands.set(command.data.name, command);
                 commands.push(command.data.toJSON());
@@ -1642,8 +1644,18 @@ async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
             logError(guildId, 'UNKNOWN', error, 'Voice connection');
         });
 
-        const playlist = fs.readdirSync(RADIO_FOLDER_PATH);
+        const SUPPORTED_AUDIO_EXTENSIONS = ['.mp3', '.opus', '.ogg', '.wav', '.flac', '.m4a'];
+        const playlist = fs.readdirSync(RADIO_FOLDER_PATH).filter(file => {
+            const ext = path.extname(file).toLowerCase();
+            return SUPPORTED_AUDIO_EXTENSIONS.includes(ext);
+        });
 
+        if (playlist.length === 0) {
+            console.error(`No audio files found in ${RADIO_FOLDER_PATH}`);
+            return;
+        }
+
+        console.log(`Loaded ${playlist.length} audio files for radio`);
         voiceConnections.set(guildId, { connection, playlist });
 
         connection.on(VoiceConnectionStatus.Ready, () => {
@@ -1694,10 +1706,21 @@ function playNextSong(guildId: string) {
             return;
         }
 
-        const resource = createAudioResource(songPath);
+        // Detect input type based on file extension
+        const fileExtension = path.extname(songPath).toLowerCase();
+        const inputType = fileExtension === '.opus' || fileExtension === '.ogg'
+            ? StreamType.OggOpus
+            : StreamType.Arbitrary;
+
+        console.log(`Playing: ${path.basename(songPath)} (type: ${fileExtension})`);
+
+        const resource = createAudioResource(songPath, {
+            inputType: inputType,
+        });
 
         if (!voiceConnectionData.player) {
             voiceConnectionData.player = createAudioPlayer();
+            connection.subscribe(voiceConnectionData.player);
 
             // Handle player errors - skip to next song
             voiceConnectionData.player.on('error', (error: Error) => {
@@ -1711,7 +1734,6 @@ function playNextSong(guildId: string) {
             });
         }
 
-        connection.subscribe(voiceConnectionData.player);
         voiceConnectionData.player.play(resource);
 
         voiceConnectionData.currentSongIndex = nextIndex;
