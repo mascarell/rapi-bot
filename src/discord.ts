@@ -108,6 +108,26 @@ declare module 'discord.js' {
     }
 }
 
+/**
+ * Helper to check if an error is a timeout/network error that should be handled gracefully
+ */
+function isTimeoutOrNetworkError(error: any): boolean {
+    return (
+        error.name === 'AbortError' ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ENOTFOUND' ||
+        error.code === 'EAI_AGAIN'
+    );
+}
+
+/**
+ * Helper to check if an error is a file too large error
+ */
+function isFileTooLargeError(error: any): boolean {
+    return error.code === 40005 || error.status === 413;
+}
+
 // Bot commands object
 // The name has to be lowercase
 const chatCommands: { [key: string]: Command } = {
@@ -537,18 +557,10 @@ const chatCommands: { [key: string]: Command } = {
                 }
             );
 
-            try {
-                await msg.reply({
-                    content: "Ikuyo, AZX!",
-                    files: [randomCdnMediaUrl]
-                });
-            } catch (error: any) {
-                if (error.code === 40005 || error.status === 413) {
-                    await msg.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.");
-                } else {
-                    throw error;
-                }
-            }
+            await msg.reply({
+                content: "Ikuyo, AZX!",
+                files: [randomCdnMediaUrl]
+            });
         },
     },
     damngravedigger: {
@@ -1325,12 +1337,21 @@ function handleMessages() {
                     await matchedCommand.execute(message, args);
                 }
             }
-        } catch (error) {
-            logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
-            message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" })
-                .catch(replyError => {
-                    logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', replyError instanceof Error ? replyError : new Error(String(replyError)), 'Sending error message');
-                });
+        } catch (error: any) {
+            // Handle common CDN/Discord errors gracefully
+            if (isFileTooLargeError(error)) {
+                await message.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.").catch(() => {});
+            } else if (isTimeoutOrNetworkError(error)) {
+                console.log(`Chat command '${command}' timed out for guild ${message.guild?.name}: ${error.message}`);
+                await message.reply("Commander, the request timed out. Please try again in a moment.").catch(() => {});
+            } else {
+                // Log unexpected errors and notify user
+                logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error instanceof Error ? error : new Error(String(error)), `Executing command: ${command}`);
+                message.reply({ content: "Commander, I think there is something wrong with me... (something broke, please ping @sefhi to check what is going on)" })
+                    .catch(replyError => {
+                        logError(message.guild?.id || 'UNKNOWN', message.guild?.name || 'UNKNOWN', replyError instanceof Error ? replyError : new Error(String(replyError)), 'Sending error message');
+                    });
+            }
         }
     });
 
