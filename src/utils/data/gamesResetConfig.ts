@@ -11,6 +11,7 @@ const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/assets/logos/blue-archive-logo.pn
 const TRICKCAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickcal-logo.png`;
 const CHAOS_ZERO_NIGHTMARE_LOGO_URL = `${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`;
 const LOST_SWORD_LOGO_URL = `${cdnDomainUrl}/assets/logos/lost-sword-logo.webp`;
+const BROWN_DUST_2_LOGO_URL = `${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`;
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
@@ -358,6 +359,51 @@ const lostSwordResetConfig: DailyResetConfig = {
 };
 
 /**
+ * Configuration for Brown Dust 2 daily reset message
+ * Resets at 00:00 UTC (midnight)
+ */
+const brownDust2ResetConfig: DailyResetConfig = {
+    game: 'Brown Dust 2',
+    channelName: 'brown-dust-2',
+    resetTime: { hour: 0, minute: 0 },
+    timezone: 'UTC',
+    embedConfig: {
+        title: '⚔️ ATTENTION, ADVENTURERS!',
+        description: `The server has reset! Lathel and Justia await your return to battle the Cocytus.\n\nHere are your **Daily Tasks** to gather strength:`,
+        color: 0x8B4513, // Brown color for Brown Dust
+        footer: {
+            text: 'May the Blood Imprint guide your path, Adventurer!',
+            iconURL: RAPI_BOT_THUMBNAIL_URL
+        },
+        thumbnail: BROWN_DUST_2_LOGO_URL,
+        author: {
+            name: 'Rapi BOT',
+            iconURL: RAPI_BOT_THUMBNAIL_URL
+        }
+    },
+    checklist: [
+        { name: '**Cooked Rice (60/day)**', value: 'Spend on **Hunting Grounds** or **Path of Adventure** for slimes/gold' },
+        { name: '**Torches (60/day)**', value: 'Use in **Elemental Caves** for magic crystals to unlock potentials' },
+        { name: '**Gear Crafting**', value: 'Craft **UR/R/SR gear**, dismantle junk, upgrade/refine (aim B/B/S grades)' },
+        { name: '**Finds & Gluttis**', value: 'Gather with **Lathel\'s Search** + **Celia\'s Absorption** for efficient farming' },
+        { name: '**Bulletin Board**', value: 'Complete **3 quests/day** for gold and shop discounts' },
+        { name: '**Pub Check**', value: 'Save scrolls for **5★ units** at the Pub' },
+        { name: '**Mirror Wars**', value: 'Complete your **40 async auto-battles** for the day' },
+        { name: '**Free Daily Draw**', value: 'Use your **free daily draw** on featured banners' },
+        { name: '**Daily Missions**', value: 'Complete all missions for **Dia** and resources' }
+    ],
+    mediaConfig: {
+        cdnPath: 'dailies/bd2/',
+        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+        trackLast: 10
+    },
+    warningConfig: {
+        enabled: true,
+        minutesBefore: 60
+    }
+};
+
+/**
  * Export all game reset configurations
  */
 export const dailyResetServiceConfig: DailyResetServiceConfig = {
@@ -366,6 +412,7 @@ export const dailyResetServiceConfig: DailyResetServiceConfig = {
         blueArchiveResetConfig,
         trickcalResetConfig,
         chaosZeroNightmareResetConfig,
-        lostSwordResetConfig
+        lostSwordResetConfig,
+        brownDust2ResetConfig
     ]
 };
