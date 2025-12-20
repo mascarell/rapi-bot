@@ -382,15 +382,16 @@ const brownDust2ResetConfig: DailyResetConfig = {
         }
     },
     checklist: [
-        { name: '**Cooked Rice (60/day)**', value: 'Spend on **Hunting Grounds** or **Path of Adventure** for slimes/gold' },
+        { name: '**Cooked Rice (60/day)**', value: 'Farm on **Very Hard only** - Normal/Hard cost same rice but give fewer drops!' },
         { name: '**Torches (60/day)**', value: 'Use in **Elemental Caves** for magic crystals to unlock potentials' },
-        { name: '**Gear Crafting**', value: 'Craft **UR/R/SR gear**, dismantle junk, upgrade/refine (aim B/B/S grades)' },
-        { name: '**Finds & Gluttis**', value: 'Gather with **Lathel\'s Search** + **Celia\'s Absorption** for efficient farming' },
+        { name: '**Gear Crafting**', value: 'Craft green swords with **Fred/Layla** → max their skill → craft UR. Skip purple SR gear. Focus on **weapons, Venomous Touch accessories, gloves**. Avoid UR chest/helms early!' },
+        { name: '**Finds & Gluttis**', value: '**Lathel** uncovers → **Celia/Tyr** absorbs → **Refithea/Sonya** gets gluttis. Priority: **maps 7, 8, 9, 13** (gold ore & wood)' },
         { name: '**Bulletin Board**', value: 'Complete **3 quests/day** for gold and shop discounts' },
         { name: '**Pub Check**', value: 'Save scrolls for **5★ units** at the Pub' },
         { name: '**Mirror Wars**', value: 'Complete your **40 async auto-battles** for the day' },
         { name: '**Free Daily Draw**', value: 'Use your **free daily draw** on featured banners' },
-        { name: '**Daily Missions**', value: 'Complete all missions for **Dia** and resources' }
+        { name: '**Daily Missions**', value: 'Complete all missions for **Dia** and resources' },
+        { name: '**Event Clears (5/day)**', value: 'Complete **5 event stages** daily for event currency and rewards' }
     ],
     mediaConfig: {
         cdnPath: 'dailies/bd2/',
