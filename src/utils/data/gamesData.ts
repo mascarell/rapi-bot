@@ -53,6 +53,12 @@ const gamesData = [
         timezone: "Europe/Madrid",
         dailyReset: "02:00",
     },
+    {
+        game: "Brown Dust 2",
+        server: "Global",
+        timezone: "Etc/UTC",
+        dailyReset: "00:00",
+    },
     // TODO: Add more games as needed. REF: https://raw.githubusercontent.com/cicerakes/Game-Time-Master/master/game-data.js
 ];
 
