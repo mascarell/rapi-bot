@@ -41,6 +41,10 @@ vi.mock('../../services/gachaRedemptionService', () => ({
     getGachaRedemptionService: vi.fn(),
 }));
 
+vi.mock('../../services/gachaGuildConfigService', () => ({
+    getGachaGuildConfigService: vi.fn(),
+}));
+
 vi.mock('../../utils/data/gachaGamesConfig', () => ({
     GACHA_GAMES: {
         'bd2': {
@@ -76,6 +80,7 @@ vi.mock('../../utils/data/gachaGamesConfig', () => ({
 
 import { getGachaDataService } from '../../services/gachaDataService';
 import { getGachaRedemptionService } from '../../services/gachaRedemptionService';
+import { getGachaGuildConfigService } from '../../services/gachaGuildConfigService';
 import { getGameConfig, isValidGameId } from '../../utils/data/gachaGamesConfig';
 
 // Import the command - need to use dynamic import for CommonJS module
@@ -108,6 +113,7 @@ describe('Redeem Command', () => {
         // Setup mock interaction
         mockInteraction = {
             guild: mockGuild as Guild,
+            guildId: '1065055945123708928', // Test server ID (allowed)
             user: { id: 'user123' } as any,
             client: {} as Client,
             options: {
@@ -128,9 +134,17 @@ describe('Redeem Command', () => {
             getActiveCoupons: vi.fn().mockResolvedValue([]),
             getAllCoupons: vi.fn().mockResolvedValue([]),
             getUnredeemedCodes: vi.fn().mockResolvedValue([]),
+            getSubscriberContext: vi.fn().mockResolvedValue({ subscription: null, activeCoupons: [], unredeemed: [] }),
             getGameStats: vi.fn().mockResolvedValue({ total: 0, autoRedeem: 0, notifyOnly: 0 }),
             addCoupon: vi.fn().mockResolvedValue(undefined),
             removeCoupon: vi.fn().mockResolvedValue(true),
+            // Notification preferences
+            getNotificationPreferences: vi.fn().mockResolvedValue({
+                expirationWarnings: true,
+                weeklyDigest: true,
+                newCodeAlerts: true,
+            }),
+            updateNotificationPreferences: vi.fn().mockResolvedValue(undefined),
         };
         vi.mocked(getGachaDataService).mockReturnValue(mockDataService);
 
@@ -147,6 +161,17 @@ describe('Redeem Command', () => {
             }),
         };
         vi.mocked(getGachaRedemptionService).mockReturnValue(mockRedemptionService);
+
+        // Setup mock guild config service - allow test servers by default
+        const mockGuildConfigService = {
+            isGuildAllowed: vi.fn().mockImplementation((guildId: string | null) => {
+                // Allow the test server IDs
+                const allowedIds = ['1065055945123708928', '1054761356416528475'];
+                return Promise.resolve(guildId ? allowedIds.includes(guildId) : false);
+            }),
+            getAllowedGuildIds: vi.fn().mockResolvedValue(['1065055945123708928', '1054761356416528475']),
+        };
+        vi.mocked(getGachaGuildConfigService).mockReturnValue(mockGuildConfigService as any);
 
         // Setup game config mock
         vi.mocked(getGameConfig).mockImplementation((gameId: any) => {
@@ -269,6 +294,78 @@ describe('Redeem Command', () => {
         });
     });
 
+    describe('Guild Restriction', () => {
+        it('should reject commands from unauthorized servers', async () => {
+            // Use an unauthorized guild ID
+            mockInteraction.guildId = '9999999999999999999';
+
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('subscribe');
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return 'TestPlayer';
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: '❌ The gacha coupon system is not available on this server.',
+                    ephemeral: true
+                })
+            );
+            expect(mockDataService.subscribe).not.toHaveBeenCalled();
+        });
+
+        it('should reject commands when guildId is null (DM context)', async () => {
+            mockInteraction.guildId = null as any;
+
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('status');
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: '❌ The gacha coupon system is not available on this server.',
+                    ephemeral: true
+                })
+            );
+        });
+
+        it('should allow commands from authorized test server', async () => {
+            mockInteraction.guildId = '1065055945123708928'; // Test server
+
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('subscribe');
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return 'TestPlayer';
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.subscribe).toHaveBeenCalled();
+        });
+
+        it('should allow commands from authorized production server', async () => {
+            mockInteraction.guildId = '1054761356416528475'; // Production server
+
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('subscribe');
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return 'TestPlayer';
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.subscribe).toHaveBeenCalled();
+        });
+    });
+
     describe('Subscribe Subcommand', () => {
         beforeEach(() => {
             (mockInteraction.options!.getSubcommand as any).mockReturnValue('subscribe');
@@ -308,6 +405,59 @@ describe('Redeem Command', () => {
                     content: expect.stringContaining('24 characters or less'),
                     ephemeral: true
                 })
+            );
+        });
+
+        it('should reject usernames with invalid characters', async () => {
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return 'Test@Player#123'; // Invalid special characters
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.subscribe).not.toHaveBeenCalled();
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('only contain letters, numbers, underscores, and hyphens'),
+                    ephemeral: true
+                })
+            );
+        });
+
+        it('should reject empty usernames', async () => {
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return '   '; // Whitespace only
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.subscribe).not.toHaveBeenCalled();
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('cannot be empty'),
+                    ephemeral: true
+                })
+            );
+        });
+
+        it('should allow valid usernames with underscores and hyphens', async () => {
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return 'Test_Player-123';
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.subscribe).toHaveBeenCalledWith(
+                'user123', 'bd2', 'Test_Player-123', 'auto-redeem'
             );
         });
 
@@ -391,20 +541,23 @@ describe('Redeem Command', () => {
         });
 
         it('should show subscription status for specific game', async () => {
+            const subscription = {
+                gameId: 'bd2',
+                gameUserId: 'TestPlayer',
+                mode: 'auto-redeem',
+                subscribedAt: new Date().toISOString(),
+                redeemedCodes: ['CODE1'],
+            };
             mockDataService.getUserSubscriptions.mockResolvedValue({
                 discordId: 'user123',
-                games: {
-                    'bd2': {
-                        gameId: 'bd2',
-                        gameUserId: 'TestPlayer',
-                        mode: 'auto-redeem',
-                        subscribedAt: new Date().toISOString(),
-                        redeemedCodes: ['CODE1'],
-                    }
-                }
+                games: { 'bd2': subscription }
             });
-            mockDataService.getActiveCoupons.mockResolvedValue([{ code: 'CODE1' }, { code: 'CODE2' }]);
-            mockDataService.getUnredeemedCodes.mockResolvedValue([{ code: 'CODE2', rewards: 'Reward' }]);
+            // Mock getSubscriberContext for batch data loading
+            mockDataService.getSubscriberContext.mockResolvedValue({
+                subscription,
+                activeCoupons: [{ code: 'CODE1' }, { code: 'CODE2' }],
+                unredeemed: [{ code: 'CODE2', rewards: 'Reward' }],
+            });
 
             (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
                 if (name === 'game') return 'bd2';
@@ -696,6 +849,118 @@ describe('Redeem Command', () => {
                 })
             );
             expect(mockRedemptionService.processGameAutoRedemptions).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Preferences Subcommand', () => {
+        beforeEach(() => {
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('preferences');
+            (mockInteraction.options as any).getBoolean = vi.fn().mockReturnValue(null);
+        });
+
+        it('should require subscription to view preferences', async () => {
+            mockDataService.getGameSubscription.mockResolvedValue(null);
+
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('not subscribed'),
+                    ephemeral: true
+                })
+            );
+        });
+
+        it('should show current preferences when no options provided', async () => {
+            mockDataService.getGameSubscription.mockResolvedValue({
+                gameId: 'bd2',
+                gameUserId: 'TestPlayer',
+                mode: 'auto-redeem',
+                subscribedAt: new Date().toISOString(),
+                redeemedCodes: [],
+            });
+
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.getNotificationPreferences).toHaveBeenCalledWith('user123', 'bd2');
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    embeds: expect.any(Array),
+                    ephemeral: true
+                })
+            );
+        });
+
+        it('should update preferences when options provided', async () => {
+            mockDataService.getGameSubscription.mockResolvedValue({
+                gameId: 'bd2',
+                gameUserId: 'TestPlayer',
+                mode: 'auto-redeem',
+                subscribedAt: new Date().toISOString(),
+                redeemedCodes: [],
+            });
+
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                return null;
+            });
+            (mockInteraction.options as any).getBoolean = vi.fn().mockImplementation((name: string) => {
+                if (name === 'weekly_digest') return false;
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.updateNotificationPreferences).toHaveBeenCalledWith(
+                'user123',
+                'bd2',
+                { weeklyDigest: false }
+            );
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    embeds: expect.any(Array),
+                    ephemeral: true
+                })
+            );
+        });
+
+        it('should update multiple preferences at once', async () => {
+            mockDataService.getGameSubscription.mockResolvedValue({
+                gameId: 'bd2',
+                gameUserId: 'TestPlayer',
+                mode: 'auto-redeem',
+                subscribedAt: new Date().toISOString(),
+                redeemedCodes: [],
+            });
+
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                return null;
+            });
+            (mockInteraction.options as any).getBoolean = vi.fn().mockImplementation((name: string) => {
+                if (name === 'weekly_digest') return false;
+                if (name === 'expiration_warnings') return true;
+                if (name === 'new_code_alerts') return false;
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.updateNotificationPreferences).toHaveBeenCalledWith(
+                'user123',
+                'bd2',
+                { weeklyDigest: false, expirationWarnings: true, newCodeAlerts: false }
+            );
         });
     });
 

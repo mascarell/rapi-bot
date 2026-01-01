@@ -485,6 +485,55 @@ describe('GachaDataService', () => {
         });
     });
 
+    describe('batchMarkCodesRedeemed', () => {
+        it('should update multiple users in a single S3 write', async () => {
+            // Create additional test users
+            await service.subscribe('batch-user-1', 'bd2', 'BatchPlayer1', 'auto-redeem');
+            await service.subscribe('batch-user-2', 'bd2', 'BatchPlayer2', 'auto-redeem');
+
+            const updates = [
+                { discordId: 'batch-user-1', gameId: 'bd2' as const, codes: ['CODE1', 'CODE2'] },
+                { discordId: 'batch-user-2', gameId: 'bd2' as const, codes: ['CODE3'] },
+            ];
+
+            const result = await service.batchMarkCodesRedeemed(updates);
+
+            expect(result.success).toBe(2);
+            expect(result.failed).toBe(0);
+
+            // Verify codes were marked
+            const sub1 = await service.getGameSubscription('batch-user-1', 'bd2');
+            const sub2 = await service.getGameSubscription('batch-user-2', 'bd2');
+
+            expect(sub1?.redeemedCodes).toContain('CODE1');
+            expect(sub1?.redeemedCodes).toContain('CODE2');
+            expect(sub2?.redeemedCodes).toContain('CODE3');
+        });
+
+        it('should handle empty updates array', async () => {
+            const result = await service.batchMarkCodesRedeemed([]);
+
+            expect(result.success).toBe(0);
+            expect(result.failed).toBe(0);
+        });
+
+        it('should count failures for non-existent subscriptions', async () => {
+            const updates = [
+                { discordId: 'nonexistent-user', gameId: 'bd2' as const, codes: ['CODE1'] },
+                { discordId: 'discord123', gameId: 'bd2' as const, codes: ['BATCHCODE'] },
+            ];
+
+            const result = await service.batchMarkCodesRedeemed(updates);
+
+            expect(result.success).toBe(1);
+            expect(result.failed).toBe(1);
+
+            // Verify the existing user was still updated
+            const sub = await service.getGameSubscription('discord123', 'bd2');
+            expect(sub?.redeemedCodes).toContain('BATCHCODE');
+        });
+    });
+
     describe('getUnredeemedCodes', () => {
         it('should return codes not yet redeemed by user', async () => {
             const unredeemed = await service.getUnredeemedCodes('discord456', 'bd2');
@@ -537,6 +586,120 @@ describe('GachaDataService', () => {
 
             const after = await service.getGameSubscription('discord123', 'bd2');
             expect(after?.lastNotified).toBeDefined();
+        });
+    });
+
+    describe('getSubscriberContext (batch data loading)', () => {
+        it('should return full context in a single call', async () => {
+            const context = await service.getSubscriberContext('discord123', 'bd2');
+
+            expect(context.subscription).toBeDefined();
+            expect(context.subscription?.gameUserId).toBe('Player1');
+            expect(context.activeCoupons).toBeDefined();
+            expect(context.unredeemed).toBeDefined();
+        });
+
+        it('should filter out redeemed codes from unredeemed list', async () => {
+            // First mark a code as redeemed for discord456
+            await service.markCodesRedeemed('discord456', 'bd2', ['TESTCODE1']);
+
+            const context = await service.getSubscriberContext('discord456', 'bd2');
+
+            expect(context.subscription).toBeDefined();
+            expect(context.activeCoupons.length).toBe(2);
+            expect(context.unredeemed.length).toBe(1);
+            expect(context.unredeemed[0].code).toBe('TESTCODE2');
+        });
+
+        it('should return null subscription for non-subscribed user', async () => {
+            const context = await service.getSubscriberContext('nonexistent', 'bd2');
+
+            expect(context.subscription).toBeNull();
+            expect(context.activeCoupons.length).toBe(2);
+            expect(context.unredeemed.length).toBe(2); // All codes are "unredeemed" for non-subscribers
+        });
+
+        it('should return empty arrays for game with no coupons', async () => {
+            const context = await service.getSubscriberContext('discord123', 'blue-archive');
+
+            expect(context.subscription).toBeNull();
+            expect(context.activeCoupons).toEqual([]);
+            expect(context.unredeemed).toEqual([]);
+        });
+    });
+
+    describe('Force Re-run Operations', () => {
+        it('should allow force rerun for user who has never used it', async () => {
+            const result = await service.canForceRerun('discord123', 'bd2');
+
+            expect(result.allowed).toBe(true);
+            expect(result.cooldownRemaining).toBeUndefined();
+        });
+
+        it('should return false for non-subscribed user', async () => {
+            const result = await service.canForceRerun('nonexistent', 'bd2');
+
+            expect(result.allowed).toBe(false);
+        });
+
+        it('should record force rerun and reset redeemed codes', async () => {
+            // Create a fresh user for this test to avoid state from other tests
+            const testUser = 'force-rerun-test-user';
+            await service.subscribe(testUser, 'bd2', 'ForceRerunPlayer', 'auto-redeem');
+
+            // First mark some codes as redeemed
+            await service.markCodesRedeemed(testUser, 'bd2', ['TESTCODE1', 'TESTCODE2']);
+
+            // Verify codes are redeemed
+            let sub = await service.getGameSubscription(testUser, 'bd2');
+            expect(sub?.redeemedCodes.length).toBe(2);
+
+            // Record force rerun
+            await service.recordForceRerun(testUser, 'bd2');
+
+            // Verify redeemed codes are reset and lastForceRerun is set
+            sub = await service.getGameSubscription(testUser, 'bd2');
+            expect(sub?.redeemedCodes.length).toBe(0);
+            expect(sub?.lastForceRerun).toBeDefined();
+        });
+
+        it('should block force rerun during cooldown period', async () => {
+            // Record a force rerun first
+            await service.recordForceRerun('discord123', 'bd2');
+
+            // Now try to request another one
+            const result = await service.canForceRerun('discord123', 'bd2');
+
+            expect(result.allowed).toBe(false);
+            expect(result.cooldownRemaining).toBeDefined();
+            expect(result.cooldownRemaining).toBeGreaterThan(0);
+        });
+
+        it('should return next force rerun time', async () => {
+            // Record a force rerun
+            await service.recordForceRerun('discord456', 'bd2');
+
+            const nextTime = await service.getNextForceRerunTime('discord456', 'bd2');
+
+            expect(nextTime).toBeInstanceOf(Date);
+            expect(nextTime!.getTime()).toBeGreaterThan(Date.now());
+        });
+
+        it('should return null for user who has never used force rerun', async () => {
+            const nextTime = await service.getNextForceRerunTime('discord123', 'bd2');
+
+            // Note: This depends on whether discord123 has used force rerun in this test
+            // Since we're using discord123 in another test above, we need to use a fresh user
+            const freshUser = 'fresh-user-for-test';
+            await service.subscribe(freshUser, 'bd2', 'FreshPlayer', 'auto-redeem');
+
+            const freshNextTime = await service.getNextForceRerunTime(freshUser, 'bd2');
+            expect(freshNextTime).toBeNull();
+        });
+
+        it('should throw error when recording force rerun for non-subscribed user', async () => {
+            await expect(service.recordForceRerun('nonexistent', 'bd2'))
+                .rejects.toThrow('User is not subscribed to this game.');
         });
     });
 });

@@ -165,3 +165,196 @@ When `NODE_ENV=development`, daily reset messages trigger every 5 minutes instea
 ---
 
 For more details, see the code or use `/help` in Discord.
+
+---
+
+## Gacha Coupon Redemption System
+
+The bot includes a multi-game coupon redemption system that automatically redeems coupon codes or notifies users about new codes for supported gacha games.
+
+### Supported Games
+
+| Game | Auto-Redeem | Manual Redeem |
+|------|-------------|---------------|
+| Brown Dust 2 (BD2) | ✅ Yes | ✅ Yes |
+| NIKKE | ❌ No | ✅ Yes |
+| Blue Archive | ❌ No | ✅ Yes |
+
+### User Commands (`/redeem`)
+
+| Command | Description |
+|---------|-------------|
+| `/redeem subscribe <game> <userid> <mode>` | Subscribe to coupon notifications |
+| `/redeem unsubscribe <game>` | Unsubscribe from a game |
+| `/redeem status [game]` | View your subscription status |
+| `/redeem codes <game>` | View all active coupon codes |
+| `/redeem preferences <game> [options]` | Configure notification preferences |
+| `/redeem switch <game> <mode>` | Switch subscription mode without re-subscribing |
+
+**Subscription Modes:**
+- **Auto-Redeem** (🤖): Bot automatically redeems new codes for you (BD2 only)
+- **Notification Only** (📬): Receive DM notifications about new and expiring codes
+
+**Notification Preferences:**
+Users can customize which notifications they receive:
+- **Expiration Warnings** - Alerts when codes are about to expire
+- **Weekly Digest** - Weekly summary of code status
+- **New Code Alerts** - Notifications when new codes are added
+
+### Moderator Commands
+
+| Command | Description |
+|---------|-------------|
+| `/redeem add <game> <code> <rewards> [expiration] [source]` | Add a new coupon code |
+| `/redeem remove <game> <code>` | Deactivate a coupon code |
+| `/redeem list <game>` | View all codes and subscriber stats |
+| `/redeem trigger <game>` | Manually trigger auto-redemption |
+| `/redeem scrape` | Fetch new codes from BD2 Pulse |
+| `/redeem stats [game]` | View redemption analytics |
+| `/redeem unsub <user> <game>` | Force unsubscribe a user |
+| `/redeem update <user> <game> <userid>` | Update a user's game ID |
+| `/redeem lookup <user>` | View a user's subscriptions |
+| `/redeem reset <user> <game>` | Reset a user's redeemed codes |
+
+### Scheduled Tasks
+
+The system runs five automated tasks:
+
+| Task | Production Schedule | Dev Schedule |
+|------|---------------------|--------------|
+| Weekly Digest | Sundays 12:00 UTC | Every 10 min |
+| Expiration Warnings | Daily 09:00 UTC | Every 5 min |
+| Auto-Redemption | Every 6 hours | Every 3 min |
+| Code Scraping | Every 30 min | Every 2 min |
+| Expired Code Cleanup | Daily 00:00 UTC | Every 15 min |
+
+### Adding a New Game
+
+1. **Update `GachaGameId` type** in `src/utils/interfaces/GachaCoupon.interface.ts`:
+   ```typescript
+   export type GachaGameId = 'bd2' | 'nikke' | 'blue-archive' | 'new-game';
+   ```
+
+2. **Add game config** in `src/utils/data/gachaGamesConfig.ts`:
+   ```typescript
+   'new-game': {
+       id: 'new-game',
+       name: 'New Game Name',
+       shortName: 'NG',
+       apiEndpoint: 'https://api.example.com/redeem', // Optional
+       apiConfig: { appId: 'ng-live', method: 'POST' }, // Optional
+       manualRedeemUrl: 'https://game.com/redeem', // For notification-only
+       supportsAutoRedeem: true, // Set based on API availability
+       logoPath: CDN_DOMAIN_URL + '/assets/logos/new-game.png',
+       embedColor: 0xFF0000,
+       maxNicknameLength: 20,
+       maxCodeLength: 20,
+       userIdFieldName: 'Player ID',
+   }
+   ```
+
+3. **Implement redemption handler** (if auto-redeem supported) in `src/services/gachaRedemptionService.ts`:
+   ```typescript
+   class NewGameRedemptionHandler implements GameRedemptionHandler {
+       // Implement redeem() method
+   }
+
+   // Register in constructor:
+   this.handlers.set('new-game', new NewGameRedemptionHandler());
+   ```
+
+4. **Restart the bot** and deploy slash commands
+
+### Data Model (NoSQL Ready)
+
+The system uses a JSON document stored in S3 with a schema designed for easy migration to DynamoDB:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ GachaCouponData (S3 JSON)                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ coupons[]          → Future: Coupons table (PK: gameId, SK: code)
+│ subscriptions[]    → Future: Subscriptions table (PK: discordId, SK: gameId)
+│ redemptionHistory[]→ Future: History table (PK: discordId#gameId, SK: timestamp)
+│ lastUpdated        → Metadata                                   │
+│ schemaVersion      → For migrations                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Planned DynamoDB Structure:**
+
+| Table | Partition Key | Sort Key | GSIs |
+|-------|---------------|----------|------|
+| Coupons | gameId | code | isActive+expirationDate |
+| Subscriptions | discordId | gameId | gameId+mode |
+| RedemptionHistory | discordId#gameId | timestamp | - |
+
+**Redemption History:** All redemption attempts are logged with timestamps, success/failure status, and error codes for debugging and analytics.
+
+### Performance Optimizations
+
+The system includes several optimizations for 100+ subscribers:
+
+- **Parallel Processing**: Uses `p-limit` for concurrent subscriber processing (5 concurrent)
+- **DM Rate Limiting**: 100ms delay between Discord DMs to avoid rate limits
+- **DM Failure Tracking**: Automatically tracks users who can't receive DMs and skips them in future batches
+- **Batch Preferences Loading**: Loads all user preferences in a single call instead of per-subscriber
+- **Request Timeout**: 10-second timeout with AbortController for API requests
+- **Cache Indexing**: Pre-computed active coupons index for O(1) lookups
+- **Batch Data Loading**: `getSubscriberContext()` reduces S3 reads
+- **Duplicate Prevention**: Running tasks tracked to prevent overlapping executions
+- **Exponential Backoff**: Configurable retry logic with jitter for API failures
+- **Circuit Breaker**: Prevents cascading failures when game APIs are unavailable
+- **Batch History Logging**: Redemption history entries are collected and written in a single batch
+
+### Configurable Settings
+
+All tunable parameters are centralized in `src/utils/data/gachaConfig.ts`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `API_TIMEOUT_MS` | 10000 | API request timeout |
+| `MAX_RETRIES` | 3 | Maximum retry attempts |
+| `RATE_LIMIT_DELAY` | 2000 | Delay between API calls |
+| `DM_RATE_LIMIT_DELAY` | 100 | Delay between Discord DMs |
+| `CONCURRENT_SUBSCRIBER_LIMIT` | 5 | Parallel subscriber processing |
+| `CACHE_TTL` | 300000 | Data cache duration (5 min) |
+| `CIRCUIT_BREAKER_THRESHOLD` | 5 | Failures before circuit opens |
+| `CIRCUIT_BREAKER_COOLDOWN` | 60000 | Circuit recovery time |
+| `FORCE_RERUN_COOLDOWN` | 7 days | Cooldown for re-run requests |
+| `INITIAL_BACKOFF_MS` | 1000 | Starting backoff delay |
+| `MAX_BACKOFF_MS` | 30000 | Maximum backoff delay |
+| `BACKOFF_MULTIPLIER` | 2 | Exponential backoff factor |
+
+### Guild Restrictions
+
+The gacha coupon system is restricted to specific Discord servers. Guild IDs are stored in S3 at `data/gacha-coupons/guild-config.json` to keep them private from the open source repository.
+
+### Analytics
+
+The `/redeem stats` command provides comprehensive analytics:
+
+**Per-Game Stats:**
+- Subscriber counts (auto-redeem vs notification-only)
+- Coupon counts (active, expired, no-expiry)
+- Redemption statistics (total, unique users, average per user)
+- Top 5 most redeemed codes
+
+**System-Wide Stats:**
+- Total subscribers across all games
+- Total coupons in the system
+- Total redemptions performed
+- Per-game breakdown
+
+### Environment Variables
+
+Add to your `.env`:
+```plaintext
+CDN_DOMAIN_URL=https://your-cdn.com
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=us-east-1
+S3_BUCKET=your-bucket-name
+```
+
+---

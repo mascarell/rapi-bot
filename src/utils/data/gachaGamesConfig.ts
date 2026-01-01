@@ -15,45 +15,47 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         id: 'bd2',
         name: 'Brown Dust 2',
         shortName: 'BD2',
-        apiEndpoint: 'https://loj2urwaua.execute-api.ap-northeast-1.amazonaws.com/prod/coupon',
+        apiEndpoint: 'https://api.thebd2pulse.com/redeem/coupon',
         apiConfig: {
             appId: 'bd2-live',
             method: 'POST',
         },
-        manualRedeemUrl: 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN',
+        manualRedeemUrl: 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-US',
         supportsAutoRedeem: true,
         logoPath: `${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`,
         embedColor: 0x8B4513,
         maxNicknameLength: 24,
-        maxCodeLength: 20,
+        maxCodeLength: 30,
         userIdFieldName: 'nickname',
     },
-    'nikke': {
-        id: 'nikke',
-        name: 'GODDESS OF VICTORY: NIKKE',
-        shortName: 'NIKKE',
-        // NIKKE uses in-game redemption only (no web API)
-        manualRedeemUrl: undefined,
-        supportsAutoRedeem: false,
-        logoPath: `${cdnDomainUrl}/assets/logos/nikke-logo.png`,
-        embedColor: 0x3498DB,
-        maxNicknameLength: 20,
-        maxCodeLength: 30,
-        userIdFieldName: 'UID',
-    },
-    'blue-archive': {
-        id: 'blue-archive',
-        name: 'Blue Archive',
-        shortName: 'BA',
-        // Blue Archive uses in-game redemption only
-        manualRedeemUrl: undefined,
-        supportsAutoRedeem: false,
-        logoPath: `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`,
-        embedColor: 0x00BFFF,
-        maxNicknameLength: 20,
-        maxCodeLength: 30,
-        userIdFieldName: 'UID',
-    },
+    // TODO: Implement NIKKE support later
+    // 'nikke': {
+    //     id: 'nikke',
+    //     name: 'GODDESS OF VICTORY: NIKKE',
+    //     shortName: 'NIKKE',
+    //     // NIKKE uses in-game redemption only (no web API)
+    //     manualRedeemUrl: undefined,
+    //     supportsAutoRedeem: false,
+    //     logoPath: `${cdnDomainUrl}/assets/logos/nikke-logo.png`,
+    //     embedColor: 0x3498DB,
+    //     maxNicknameLength: 20,
+    //     maxCodeLength: 30,
+    //     userIdFieldName: 'UID',
+    // },
+    // TODO: Implement Blue Archive support later
+    // 'blue-archive': {
+    //     id: 'blue-archive',
+    //     name: 'Blue Archive',
+    //     shortName: 'BA',
+    //     // Blue Archive uses in-game redemption only
+    //     manualRedeemUrl: undefined,
+    //     supportsAutoRedeem: false,
+    //     logoPath: `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`,
+    //     embedColor: 0x00BFFF,
+    //     maxNicknameLength: 20,
+    //     maxCodeLength: 30,
+    //     userIdFieldName: 'UID',
+    // },
 };
 
 /**

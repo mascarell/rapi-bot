@@ -3,13 +3,34 @@
  *
  * This module provides extensible interfaces for supporting multiple gacha games
  * with coupon redemption functionality.
+ *
+ * DATA MODEL DESIGN NOTES (NoSQL Ready):
+ * =====================================
+ * The data model is designed for easy migration to DynamoDB or similar NoSQL databases:
+ *
+ * 1. COUPONS COLLECTION/TABLE:
+ *    - Primary Key: { gameId (PK), code (SK) }
+ *    - GSI1: { isActive (PK), expirationDate (SK) } - for querying active/expiring coupons
+ *    - GSI2: { gameId (PK), addedAt (SK) } - for chronological listing per game
+ *
+ * 2. SUBSCRIPTIONS COLLECTION/TABLE:
+ *    - Primary Key: { discordId (PK), gameId (SK) }
+ *    - GSI1: { gameId (PK), mode (SK) } - for querying subscribers by game and mode
+ *
+ * 3. REDEMPTION_HISTORY COLLECTION/TABLE (future):
+ *    - Primary Key: { discordId#gameId (PK), timestamp (SK) }
+ *    - For audit trail and analytics
+ *
+ * Current S3 JSON structure maintains these as arrays for simplicity,
+ * but the interface design supports direct NoSQL migration.
  */
 
 /**
  * Supported gacha games for coupon redemption
  * Add new games here as they are supported
+ * TODO: Re-add 'nikke' | 'blue-archive' when those games are implemented
  */
-export type GachaGameId = 'bd2' | 'nikke' | 'blue-archive';
+export type GachaGameId = 'bd2';
 
 /**
  * Configuration for a supported gacha game
@@ -47,11 +68,12 @@ export interface GachaGameConfig {
 
 /**
  * Represents a coupon code with metadata (game-agnostic)
+ * NoSQL Key: { gameId (PK), code (SK) }
  */
 export interface GachaCoupon {
-    /** The coupon code itself */
+    /** The coupon code itself (Sort Key in NoSQL) */
     code: string;
-    /** Which game this coupon is for */
+    /** Which game this coupon is for (Partition Key in NoSQL) */
     gameId: GachaGameId;
     /** Description of rewards (e.g., "500 Dia + 10 Summon Tickets") */
     rewards: string;
@@ -65,6 +87,12 @@ export interface GachaCoupon {
     isActive: boolean;
     /** Optional source (e.g., "Official Twitter", "Reddit") */
     source?: string;
+    /** Optional: Total redemption count (for analytics) */
+    redemptionCount?: number;
+    /** Optional: Region restrictions (for future multi-region support) */
+    regions?: string[];
+    /** Optional: Tags for categorization */
+    tags?: string[];
 }
 
 /**
@@ -74,9 +102,10 @@ export type SubscriptionMode = 'auto-redeem' | 'notification-only';
 
 /**
  * Represents a user's subscription for a specific game
+ * NoSQL Key: { discordId (PK), gameId (SK) }
  */
 export interface GameSubscription {
-    /** Which game this subscription is for */
+    /** Which game this subscription is for (Sort Key in NoSQL) */
     gameId: GachaGameId;
     /** In-game identifier (nickname, UID, etc.) */
     gameUserId: string;
@@ -88,16 +117,63 @@ export interface GameSubscription {
     redeemedCodes: string[];
     /** ISO timestamp of last notification sent */
     lastNotified?: string;
+    /** ISO timestamp of last force re-run request (for cooldown tracking) */
+    lastForceRerun?: string;
+    /** Optional: Total successful redemptions count */
+    totalRedemptions?: number;
+    /** Whether DMs are disabled for this user (failed to send) */
+    dmDisabled?: boolean;
+    /** ISO timestamp when DM failure was first detected */
+    dmDisabledAt?: string;
+    /** Optional: Notification preferences */
+    preferences?: {
+        /** Receive expiration warnings */
+        expirationWarnings?: boolean;
+        /** Receive weekly digests */
+        weeklyDigest?: boolean;
+        /** Receive new code notifications */
+        newCodeAlerts?: boolean;
+    };
 }
 
 /**
  * Represents a user with their game subscriptions
+ * NoSQL: In DynamoDB, each GameSubscription would be a separate item
+ * with { discordId (PK), gameId (SK) }
  */
 export interface UserSubscription {
-    /** Discord user ID */
+    /** Discord user ID (Partition Key in NoSQL) */
     discordId: string;
     /** Map of game subscriptions by game ID */
     games: Partial<Record<GachaGameId, GameSubscription>>;
+    /** Optional: User-level metadata */
+    metadata?: {
+        /** First subscription date */
+        firstSubscribedAt?: string;
+        /** Total games subscribed to historically */
+        totalGamesSubscribed?: number;
+    };
+}
+
+/**
+ * Redemption history entry (for future audit trail)
+ * NoSQL Key: { discordId#gameId (PK), timestamp (SK) }
+ */
+export interface RedemptionHistoryEntry {
+    /** Discord user ID */
+    discordId: string;
+    /** Which game */
+    gameId: GachaGameId;
+    /** The coupon code */
+    code: string;
+    /** ISO timestamp of redemption attempt */
+    timestamp: string;
+    /** Whether it succeeded */
+    success: boolean;
+    /** Error code if failed */
+    errorCode?: string;
+    /** Redemption method: 'auto' | 'manual' */
+    method: 'auto' | 'manual';
 }
 
 /**
@@ -142,6 +218,8 @@ export interface GachaCouponData {
     coupons: GachaCoupon[];
     /** All user subscriptions */
     subscriptions: UserSubscription[];
+    /** Redemption history log (NoSQL: separate table with PK: discordId#gameId, SK: timestamp) */
+    redemptionHistory?: RedemptionHistoryEntry[];
     /** ISO timestamp of last data update */
     lastUpdated: string;
     /** Schema version for future migrations */
