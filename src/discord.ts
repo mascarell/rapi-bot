@@ -40,6 +40,7 @@ import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
 import { getUptimeService } from './services/uptimeService';
 import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
+import { GachaCouponScheduler } from './services/gachaCouponScheduler';
 
 // Destructure only the necessary functions from util
 const {
@@ -1782,6 +1783,17 @@ async function initDiscordBot() {
             // Initialize daily reset service
             const dailyResetService = new DailyResetService(bot, dailyResetServiceConfig);
             dailyResetService.initializeSchedules();
+
+            // Initialize gacha coupon scheduler (supports multiple games)
+            // Dev mode config: shorter intervals and optional startup trigger for testing
+            const gachaCouponScheduler = new GachaCouponScheduler(bot, {
+                weeklyDigestInterval: 10,       // Every 10 min in dev (prod: Sundays 12:00 UTC)
+                expirationWarningInterval: 5,   // Every 5 min in dev (prod: daily 09:00 UTC)
+                autoRedemptionInterval: 3,      // Every 3 min in dev (prod: every 6 hours)
+                triggerOnStartup: false,        // Set to true to trigger all tasks on bot start
+                startupDelay: 10,               // Seconds to wait before startup trigger
+            });
+            gachaCouponScheduler.initializeSchedules();
 
             enableAutoComplete();
             handleMessages();
