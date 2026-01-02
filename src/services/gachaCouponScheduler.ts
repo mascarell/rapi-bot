@@ -77,6 +77,27 @@ export class GachaCouponScheduler {
 
         console.log('Gacha Coupon Scheduler initialized');
 
+        // Always scrape codes on startup (after a short delay to let bot fully initialize)
+        // This ensures we have the latest codes immediately after restart/deploy
+        const startupDelay = this.isDevelopment ? this.devConfig.startupDelay : 15;
+        setTimeout(async () => {
+            console.log('[Startup] Scraping codes on startup...');
+            try {
+                const result = await this.triggerCodeScraping();
+                if (result.success) {
+                    if (result.newCodes.length > 0) {
+                        console.log(`[Startup] Found ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`);
+                    } else {
+                        console.log('[Startup] No new codes found');
+                    }
+                } else {
+                    console.error('[Startup] Code scraping failed:', result.error);
+                }
+            } catch (error) {
+                console.error('[Startup] Code scraping error:', error);
+            }
+        }, startupDelay * 1000);
+
         // In dev mode, optionally trigger all tasks after a short delay for immediate testing
         if (this.isDevelopment && this.devConfig.triggerOnStartup) {
             setTimeout(async () => {
