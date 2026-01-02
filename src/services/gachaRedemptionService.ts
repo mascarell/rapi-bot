@@ -614,6 +614,75 @@ export class GachaRedemptionService {
     }
 
     /**
+     * Redeem all active codes for a specific user immediately
+     * Called after user subscribes with auto-redeem mode
+     * Returns summary of redemption results
+     */
+    public async redeemAllForUser(
+        bot: Client,
+        discordId: string,
+        gameId: GachaGameId,
+        gameUserId: string
+    ): Promise<{ successful: number; alreadyRedeemed: number; failed: number; total: number }> {
+        if (!this.supportsAutoRedeem(gameId)) {
+            return { successful: 0, alreadyRedeemed: 0, failed: 0, total: 0 };
+        }
+
+        const dataService = getGachaDataService();
+        const activeCoupons = await dataService.getActiveCoupons(gameId);
+
+        if (activeCoupons.length === 0) {
+            return { successful: 0, alreadyRedeemed: 0, failed: 0, total: 0 };
+        }
+
+        const codes = activeCoupons.map(c => c.code);
+        console.log(`[Subscribe] Redeeming ${codes.length} codes for new subscriber ${gameUserId} in ${gameId}`);
+
+        // Redeem all codes
+        const results = await this.redeemMultipleCodes(gameId, gameUserId, codes);
+
+        // Categorize results
+        const successful = results.filter(r => r.success);
+        const alreadyRedeemed = results.filter(r => !r.success && r.errorCode === 'AlreadyUsed');
+        const failed = results.filter(r => !r.success && r.errorCode !== 'AlreadyUsed');
+
+        // Mark successful and already-redeemed codes
+        const codesToMark = [
+            ...successful.map(r => r.code),
+            ...alreadyRedeemed.map(r => r.code)
+        ];
+
+        if (codesToMark.length > 0) {
+            await dataService.markCodesRedeemed(discordId, gameId, codesToMark);
+        }
+
+        // Log history entries
+        const historyEntries = this.createHistoryEntries(discordId, gameId, results, 'auto');
+        if (historyEntries.length > 0) {
+            await dataService.addBatchRedemptionHistory(historyEntries);
+        }
+
+        // Send DM with results if there are meaningful results
+        const hasRedeemed = successful.length > 0 || alreadyRedeemed.length > 0;
+        if (hasRedeemed) {
+            try {
+                await this.sendRedemptionResultsDM(bot, discordId, gameId, results, gameUserId);
+            } catch (error) {
+                console.error(`[Subscribe] Failed to send redemption DM to ${discordId}:`, error);
+            }
+        }
+
+        console.log(`[Subscribe] Completed: ${successful.length} successful, ${alreadyRedeemed.length} already redeemed, ${failed.length} failed`);
+
+        return {
+            successful: successful.length,
+            alreadyRedeemed: alreadyRedeemed.length,
+            failed: failed.length,
+            total: results.length
+        };
+    }
+
+    /**
      * Send DM to user about redemption results
      * Categorizes results into: successful, already redeemed, expired, and actual failures
      */
