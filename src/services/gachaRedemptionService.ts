@@ -910,6 +910,13 @@ export class GachaRedemptionService {
     public async notifyNewCode(bot: Client, coupon: GachaCoupon): Promise<void> {
         const dataService = getGachaDataService();
         const gameConfig = getGameConfig(coupon.gameId);
+
+        // Skip notification if code is already expired (handles edge case of codes added with past dates)
+        if (coupon.expirationDate && new Date(coupon.expirationDate) <= new Date()) {
+            console.log(`[notifyNewCode] Skipping notification for expired code: ${coupon.code}`);
+            return;
+        }
+
         // Use optimized batch method that includes preferences and DM status
         const subscribers = await dataService.getSubscribersForNotification(coupon.gameId);
 
@@ -1102,8 +1109,13 @@ export class GachaRedemptionService {
                         return { discordId, sent: false, reason: 'disabled' };
                     }
 
-                    const user = await bot.users.fetch(discordId);
+                    // Get unredeemed codes first - skip DM if user has none pending
                     const unredeemed = await dataService.getUnredeemedCodes(discordId, gameId);
+                    if (unredeemed.length === 0) {
+                        return { discordId, sent: false, reason: 'no-unredeemed-codes' };
+                    }
+
+                    const user = await bot.users.fetch(discordId);
 
                     const embed = new EmbedBuilder()
                         .setColor(gameConfig.embedColor)

@@ -611,6 +611,8 @@ describe('GachaRedemptionService', () => {
         });
 
         it('should include expiration date in notification', async () => {
+            // Use future date to ensure code isn't skipped as expired
+            const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             const mockCoupon: GachaCoupon = {
                 code: 'EXPIRING',
                 gameId: 'bd2',
@@ -618,7 +620,7 @@ describe('GachaRedemptionService', () => {
                 isActive: true,
                 addedBy: 'mod123',
                 addedAt: new Date().toISOString(),
-                expirationDate: '2025-12-31T23:59:59.999Z',
+                expirationDate: futureDate,
             };
 
             mockDataService.getSubscribersForNotification.mockResolvedValue([
@@ -642,6 +644,41 @@ describe('GachaRedemptionService', () => {
             expect(mockUser.send).toHaveBeenCalled();
             const embedCall = (mockUser.send as any).mock.calls[0][0];
             expect(embedCall.embeds).toBeDefined();
+        });
+
+        it('should skip notification for already expired codes', async () => {
+            // Use past date to simulate expired code
+            const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const mockCoupon: GachaCoupon = {
+                code: 'EXPIREDCODE',
+                gameId: 'bd2',
+                rewards: '100 Gems',
+                isActive: true,
+                addedBy: 'mod123',
+                addedAt: new Date().toISOString(),
+                expirationDate: pastDate,
+            };
+
+            mockDataService.getSubscribersForNotification.mockResolvedValue([
+                {
+                    discordId: 'user123',
+                    subscription: {
+                        gameId: 'bd2',
+                        gameUserId: 'TestPlayer',
+                        mode: 'notification-only',
+                        subscribedAt: new Date().toISOString(),
+                        redeemedCodes: [],
+                    } as GameSubscription,
+                    preferences: { expirationWarnings: true, weeklyDigest: true, newCodeAlerts: true },
+                    dmDisabled: false,
+                },
+            ]);
+
+            const service = getGachaRedemptionService();
+            await service.notifyNewCode(mockBot as Client, mockCoupon);
+
+            // Should NOT send any DMs for expired codes
+            expect(mockUser.send).not.toHaveBeenCalled();
         });
     });
 
@@ -823,6 +860,34 @@ describe('GachaRedemptionService', () => {
 
             // Should not throw
             await expect(service.sendWeeklyDigest(mockBot as Client, 'bd2')).resolves.toBeUndefined();
+        });
+
+        it('should skip digest if user has no unredeemed codes', async () => {
+            const mockSubscribers = [
+                {
+                    discordId: 'user123',
+                    subscription: {
+                        gameId: 'bd2',
+                        gameUserId: 'TestPlayer',
+                        mode: 'notification-only',
+                        subscribedAt: new Date().toISOString(),
+                        redeemedCodes: ['CODE1', 'CODE2'], // User has redeemed all codes
+                    } as GameSubscription,
+                    preferences: { expirationWarnings: true, weeklyDigest: true, newCodeAlerts: true },
+                    dmDisabled: false,
+                },
+            ];
+
+            mockDataService.getSubscribersForNotification.mockResolvedValue(mockSubscribers);
+            mockDataService.getActiveCoupons.mockResolvedValue([]);
+            mockDataService.getExpiringCoupons.mockResolvedValue([]);
+            mockDataService.getUnredeemedCodes.mockResolvedValue([]); // No unredeemed codes
+
+            const service = getGachaRedemptionService();
+            await service.sendWeeklyDigest(mockBot as Client, 'bd2');
+
+            // Should NOT send DM when user has no unredeemed codes
+            expect(mockUser.send).not.toHaveBeenCalled();
         });
     });
 
