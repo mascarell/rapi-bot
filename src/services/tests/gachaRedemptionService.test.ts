@@ -520,6 +520,42 @@ describe('GachaRedemptionService', () => {
             expect(mockBot.users?.fetch).toHaveBeenCalledWith('user123');
             expect(mockUser.send).toHaveBeenCalled();
         });
+
+        it('should skip DM if only expired codes exist (no successful or already redeemed)', async () => {
+            const mockCoupons: Partial<GachaCoupon>[] = [
+                { code: 'EXPIRED1', gameId: 'bd2', rewards: 'Reward 1', isActive: true },
+            ];
+
+            const mockSubscribers = [
+                {
+                    discordId: 'user123',
+                    subscription: {
+                        gameId: 'bd2',
+                        gameUserId: 'TestPlayer',
+                        mode: 'auto-redeem',
+                        subscribedAt: new Date().toISOString(),
+                        redeemedCodes: [],
+                    } as GameSubscription,
+                    preferences: { expirationWarnings: true, weeklyDigest: true, newCodeAlerts: true },
+                    dmDisabled: false,
+                },
+            ];
+
+            mockDataService.getActiveCoupons.mockResolvedValue(mockCoupons);
+            mockDataService.getSubscribersForNotification.mockResolvedValue(mockSubscribers);
+
+            // All codes return ExpiredCode - no successful or already redeemed
+            vi.mocked(global.fetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({ success: false, error: 'ExpiredCode' }),
+            } as Response);
+
+            const service = getGachaRedemptionService();
+            await service.processGameAutoRedemptions(mockBot as Client, 'bd2');
+
+            // Should NOT send DM when only expired codes (no meaningful results)
+            expect(mockUser.send).not.toHaveBeenCalled();
+        });
     });
 
     describe('processAllAutoRedemptions', () => {
