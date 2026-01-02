@@ -116,7 +116,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
         const dataService = getGachaDataService();
         await dataService.subscribe(interaction.user.id, gameId, gameUserId, mode);
 
-        const modeDescription = mode === 'auto-redeem' && gameConfig.supportsAutoRedeem
+        let modeDescription = mode === 'auto-redeem' && gameConfig.supportsAutoRedeem
             ? 'The bot will automatically redeem new codes for you.'
             : 'You will receive DM notifications about new and expiring codes.';
 
@@ -129,7 +129,6 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
                 { name: gameConfig.userIdFieldName, value: `\`${gameUserId}\``, inline: true },
                 { name: 'Mode', value: mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only', inline: true }
             )
-            .addFields({ name: 'What happens now?', value: modeDescription })
             .setTimestamp()
             .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
@@ -139,6 +138,30 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
                 value: `Auto-redeem is not yet supported for ${gameConfig.shortName}. You will receive notifications instead.`
             });
         }
+
+        // Immediately redeem all active codes for auto-redeem subscribers
+        if (mode === 'auto-redeem' && gameConfig.supportsAutoRedeem) {
+            const redemptionService = getGachaRedemptionService();
+            const result = await redemptionService.redeemAllForUser(
+                interaction.client,
+                interaction.user.id,
+                gameId,
+                gameUserId
+            );
+
+            if (result.total > 0) {
+                const statusParts = [];
+                if (result.successful > 0) statusParts.push(`✅ ${result.successful} redeemed`);
+                if (result.alreadyRedeemed > 0) statusParts.push(`🔄 ${result.alreadyRedeemed} already claimed`);
+                if (result.failed > 0) statusParts.push(`❌ ${result.failed} failed`);
+
+                modeDescription = `Immediately redeemed ${result.total} active codes!\n${statusParts.join(' • ')}\n\nYou'll receive a DM with details.`;
+            } else {
+                modeDescription = 'No active codes available right now. You\'ll be notified when new codes are added!';
+            }
+        }
+
+        embed.addFields({ name: 'What happens now?', value: modeDescription });
 
         await interaction.reply({ embeds: [embed], ephemeral: true });
     } catch (error: any) {

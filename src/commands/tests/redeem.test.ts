@@ -159,6 +159,12 @@ describe('Redeem Command', () => {
                 failed: 1,
                 skipped: 0,
             }),
+            redeemAllForUser: vi.fn().mockResolvedValue({
+                successful: 2,
+                alreadyRedeemed: 0,
+                failed: 0,
+                total: 2,
+            }),
         };
         vi.mocked(getGachaRedemptionService).mockReturnValue(mockRedemptionService);
 

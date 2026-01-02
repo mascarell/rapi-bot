@@ -571,6 +571,84 @@ describe('GachaRedemptionService', () => {
         });
     });
 
+    describe('redeemAllForUser', () => {
+        it('should redeem all active codes for a new subscriber', async () => {
+            const mockCoupons: Partial<GachaCoupon>[] = [
+                { code: 'CODE1', gameId: 'bd2', rewards: 'Reward 1', isActive: true },
+                { code: 'CODE2', gameId: 'bd2', rewards: 'Reward 2', isActive: true },
+            ];
+
+            mockDataService.getActiveCoupons.mockResolvedValue(mockCoupons);
+
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) } as Response)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) } as Response);
+
+            const service = getGachaRedemptionService();
+            const result = await service.redeemAllForUser(mockBot as Client, 'user123', 'bd2', 'TestPlayer');
+
+            expect(result.successful).toBe(2);
+            expect(result.alreadyRedeemed).toBe(0);
+            expect(result.failed).toBe(0);
+            expect(result.total).toBe(2);
+            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user123', 'bd2', ['CODE1', 'CODE2']);
+        });
+
+        it('should handle mixed results (some already redeemed)', async () => {
+            const mockCoupons: Partial<GachaCoupon>[] = [
+                { code: 'NEW', gameId: 'bd2', rewards: 'Reward 1', isActive: true },
+                { code: 'USED', gameId: 'bd2', rewards: 'Reward 2', isActive: true },
+            ];
+
+            mockDataService.getActiveCoupons.mockResolvedValue(mockCoupons);
+
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) } as Response)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: false, error: 'AlreadyUsed' }) } as Response);
+
+            const service = getGachaRedemptionService();
+            const result = await service.redeemAllForUser(mockBot as Client, 'user123', 'bd2', 'TestPlayer');
+
+            expect(result.successful).toBe(1);
+            expect(result.alreadyRedeemed).toBe(1);
+            expect(result.failed).toBe(0);
+            expect(result.total).toBe(2);
+            // Both codes should be marked (successful + already redeemed)
+            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user123', 'bd2', ['NEW', 'USED']);
+        });
+
+        it('should return zeros when no active codes exist', async () => {
+            mockDataService.getActiveCoupons.mockResolvedValue([]);
+
+            const service = getGachaRedemptionService();
+            const result = await service.redeemAllForUser(mockBot as Client, 'user123', 'bd2', 'TestPlayer');
+
+            expect(result.successful).toBe(0);
+            expect(result.alreadyRedeemed).toBe(0);
+            expect(result.failed).toBe(0);
+            expect(result.total).toBe(0);
+        });
+
+        it('should send DM with redemption results when codes are redeemed', async () => {
+            const mockCoupons: Partial<GachaCoupon>[] = [
+                { code: 'CODE1', gameId: 'bd2', rewards: 'Reward 1', isActive: true },
+            ];
+
+            mockDataService.getActiveCoupons.mockResolvedValue(mockCoupons);
+
+            vi.mocked(global.fetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({ success: true }),
+            } as Response);
+
+            const service = getGachaRedemptionService();
+            await service.redeemAllForUser(mockBot as Client, 'user123', 'bd2', 'TestPlayer');
+
+            expect(mockBot.users?.fetch).toHaveBeenCalledWith('user123');
+            expect(mockUser.send).toHaveBeenCalled();
+        });
+    });
+
     describe('notifyNewCode', () => {
         it('should notify notification-only subscribers via DM', async () => {
             const mockCoupon: GachaCoupon = {
