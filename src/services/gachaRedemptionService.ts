@@ -518,8 +518,10 @@ export class GachaRedemptionService {
                         console.error(`Redemption failed for ${subscription.gameUserId} - Code: ${failed.code}, Error: ${failed.errorCode || 'Unknown'}, Message: ${failed.message}`);
                     }
 
-                    // Send DM only if not disabled
-                    if (!dmDisabled) {
+                    // Send DM only if not disabled AND we have meaningful results
+                    // (skip if only expired codes or failures with nothing redeemed)
+                    const hasRedeemed = successfulCodes.length > 0 || alreadyRedeemed.length > 0;
+                    if (!dmDisabled && hasRedeemed) {
                         await this.sendRedemptionResultsDM(bot, discordId, gameId, redemptionResults, subscription.gameUserId);
                     }
 
