@@ -52,6 +52,12 @@ export const EMBED_FIX_CONFIG = {
     // Duplicate detection
     DUPLICATE_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours
 
+    // Message edit monitoring window
+    MESSAGE_EDIT_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours - monitor edits for this long
+
+    // Fixup service domains (used to detect when to show fallback message)
+    FIXUP_DOMAINS: ['vxtwitter.com', 'fxtwitter.com', 'fixupx.com', 'fixvx.com', 'twittpr.com'],
+
     // Channel patterns for stats tracking (PR4)
     TRACKED_CHANNEL_PATTERNS: ['art', 'nsfw', 'gallery', 'fanart'],
 } as const;

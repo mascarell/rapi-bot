@@ -109,13 +109,50 @@ class EmbedFixService {
         // Combine first result with rest
         const allResults = firstEmbedData ? [firstEmbedData, ...results] : results;
 
+        // Track which URLs failed (for fallback message)
+        const failedFixupUrls: string[] = [];
+        limitedMatches.forEach((match, index) => {
+            const result = index === 0 ? firstEmbedData : results[index - 1];
+            if (!result && this.isFixupUrl(match.url)) {
+                failedFixupUrls.push(match.url);
+            }
+        });
+
         // Filter out null results
         const validEmbeds = allResults.filter((data): data is EmbedData => data !== null);
+
+        // If we had fixup URLs that failed, send fallback message
+        if (failedFixupUrls.length > 0 && validEmbeds.length === 0) {
+            await this.sendFixupFallbackMessage(message, failedFixupUrls);
+            return;
+        }
 
         if (validEmbeds.length === 0) return;
 
         // Send the response
         await this.sendEmbedResponse(message, validEmbeds, skippedCount);
+    }
+
+    /**
+     * Check if a URL is from a fixup service (vxtwitter, fxtwitter, etc.)
+     */
+    private isFixupUrl(url: string): boolean {
+        const lowerUrl = url.toLowerCase();
+        return EMBED_FIX_CONFIG.FIXUP_DOMAINS.some(domain => lowerUrl.includes(domain));
+    }
+
+    /**
+     * Send a fallback message when fixup URLs couldn't be processed
+     */
+    private async sendFixupFallbackMessage(message: Message, failedUrls: string[]): Promise<void> {
+        try {
+            await message.reply({
+                content: `⚠️ Couldn't process the fixup link. Try using the original \`twitter.com\` or \`x.com\` URL instead for embed enhancement.`,
+                allowedMentions: { repliedUser: false },
+            });
+        } catch (error) {
+            // Ignore if we can't reply
+        }
     }
 
     /**
@@ -406,6 +443,94 @@ class EmbedFixService {
     getSupportedPlatforms(): string[] {
         return urlMatcher.getHandlers().map(h => h.platform);
     }
+
+    /**
+     * Process a message edit - re-check for embed-worthy URLs
+     * Only processes edits within the configured time window
+     */
+    async processMessageEdit(oldMessage: Message, newMessage: Message): Promise<void> {
+        // Fast path checks
+        if (!newMessage.content.includes('http')) return;
+        if (newMessage.author.bot) return;
+        if (!newMessage.guild) return;
+
+        // Only process in art-focused channels
+        const channelName = (newMessage.channel as TextChannel).name?.toLowerCase() ?? '';
+        if (!['art', 'nsfw'].includes(channelName)) return;
+
+        // Check if message is within edit window (24h)
+        const messageAge = Date.now() - newMessage.createdTimestamp;
+        if (messageAge > EMBED_FIX_CONFIG.MESSAGE_EDIT_WINDOW_MS) {
+            return;
+        }
+
+        // Check if URLs changed (avoid reprocessing identical content)
+        const oldUrls = urlMatcher.matchAllUrls(oldMessage.content ?? '');
+        const newUrls = urlMatcher.matchAllUrls(newMessage.content);
+
+        // Get URL strings for comparison
+        const oldUrlSet = new Set(oldUrls.map(m => m.url));
+        const newUrlSet = new Set(newUrls.map(m => m.url));
+
+        // Check if there are any new URLs
+        const hasNewUrls = newUrls.some(m => !oldUrlSet.has(m.url));
+        if (!hasNewUrls) {
+            return;
+        }
+
+        // Check rate limits
+        if (!embedFixRateLimiter.check(newMessage.guild.id, newMessage.author.id)) {
+            return;
+        }
+
+        // Process the edited message like a new message
+        // Find URLs that weren't in the old message
+        const newMatches = newUrls.filter(m => !oldUrlSet.has(m.url));
+        if (newMatches.length === 0) return;
+
+        // Check for duplicate
+        const firstMatch = newMatches[0];
+        const firstEmbedData = await this.processUrl(firstMatch);
+        if (firstEmbedData) {
+            const artworkId = this.generateArtworkId(firstEmbedData);
+            const duplicateCheck = await getEmbedVotesService().checkDuplicate(
+                artworkId,
+                newMessage.guild.id,
+                EMBED_FIX_CONFIG.DUPLICATE_WINDOW_MS
+            );
+
+            if (duplicateCheck.isDuplicate && duplicateCheck.originalShare) {
+                await this.sendDuplicateNotice(newMessage, duplicateCheck.originalShare);
+                return;
+            }
+        }
+
+        // Process remaining new URLs
+        const limitedMatches = newMatches.slice(0, EMBED_FIX_CONFIG.MAX_EMBEDS_PER_MESSAGE);
+        const embedPromises = limitedMatches.slice(1).map(match => this.processUrl(match));
+        const results = await Promise.all(embedPromises);
+        const allResults = firstEmbedData ? [firstEmbedData, ...results] : results;
+
+        // Track failed fixup URLs
+        const failedFixupUrls: string[] = [];
+        limitedMatches.forEach((match, index) => {
+            const result = index === 0 ? firstEmbedData : results[index - 1];
+            if (!result && this.isFixupUrl(match.url)) {
+                failedFixupUrls.push(match.url);
+            }
+        });
+
+        const validEmbeds = allResults.filter((data): data is EmbedData => data !== null);
+
+        if (failedFixupUrls.length > 0 && validEmbeds.length === 0) {
+            await this.sendFixupFallbackMessage(newMessage, failedFixupUrls);
+            return;
+        }
+
+        if (validEmbeds.length === 0) return;
+
+        await this.sendEmbedResponse(newMessage, validEmbeds, 0);
+    }
 }
 
 // Export singleton getter
@@ -424,6 +549,21 @@ export async function checkEmbedFixUrls(message: Message): Promise<void> {
     getEmbedFixService().processMessage(message).catch(err => {
         if (message.guild) {
             logError(message.guild.id, message.guild.name, err as Error, 'EmbedFix');
+        }
+    });
+}
+
+// Export for message edit handler hook
+export async function checkEmbedFixUrlsOnEdit(oldMessage: Message, newMessage: Message): Promise<void> {
+    // Fast path checks
+    if (!newMessage.content?.includes('http')) return;
+    if (newMessage.author?.bot) return;
+    if (!newMessage.guild) return;
+
+    // Fire-and-forget - errors are logged internally
+    getEmbedFixService().processMessageEdit(oldMessage, newMessage).catch(err => {
+        if (newMessage.guild) {
+            logError(newMessage.guild.id, newMessage.guild.name, err as Error, 'EmbedFix.Edit');
         }
     });
 }

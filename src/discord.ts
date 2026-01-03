@@ -44,7 +44,7 @@ import { getUptimeService } from './services/uptimeService';
 import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
-import { checkEmbedFixUrls, getEmbedFixService } from './services/embedFix/embedFixService';
+import { checkEmbedFixUrls, checkEmbedFixUrlsOnEdit, getEmbedFixService } from './services/embedFix/embedFixService';
 import { getEmbedVotesService } from './services/embedFix/embedVotesService';
 
 // Destructure only the necessary functions from util
@@ -1370,6 +1370,13 @@ function handleMessages() {
                 console.log("Fetching partial message...");
                 await newMessage.fetch(); // Fetch the full message if it's a partial
             }
+            if (oldMessage.partial) {
+                try {
+                    await oldMessage.fetch();
+                } catch {
+                    // Old message may not be fetchable, continue with what we have
+                }
+            }
             if (!newMessage.guild || !newMessage.member || newMessage.author?.bot) {
                 console.warn("Message update ignored due to missing guild, member, or author is a bot.");
                 return;
@@ -1377,6 +1384,9 @@ function handleMessages() {
 
             console.log(`Message updated in guild: ${newMessage.guild.name}, Content: ${newMessage.content}`);
             await checkSensitiveTerms(newMessage as Message);
+
+            // Check for embed fix URLs on edit (handles typo corrections, etc.)
+            await checkEmbedFixUrlsOnEdit(oldMessage as Message, newMessage as Message);
         } catch (error) {
             console.error("Error handling message update:", error);
         }
