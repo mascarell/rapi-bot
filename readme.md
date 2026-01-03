@@ -190,9 +190,10 @@ The bot includes a multi-game coupon redemption system that automatically redeem
 | `/redeem codes <game>` | View all active coupon codes |
 | `/redeem preferences <game> [options]` | Configure notification preferences |
 | `/redeem switch <game> <mode>` | Switch subscription mode without re-subscribing |
+| `/redeem help` | View help and FAQs about the redemption system |
 
 **Subscription Modes:**
-- **Auto-Redeem** (🤖): Bot automatically redeems new codes for you (BD2 only)
+- **Auto-Redeem** (🤖): Bot redeems all active codes immediately on subscribe, then every 6 hours + when new codes are added (BD2 only)
 - **Notification Only** (📬): Receive DM notifications about new and expiring codes
 
 **Notification Preferences:**
@@ -207,13 +208,14 @@ Users can customize which notifications they receive:
 |---------|-------------|
 | `/redeem add <game> <code> <rewards> [expiration] [source]` | Add a new coupon code |
 | `/redeem remove <game> <code>` | Deactivate a coupon code |
-| `/redeem list <game>` | View all codes and subscriber stats |
+| `/redeem list <game>` | View all codes with expiration status indicators |
 | `/redeem trigger <game>` | Manually trigger auto-redemption |
 | `/redeem scrape` | Fetch new codes from BD2 Pulse |
 | `/redeem stats [game]` | View redemption analytics |
+| `/redeem subscribers <game> [mode]` | View paginated list of subscribers |
+| `/redeem lookup <user>` | View a user's subscriptions |
 | `/redeem unsub <user> <game>` | Force unsubscribe a user |
 | `/redeem update <user> <game> <userid>` | Update a user's game ID |
-| `/redeem lookup <user>` | View a user's subscriptions |
 | `/redeem reset <user> <game>` | Reset a user's redeemed codes |
 
 ### Scheduled Tasks
@@ -227,6 +229,8 @@ The system runs five automated tasks:
 | Auto-Redemption | Every 6 hours | Every 3 min |
 | Code Scraping | Every 30 min | Every 2 min |
 | Expired Code Cleanup | Daily 00:00 UTC | Every 15 min |
+
+**Note:** Expired codes have a 24-hour grace period before being marked inactive to account for timezone differences. Codes show status indicators in `/redeem list`: ✅ active, ⏰ expiring within 24h, ❌ expired (grace period).
 
 ### Adding a New Game
 
