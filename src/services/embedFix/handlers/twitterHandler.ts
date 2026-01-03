@@ -37,12 +37,12 @@ export class TwitterHandler extends BaseHandler {
     platform: EmbedPlatform = 'twitter';
 
     patterns: RegExp[] = [
-        // Standard twitter.com URLs
+        // Standard twitter.com and x.com URLs
         /https?:\/\/(www\.)?(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/i,
         // Mobile URLs
         /https?:\/\/(mobile\.)?(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/i,
-        // vxtwitter and fxtwitter URLs (already fixed, but we can enhance)
-        /https?:\/\/(www\.)?(vxtwitter\.com|fxtwitter\.com)\/(\w+)\/status\/(\d+)/i,
+        // Fixup services (vxtwitter, fxtwitter, fixupx, fixvx, twittpr, etc.)
+        /https?:\/\/(www\.)?(vxtwitter\.com|fxtwitter\.com|fixupx\.com|fixvx\.com|twittpr\.com)\/(\w+)\/status\/(\d+)/i,
     ];
 
     async fetchEmbed(match: RegExpMatchArray, url: string): Promise<EmbedData | null> {

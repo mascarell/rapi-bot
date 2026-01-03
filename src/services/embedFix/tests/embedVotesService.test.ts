@@ -298,6 +298,27 @@ describe('EmbedVotesService', () => {
             expect(twitterId).toBe('twitter:123456789');
         });
 
+        it('should generate same ID for all Twitter/X fixup service URLs', () => {
+            const statusId = '123456789';
+            const urls = [
+                `https://twitter.com/user/status/${statusId}`,
+                `https://x.com/user/status/${statusId}`,
+                `https://vxtwitter.com/user/status/${statusId}`,
+                `https://fxtwitter.com/user/status/${statusId}`,
+                `https://fixupx.com/user/status/${statusId}`,
+                `https://fixvx.com/user/status/${statusId}`,
+                `https://twittpr.com/user/status/${statusId}`,
+            ];
+
+            const ids = urls.map(url => EmbedVotesService.generateArtworkId('twitter', url));
+
+            // All should generate the same ID
+            const expectedId = `twitter:${statusId}`;
+            ids.forEach((id, index) => {
+                expect(id).toBe(expectedId);
+            });
+        });
+
         it('should handle URL without status ID', () => {
             const id = EmbedVotesService.generateArtworkId('twitter', 'https://twitter.com/user');
             expect(id).toBe('twitter:https://twitter.com/user');

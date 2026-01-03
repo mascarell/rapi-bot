@@ -63,6 +63,21 @@ describe('TwitterHandler', () => {
             expect(match).not.toBeNull();
         });
 
+        it('should match fixupx URLs', () => {
+            const match = handler.match('https://fixupx.com/user/status/123');
+            expect(match).not.toBeNull();
+        });
+
+        it('should match fixvx URLs', () => {
+            const match = handler.match('https://fixvx.com/user/status/123');
+            expect(match).not.toBeNull();
+        });
+
+        it('should match twittpr URLs', () => {
+            const match = handler.match('https://twittpr.com/user/status/123');
+            expect(match).not.toBeNull();
+        });
+
         it('should not match invalid URLs', () => {
             expect(handler.match('https://twitter.com/user')).toBeNull();
             expect(handler.match('https://twitter.com/user/following')).toBeNull();
