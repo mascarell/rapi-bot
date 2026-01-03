@@ -49,6 +49,9 @@ export const EMBED_FIX_CONFIG = {
     // Votes cache
     VOTES_CACHE_TTL: 60_000,  // 1 minute cache for votes data
 
+    // Duplicate detection
+    DUPLICATE_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours
+
     // Channel patterns for stats tracking (PR4)
     TRACKED_CHANNEL_PATTERNS: ['art', 'nsfw', 'gallery', 'fanart'],
 } as const;

@@ -295,6 +295,84 @@ describe('EmbedVotesService', () => {
             const id = EmbedVotesService.generateArtworkId('twitter', 'https://twitter.com/user');
             expect(id).toBe('twitter:https://twitter.com/user');
         });
+
+        it('should generate ID for Pixiv artworks URL', () => {
+            const id = EmbedVotesService.generateArtworkId('pixiv', 'https://pixiv.net/artworks/12345678');
+            expect(id).toBe('pixiv:12345678');
+        });
+
+        it('should generate ID for Pixiv legacy URL', () => {
+            const id = EmbedVotesService.generateArtworkId('pixiv', 'https://pixiv.net/member_illust.php?illust_id=12345678');
+            expect(id).toBe('pixiv:12345678');
+        });
+
+        it('should generate ID for Instagram post URL', () => {
+            const id = EmbedVotesService.generateArtworkId('instagram', 'https://instagram.com/p/ABC123xyz/');
+            expect(id).toBe('instagram:ABC123xyz');
+        });
+
+        it('should generate ID for Instagram reel URL', () => {
+            const id = EmbedVotesService.generateArtworkId('instagram', 'https://instagram.com/reel/XYZ789abc/');
+            expect(id).toBe('instagram:XYZ789abc');
+        });
+    });
+
+    describe('checkDuplicate', () => {
+        beforeEach(() => {
+            vi.mocked(s3Client.send).mockResolvedValue({
+                Body: {
+                    transformToString: () => Promise.resolve(JSON.stringify(mockData)),
+                },
+            } as any);
+        });
+
+        it('should return isDuplicate false for non-existent artwork', async () => {
+            const result = await service.checkDuplicate('twitter:nonexistent', 'guild1');
+            expect(result.isDuplicate).toBe(false);
+            expect(result.originalShare).toBeUndefined();
+        });
+
+        it('should return isDuplicate false for artwork not in guild', async () => {
+            const result = await service.checkDuplicate('twitter:123456', 'guild999');
+            expect(result.isDuplicate).toBe(false);
+        });
+
+        it('should return isDuplicate true for recent share within window', async () => {
+            const result = await service.checkDuplicate('twitter:123456', 'guild1', 24 * 60 * 60 * 1000);
+            expect(result.isDuplicate).toBe(true);
+            expect(result.originalShare).toBeDefined();
+            expect(result.originalShare?.sharedBy).toBe('user1');
+            expect(result.originalShare?.messageId).toBe('msg1');
+            expect(result.originalShare?.channelId).toBe('chan1');
+        });
+
+        it('should return isDuplicate false for share outside window', async () => {
+            // Create mock data with old timestamp
+            const oldMockData = {
+                ...mockData,
+                votes: {
+                    'twitter:123456': {
+                        ...mockData.votes['twitter:123456'],
+                        guildVotes: {
+                            'guild1': {
+                                ...mockData.votes['twitter:123456'].guildVotes['guild1'],
+                                sharedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 48 hours ago
+                            },
+                        },
+                    },
+                },
+            };
+
+            vi.mocked(s3Client.send).mockResolvedValueOnce({
+                Body: {
+                    transformToString: () => Promise.resolve(JSON.stringify(oldMockData)),
+                },
+            } as any);
+
+            service.invalidateCache();
+            const result = await service.checkDuplicate('twitter:123456', 'guild1', 24 * 60 * 60 * 1000);
+            expect(result.isDuplicate).toBe(false);
+        });
     });
 
     describe('singleton', () => {

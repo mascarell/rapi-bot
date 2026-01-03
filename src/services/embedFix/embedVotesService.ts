@@ -378,6 +378,49 @@ class EmbedVotesService {
     }
 
     /**
+     * Check if artwork was recently shared in this guild (duplicate detection)
+     * Returns the original share info if duplicate, otherwise indicates not a duplicate
+     */
+    async checkDuplicate(
+        artworkId: string,
+        guildId: string,
+        windowMs: number = 24 * 60 * 60 * 1000  // 24 hours default
+    ): Promise<{
+        isDuplicate: boolean;
+        originalShare?: {
+            sharedBy: string;
+            sharedAt: string;
+            messageId: string;
+            channelId: string;
+        };
+    }> {
+        const data = await this.getData();
+        const artwork = data.votes[artworkId];
+
+        if (!artwork) return { isDuplicate: false };
+
+        const guildData = artwork.guildVotes[guildId];
+        if (!guildData) return { isDuplicate: false };
+
+        const sharedTime = new Date(guildData.sharedAt).getTime();
+        const now = Date.now();
+
+        if (now - sharedTime < windowMs) {
+            return {
+                isDuplicate: true,
+                originalShare: {
+                    sharedBy: guildData.sharedBy,
+                    sharedAt: guildData.sharedAt,
+                    messageId: guildData.messageId,
+                    channelId: guildData.channelId,
+                },
+            };
+        }
+
+        return { isDuplicate: false };
+    }
+
+    /**
      * Generate artwork ID from platform and URL
      */
     static generateArtworkId(platform: EmbedPlatform, url: string): string {
@@ -386,7 +429,14 @@ class EmbedVotesService {
             const match = url.match(/status\/(\d+)/);
             return match ? `twitter:${match[1]}` : `twitter:${url}`;
         }
-        // Add more platforms as needed
+        if (platform === 'pixiv') {
+            const match = url.match(/artworks\/(\d+)/) || url.match(/illust_id=(\d+)/);
+            return match ? `pixiv:${match[1]}` : `pixiv:${url}`;
+        }
+        if (platform === 'instagram') {
+            const match = url.match(/\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+            return match ? `instagram:${match[2]}` : `instagram:${url}`;
+        }
         return `${platform}:${url}`;
     }
 

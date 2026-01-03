@@ -19,6 +19,8 @@ import { logError } from '../../utils/util';
 import { circuitBreaker } from './circuitBreaker';
 import { embedCache } from './embedCache';
 import { EmbedVotesService, getEmbedVotesService } from './embedVotesService';
+import { instagramHandler } from './handlers/instagramHandler';
+import { pixivHandler } from './handlers/pixivHandler';
 import { twitterHandler } from './handlers/twitterHandler';
 import { embedFixRateLimiter } from './rateLimiter';
 import { urlMatcher } from './urlMatcher';
@@ -46,12 +48,10 @@ class EmbedFixService {
             return;
         }
 
-        // Register Twitter handler
+        // Register platform handlers
         urlMatcher.registerHandler(twitterHandler);
-
-        // Future handlers will be registered here:
-        // urlMatcher.registerHandler(pixivHandler);
-        // urlMatcher.registerHandler(instagramHandler);
+        urlMatcher.registerHandler(pixivHandler);
+        urlMatcher.registerHandler(instagramHandler);
 
         this.initialized = true;
         console.log('[EmbedFix] Service initialized with handlers:', urlMatcher.getHandlers().map(h => h.platform).join(', '));
@@ -81,21 +81,80 @@ class EmbedFixService {
         const matches = urlMatcher.matchAllUrls(message.content);
         if (matches.length === 0) return;
 
+        // Check for duplicate (repost detection) - check first URL
+        const firstMatch = matches[0];
+        const firstEmbedData = await this.processUrl(firstMatch);
+        if (firstEmbedData) {
+            const artworkId = this.generateArtworkId(firstEmbedData);
+            const duplicateCheck = await getEmbedVotesService().checkDuplicate(
+                artworkId,
+                message.guild.id,
+                EMBED_FIX_CONFIG.DUPLICATE_WINDOW_MS
+            );
+
+            if (duplicateCheck.isDuplicate && duplicateCheck.originalShare) {
+                await this.sendDuplicateNotice(message, duplicateCheck.originalShare);
+                return;
+            }
+        }
+
         // Limit to max embeds per message
         const limitedMatches = matches.slice(0, EMBED_FIX_CONFIG.MAX_EMBEDS_PER_MESSAGE);
         const skippedCount = matches.length - limitedMatches.length;
 
-        // Process each URL in parallel
-        const embedPromises = limitedMatches.map(match => this.processUrl(match));
+        // Process each URL in parallel (skip first since we already processed it)
+        const embedPromises = limitedMatches.slice(1).map(match => this.processUrl(match));
         const results = await Promise.all(embedPromises);
 
+        // Combine first result with rest
+        const allResults = firstEmbedData ? [firstEmbedData, ...results] : results;
+
         // Filter out null results
-        const validEmbeds = results.filter((data): data is EmbedData => data !== null);
+        const validEmbeds = allResults.filter((data): data is EmbedData => data !== null);
 
         if (validEmbeds.length === 0) return;
 
         // Send the response
         await this.sendEmbedResponse(message, validEmbeds, skippedCount);
+    }
+
+    /**
+     * Send a notice when a duplicate/repost is detected
+     */
+    private async sendDuplicateNotice(
+        message: Message,
+        originalShare: {
+            sharedBy: string;
+            sharedAt: string;
+            messageId: string;
+            channelId: string;
+        }
+    ): Promise<void> {
+        const timeAgo = this.getRelativeTime(originalShare.sharedAt);
+        const messageLink = `https://discord.com/channels/${message.guild!.id}/${originalShare.channelId}/${originalShare.messageId}`;
+
+        try {
+            await message.reply({
+                content: `🔄 This was shared ${timeAgo} → [Jump to original](${messageLink})`,
+                allowedMentions: { repliedUser: false },
+            });
+        } catch (error) {
+            // Ignore if we can't reply
+        }
+    }
+
+    /**
+     * Convert ISO timestamp to relative time string
+     */
+    private getRelativeTime(isoTimestamp: string): string {
+        const diff = Date.now() - new Date(isoTimestamp).getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m ago`;
+        }
+        return `${minutes}m ago`;
     }
 
     /**
