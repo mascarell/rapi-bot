@@ -274,10 +274,16 @@ export class GachaDataService {
         let cleaned = 0;
         const byGame: Record<string, number> = {};
 
+        // 24-hour grace period to account for timezone differences
+        // Codes are already filtered from user views in real-time via getActiveCoupons()
+        // This cleanup only affects the isActive flag for tracking/history purposes
+        const gracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
+
         for (const coupon of data.coupons) {
             if (coupon.isActive && coupon.expirationDate) {
                 const expiry = new Date(coupon.expirationDate);
-                if (expiry <= now) {
+                // Mark inactive only after grace period has passed
+                if (expiry.getTime() + gracePeriodMs <= now.getTime()) {
                     coupon.isActive = false;
                     cleaned++;
                     byGame[coupon.gameId] = (byGame[coupon.gameId] || 0) + 1;
@@ -287,7 +293,7 @@ export class GachaDataService {
 
         if (cleaned > 0) {
             await this.saveData(data);
-            console.log(`[Cleanup] Marked ${cleaned} expired coupons as inactive`);
+            console.log(`[Cleanup] Marked ${cleaned} expired coupons as inactive (after 24h grace period)`);
         }
 
         return { cleaned, byGame };
