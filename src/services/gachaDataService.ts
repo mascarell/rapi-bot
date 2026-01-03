@@ -214,13 +214,28 @@ export class GachaDataService {
     public async getActiveCoupons(gameId: GachaGameId): Promise<GachaCoupon[]> {
         await this.getData(); // Ensure cache and index are populated
 
+        const now = new Date();
+
         if (this.activeCouponsIndex) {
-            return this.activeCouponsIndex.get(gameId) || [];
+            // Filter by expiration at read time to catch codes that expired since cache was built
+            const cached = this.activeCouponsIndex.get(gameId) || [];
+            const activeCoupons = cached.filter(coupon => {
+                if (coupon.expirationDate && new Date(coupon.expirationDate) <= now) {
+                    return false;
+                }
+                return true;
+            });
+
+            // Update index to remove expired codes for future calls
+            if (activeCoupons.length !== cached.length) {
+                this.activeCouponsIndex.set(gameId, activeCoupons);
+            }
+
+            return activeCoupons;
         }
 
         // Fallback to filtering if index not available
         const data = this.cache!;
-        const now = new Date();
 
         return data.coupons.filter(coupon => {
             if (coupon.gameId !== gameId || !coupon.isActive) return false;
