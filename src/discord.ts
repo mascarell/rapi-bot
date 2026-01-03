@@ -9,7 +9,10 @@ import {
     Message,
     ReadonlyCollection,
     TextChannel,
-    ChannelType
+    ChannelType,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ComponentType
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
@@ -41,6 +44,8 @@ import { getUptimeService } from './services/uptimeService';
 import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
+import { checkEmbedFixUrls, checkEmbedFixUrlsOnEdit, getEmbedFixService } from './services/embedFix/embedFixService';
+import { getEmbedVotesService } from './services/embedFix/embedVotesService';
 
 // Destructure only the necessary functions from util
 const {
@@ -1259,6 +1264,9 @@ function handleMessages() {
         // Check for scarrow mentions
         await checkScarrowMention(message);
 
+        // Check for embed-worthy URLs (Twitter, etc.)
+        await checkEmbedFixUrls(message);
+
         // Ignore rapi-bot channel for rate limiting
         const isRapiBotChannel = message.channel.type === ChannelType.GuildText && (message.channel as TextChannel).name === 'rapi-bot';
 
@@ -1362,6 +1370,13 @@ function handleMessages() {
                 console.log("Fetching partial message...");
                 await newMessage.fetch(); // Fetch the full message if it's a partial
             }
+            if (oldMessage.partial) {
+                try {
+                    await oldMessage.fetch();
+                } catch {
+                    // Old message may not be fetchable, continue with what we have
+                }
+            }
             if (!newMessage.guild || !newMessage.member || newMessage.author?.bot) {
                 console.warn("Message update ignored due to missing guild, member, or author is a bot.");
                 return;
@@ -1369,6 +1384,9 @@ function handleMessages() {
 
             console.log(`Message updated in guild: ${newMessage.guild.name}, Content: ${newMessage.content}`);
             await checkSensitiveTerms(newMessage as Message);
+
+            // Check for embed fix URLs on edit (handles typo corrections, etc.)
+            await checkEmbedFixUrlsOnEdit(oldMessage as Message, newMessage as Message);
         } catch (error) {
             console.error("Error handling message update:", error);
         }
@@ -1654,6 +1672,60 @@ function enableAutoComplete() {
     });
 }
 
+function handleEmbedFixButtons() {
+    bot.on(Events.InteractionCreate, async (interaction) => {
+        if (!interaction.isButton()) return;
+
+        // Handle vote button
+        if (interaction.customId.startsWith('embed_vote:')) {
+            try {
+                const artworkId = interaction.customId.replace('embed_vote:', '');
+                const result = await getEmbedVotesService().toggleVote(
+                    artworkId,
+                    interaction.guildId!,
+                    interaction.user.id
+                );
+
+                // Update button label with new vote count
+                const components = interaction.message.components;
+                if (components.length > 0) {
+                    const originalRow = components[0];
+                    if (originalRow.type === ComponentType.ActionRow && originalRow.components.length >= 2) {
+                        const firstComponent = originalRow.components[0];
+                        const secondComponent = originalRow.components[1];
+                        if (firstComponent.type === ComponentType.Button && secondComponent.type === ComponentType.Button) {
+                            const voteButton = ButtonBuilder.from(firstComponent).setLabel(result.newCount.toString());
+                            const dmButton = ButtonBuilder.from(secondComponent);
+                            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(voteButton, dmButton);
+                            await interaction.update({ components: [row] });
+                        }
+                    }
+                }
+            } catch (error) {
+                if (error instanceof Error) {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix vote button');
+                } else {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix vote button');
+                }
+            }
+            return;
+        }
+
+        // Handle DM button
+        if (interaction.customId.startsWith('embed_save:')) {
+            try {
+                await getEmbedFixService().handleBookmarkInteraction(interaction);
+            } catch (error) {
+                if (error instanceof Error) {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix DM button');
+                } else {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix DM button');
+                }
+            }
+        }
+    });
+}
+
 async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
     try {
         const connection = joinVoiceChannel({
@@ -1774,6 +1846,9 @@ async function initDiscordBot() {
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();
 
+    // Initialize embed fix service
+    getEmbedFixService().initialize();
+
     bot.once(Events.ClientReady, async () => {
         try {
             setBotActivity();
@@ -1798,6 +1873,7 @@ async function initDiscordBot() {
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
+            handleEmbedFixButtons();
             startStreamStatusCheck(bot);
 
             const rest = new REST().setToken(DISCORD_TOKEN);
