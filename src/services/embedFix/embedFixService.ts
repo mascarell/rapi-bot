@@ -67,6 +67,10 @@ class EmbedFixService {
         if (message.author.bot) return;
         if (!message.guild) return;
 
+        // Only process in art-focused channels (#art, #nsfw)
+        const channelName = (message.channel as TextChannel).name?.toLowerCase() ?? '';
+        if (!['art', 'nsfw'].includes(channelName)) return;
+
         // Check rate limits
         if (!embedFixRateLimiter.check(message.guild.id, message.author.id)) {
             return;
@@ -211,48 +215,35 @@ class EmbedFixService {
     }
 
     /**
-     * Build a Discord embed from embed data
+     * Build a Discord embed from embed data (artist spotlight design)
      */
     buildEmbed(data: EmbedData): EmbedBuilder {
         const embed = new EmbedBuilder()
             .setColor(data.color)
             .setURL(data.originalUrl)
-            .setFooter({
-                text: `${data.author.name} (@${data.author.username}) • Click DM to save`,
-            });
+            .setTitle(`Artwork by ${data.author.name}`)
+            .setFooter({ text: 'Click ✉️ to DM' });
 
-        // Set timestamp if available
-        if (data.timestamp) {
-            embed.setTimestamp(new Date(data.timestamp));
-        }
+        // Author with avatar and profile link
+        embed.setAuthor({
+            name: `@${data.author.username}`,
+            url: data.author.url,
+            iconURL: data.author.iconUrl,
+        });
 
-        // Set author with icon if available
-        if (data.author.iconUrl) {
-            embed.setAuthor({
-                name: data.author.name,
-                url: data.author.url,
-                iconURL: data.author.iconUrl,
-            });
-        } else {
-            embed.setAuthor({
-                name: data.author.name,
-                url: data.author.url,
-            });
-        }
-
-        // Set description (tweet text, etc.)
-        if (data.description) {
+        // Tweet text as description (if present and not just a URL)
+        if (data.description && !data.description.match(/^https?:\/\//)) {
             embed.setDescription(data.description.slice(0, 4096));
         }
 
-        // Set image (first image only in main embed)
+        // Artwork image
         if (data.images.length > 0) {
             embed.setImage(data.images[0]);
         }
 
-        // Set title if available
-        if (data.title) {
-            embed.setTitle(data.title.slice(0, 256));
+        // Timestamp
+        if (data.timestamp) {
+            embed.setTimestamp(new Date(data.timestamp));
         }
 
         return embed;
@@ -287,9 +278,9 @@ class EmbedFixService {
                 return;
             }
 
-            // Send DM with the saved link
+            // Send DM with the link
             await interaction.user.send({
-                content: `**Saved Link**\n${embed.url}`,
+                content: embed.url,
                 embeds: [EmbedBuilder.from(embed)],
             });
 
