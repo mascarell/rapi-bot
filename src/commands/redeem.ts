@@ -407,7 +407,10 @@ async function handleModRemove(interaction: ChatInputCommandInteraction): Promis
 
 async function handleModList(interaction: ChatInputCommandInteraction): Promise<void> {
     const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const filter = interaction.options.getString('filter') || 'all';
     const gameConfig = getGameConfig(gameId);
+
+    await interaction.deferReply({ ephemeral: true });
 
     try {
         const dataService = getGachaDataService();
@@ -418,42 +421,133 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
         const activeCoupons = allCoupons.filter(c => c.isActive);
         const inactiveCoupons = allCoupons.filter(c => !c.isActive);
 
-        const embed = new EmbedBuilder()
-            .setColor(gameConfig.embedColor)
-            .setTitle(`📋 ${gameConfig.shortName} Coupon Management`)
-            .setThumbnail(gameConfig.logoPath)
-            .setDescription(
-                `**Subscribers:** ${stats.total} (🤖 ${stats.autoRedeem} | 📬 ${stats.notifyOnly})\n` +
-                `✅ Active | ⏰ Expired (24h grace) | ❌ Inactive`
-            )
-            .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+        // Determine which coupons to display based on filter
+        let couponsToDisplay: typeof allCoupons;
+        let filterLabel: string;
 
-        if (activeCoupons.length > 0) {
-            const activeList = activeCoupons.map(c => {
+        switch (filter) {
+            case 'active':
+                couponsToDisplay = activeCoupons;
+                filterLabel = 'Active Codes';
+                break;
+            case 'expired':
+                couponsToDisplay = inactiveCoupons;
+                filterLabel = 'Expired/Inactive Codes';
+                break;
+            default:
+                couponsToDisplay = allCoupons;
+                filterLabel = 'All Codes';
+        }
+
+        if (couponsToDisplay.length === 0) {
+            await interaction.editReply({
+                content: `📭 No ${filterLabel.toLowerCase()} found for ${gameConfig.name}.`
+            });
+            return;
+        }
+
+        // Build paginated embeds (10 codes per page)
+        const CODES_PER_PAGE = 10;
+        const pages: EmbedBuilder[] = [];
+        const totalPages = Math.ceil(couponsToDisplay.length / CODES_PER_PAGE);
+
+        for (let i = 0; i < totalPages; i++) {
+            const pageCoupons = couponsToDisplay.slice(i * CODES_PER_PAGE, (i + 1) * CODES_PER_PAGE);
+
+            const codeList = pageCoupons.map(c => {
                 const expiry = c.expirationDate ? formatDate(c.expirationDate) : 'No expiry';
-                // Check if code is expired but still in grace period
-                const isExpired = c.expirationDate && new Date(c.expirationDate) <= now;
-                const status = isExpired ? '⏰' : '✅';
-                return `${status} \`${c.code}\` - ${c.rewards} (${expiry})`;
+                let status: string;
+                if (!c.isActive) {
+                    status = '❌';
+                } else if (c.expirationDate && new Date(c.expirationDate) <= now) {
+                    status = '⏰'; // Expired but in grace period
+                } else {
+                    status = '✅';
+                }
+                return `${status} \`${c.code}\`\n   └ ${c.rewards} (${expiry})`;
             }).join('\n');
-            embed.addFields({ name: `Active (${activeCoupons.length})`, value: activeList.substring(0, 1024) });
+
+            const embed = new EmbedBuilder()
+                .setColor(gameConfig.embedColor)
+                .setTitle(`📋 ${gameConfig.shortName} ${filterLabel}`)
+                .setThumbnail(gameConfig.logoPath)
+                .setDescription(
+                    `**Subscribers:** ${stats.total} (🤖 ${stats.autoRedeem} | 📬 ${stats.notifyOnly})\n` +
+                    `**Total:** ${couponsToDisplay.length} codes | ✅ Active | ⏰ Grace Period | ❌ Inactive\n\n` +
+                    codeList
+                )
+                .setFooter({ text: `Page ${i + 1} of ${totalPages}`, iconURL: RAPI_BOT_THUMBNAIL_URL })
+                .setTimestamp();
+
+            pages.push(embed);
+        }
+
+        // Use pagination if multiple pages
+        if (pages.length > 1) {
+            let currentPage = 0;
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('list_previous')
+                    .setLabel('Previous')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId('list_page')
+                    .setLabel(`Page 1 of ${totalPages}`)
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId('list_next')
+                    .setLabel('Next')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(totalPages <= 1)
+            );
+
+            const message = await interaction.editReply({
+                embeds: [pages[currentPage]],
+                components: [row]
+            });
+
+            const collector = message.createMessageComponentCollector({
+                time: 5 * 60 * 1000 // 5 minutes
+            });
+
+            collector.on('collect', async (i) => {
+                if (i.user.id !== interaction.user.id) {
+                    await i.reply({
+                        content: 'You cannot use these buttons.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                currentPage = i.customId === 'list_next'
+                    ? (currentPage + 1) % pages.length
+                    : (currentPage - 1 + pages.length) % pages.length;
+
+                row.components[0].setDisabled(currentPage === 0);
+                row.components[1].setLabel(`Page ${currentPage + 1} of ${totalPages}`);
+                row.components[2].setDisabled(currentPage === pages.length - 1);
+
+                await i.update({
+                    embeds: [pages[currentPage]],
+                    components: [row]
+                });
+            });
+
+            collector.on('end', () => {
+                const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    row.components.map(component =>
+                        ButtonBuilder.from(component).setDisabled(true)
+                    )
+                );
+                message.edit({ components: [disabledRow] }).catch(() => {});
+            });
         } else {
-            embed.addFields({ name: 'Active', value: 'No active coupons' });
+            await interaction.editReply({ embeds: [pages[0]] });
         }
-
-        if (inactiveCoupons.length > 0) {
-            const inactiveList = inactiveCoupons.slice(-5).map(c => {
-                // Show reason: expired vs manually removed
-                const reason = c.expirationDate ? '(expired)' : '(removed)';
-                return `❌ \`${c.code}\` ${reason}`;
-            }).join('\n');
-            embed.addFields({ name: `Inactive (last 5 of ${inactiveCoupons.length})`, value: inactiveList });
-        }
-
-        await interaction.reply({ embeds: [embed], ephemeral: true });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${error.message}` });
     }
 }
 
@@ -1219,7 +1313,16 @@ module.exports = {
                 .setName('game')
                 .setDescription('Which game')
                 .setRequired(true)
-                .addChoices(...GAME_CHOICES)))
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('filter')
+                .setDescription('Filter codes to display')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All (default)', value: 'all' },
+                    { name: 'Active Only', value: 'active' },
+                    { name: 'Expired/Inactive Only', value: 'expired' }
+                )))
 
         // Mod: Trigger
         .addSubcommand(sub => sub

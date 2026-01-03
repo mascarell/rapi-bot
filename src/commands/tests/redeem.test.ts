@@ -802,6 +802,7 @@ describe('Redeem Command', () => {
 
             (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
                 if (name === 'game') return 'bd2';
+                if (name === 'filter') return null;
                 return null;
             });
 
@@ -809,8 +810,9 @@ describe('Redeem Command', () => {
 
             expect(mockDataService.getAllCoupons).toHaveBeenCalledWith('bd2');
             expect(mockDataService.getGameStats).toHaveBeenCalledWith('bd2');
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
     });
