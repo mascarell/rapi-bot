@@ -129,3 +129,68 @@ export interface EmbedStatsData {
 export interface LeaderboardEntry extends UserStats {
     userId: string;
 }
+
+// ============================================
+// Voting/Like System Interfaces
+// ============================================
+
+/**
+ * Root document for votes stored in S3
+ */
+export interface EmbedVotesData {
+    votes: Record<string, ArtworkVotes>;  // Keyed by artworkId (platform:id)
+    timeAggregations: VoteTimeAggregations;
+    schemaVersion: number;
+    lastUpdated: string;
+}
+
+/**
+ * Per-artwork vote tracking
+ */
+export interface ArtworkVotes {
+    artworkId: string;           // e.g., "twitter:1234567890"
+    originalUrl: string;
+    platform: EmbedPlatform;
+    artistUsername: string;
+    artistName: string;
+    guildVotes: Record<string, GuildVoteData>;  // Keyed by guildId
+    globalVoteCount: number;     // Denormalized all-time count
+    firstSharedAt: string;
+    lastVotedAt: string;
+}
+
+/**
+ * Per-guild vote data for an artwork
+ */
+export interface GuildVoteData {
+    voters: string[];            // Array of discordIds who voted
+    voteCount: number;           // Denormalized count
+    sharedBy: string;            // Original poster's discordId
+    sharedAt: string;
+    messageId: string;
+    channelId: string;
+}
+
+/**
+ * Time-based vote aggregations
+ */
+export interface VoteTimeAggregations {
+    weekly: VotePeriodData;
+    monthly: VotePeriodData;
+    yearly: VotePeriodData;
+    lastReset: {
+        weekly: string;
+        monthly: string;
+        yearly: string;
+    };
+}
+
+/**
+ * Vote data for a specific time period
+ */
+export interface VotePeriodData {
+    byGuild: Record<string, number>;     // guildId -> vote count
+    global: number;
+    topArtwork: string[];                // Top artworkIds for period
+    topArtists: Record<string, number>;  // artistUsername -> vote count
+}

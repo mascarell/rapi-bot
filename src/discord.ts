@@ -9,7 +9,10 @@ import {
     Message,
     ReadonlyCollection,
     TextChannel,
-    ChannelType
+    ChannelType,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ComponentType
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
@@ -42,6 +45,7 @@ import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
 import { checkEmbedFixUrls, getEmbedFixService } from './services/embedFix/embedFixService';
+import { getEmbedVotesService } from './services/embedFix/embedVotesService';
 
 // Destructure only the necessary functions from util
 const {
@@ -1661,15 +1665,52 @@ function enableAutoComplete() {
 function handleEmbedFixButtons() {
     bot.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isButton()) return;
-        if (!interaction.customId.startsWith('embed_save:')) return;
 
-        try {
-            await getEmbedFixService().handleBookmarkInteraction(interaction);
-        } catch (error) {
-            if (error instanceof Error) {
-                logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix bookmark button');
-            } else {
-                logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix bookmark button');
+        // Handle vote button
+        if (interaction.customId.startsWith('embed_vote:')) {
+            try {
+                const artworkId = interaction.customId.replace('embed_vote:', '');
+                const result = await getEmbedVotesService().toggleVote(
+                    artworkId,
+                    interaction.guildId!,
+                    interaction.user.id
+                );
+
+                // Update button label with new vote count
+                const components = interaction.message.components;
+                if (components.length > 0) {
+                    const originalRow = components[0];
+                    if (originalRow.type === ComponentType.ActionRow && originalRow.components.length >= 2) {
+                        const firstComponent = originalRow.components[0];
+                        const secondComponent = originalRow.components[1];
+                        if (firstComponent.type === ComponentType.Button && secondComponent.type === ComponentType.Button) {
+                            const voteButton = ButtonBuilder.from(firstComponent).setLabel(result.newCount.toString());
+                            const dmButton = ButtonBuilder.from(secondComponent);
+                            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(voteButton, dmButton);
+                            await interaction.update({ components: [row] });
+                        }
+                    }
+                }
+            } catch (error) {
+                if (error instanceof Error) {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix vote button');
+                } else {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix vote button');
+                }
+            }
+            return;
+        }
+
+        // Handle DM button
+        if (interaction.customId.startsWith('embed_save:')) {
+            try {
+                await getEmbedFixService().handleBookmarkInteraction(interaction);
+            } catch (error) {
+                if (error instanceof Error) {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix DM button');
+                } else {
+                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix DM button');
+                }
             }
         }
     });

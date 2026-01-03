@@ -4,11 +4,11 @@
 
 import {
     ChatInputCommandInteraction,
-    EmbedBuilder,
     MessageFlags,
     SlashCommandBuilder,
 } from 'discord.js';
 import { getEmbedFixService } from '../services/embedFix/embedFixService';
+import { getEmbedVotesService } from '../services/embedFix/embedVotesService';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -61,8 +61,16 @@ module.exports = {
             // Build the embed
             const embed = service.buildEmbed(embedData);
 
-            // Create bookmark button
-            const row = service.createBookmarkButton(interaction.id);
+            // Generate artwork ID for voting
+            const artworkId = service.generateArtworkId(embedData);
+
+            // Get current vote count (0 for new artwork from command)
+            const voteCount = interaction.guildId
+                ? await getEmbedVotesService().getVoteCount(artworkId, interaction.guildId)
+                : 0;
+
+            // Create action buttons (vote + DM)
+            const row = service.createActionButtons(interaction.id, artworkId, voteCount);
 
             // Handle URL rewrite platforms differently
             if (embedData._useUrlRewrite && embedData._rewrittenUrl) {
@@ -74,6 +82,21 @@ module.exports = {
                     embeds: [embed],
                     components: [row],
                 });
+
+                // Record artwork for voting if in a guild
+                if (interaction.guildId && interaction.channel) {
+                    const reply = await interaction.fetchReply();
+                    await getEmbedVotesService().recordArtwork(artworkId, {
+                        originalUrl: embedData.originalUrl,
+                        platform: embedData.platform,
+                        artistUsername: embedData.author.username,
+                        artistName: embedData.author.name,
+                        guildId: interaction.guildId,
+                        channelId: interaction.channel.id,
+                        messageId: reply.id,
+                        sharedBy: interaction.user.id,
+                    });
+                }
             }
         } catch (error) {
             console.error('[/embed] Error processing URL:', error);

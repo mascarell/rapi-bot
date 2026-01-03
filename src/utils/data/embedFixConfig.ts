@@ -37,11 +37,17 @@ export const EMBED_FIX_CONFIG = {
     EMBED_COLOR_PIXIV: 0x0096FA,
     EMBED_COLOR_INSTAGRAM: 0xE1306C,
 
-    // S3 paths (PR4 - stats only)
+    // S3 paths
     DATA_PATH: 'data/embed-fix',
     S3_STATS_KEY: isDevelopment
         ? 'data/embed-fix/dev-embed-fix-stats.json'
         : 'data/embed-fix/embed-fix-stats.json',
+    S3_VOTES_KEY: isDevelopment
+        ? 'data/embed-fix/dev-embed-votes.json'
+        : 'data/embed-fix/embed-votes.json',
+
+    // Votes cache
+    VOTES_CACHE_TTL: 60_000,  // 1 minute cache for votes data
 
     // Channel patterns for stats tracking (PR4)
     TRACKED_CHANNEL_PATTERNS: ['art', 'nsfw', 'gallery', 'fanart'],

@@ -14,10 +14,11 @@ import {
     TextChannel,
 } from 'discord.js';
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
-import { EmbedData, MatchedUrl } from '../../utils/interfaces/EmbedFix.interface';
+import { EmbedData, EmbedPlatform, MatchedUrl } from '../../utils/interfaces/EmbedFix.interface';
 import { logError } from '../../utils/util';
 import { circuitBreaker } from './circuitBreaker';
 import { embedCache } from './embedCache';
+import { EmbedVotesService, getEmbedVotesService } from './embedVotesService';
 import { twitterHandler } from './handlers/twitterHandler';
 import { embedFixRateLimiter } from './rateLimiter';
 import { urlMatcher } from './urlMatcher';
@@ -189,8 +190,12 @@ class EmbedFixService {
             content += `...and ${skippedCount} more ${skippedCount === 1 ? 'link' : 'links'}`;
         }
 
-        // Create bookmark button
-        const row = this.createBookmarkButton(message.id);
+        // Generate artwork ID for voting (use first embed)
+        const primaryEmbed = embedDataList[0];
+        const artworkId = this.generateArtworkId(primaryEmbed);
+
+        // Create action buttons (vote + DM)
+        const row = this.createActionButtons(message.id, artworkId, 0);
 
         try {
             // Suppress the original message's embeds
@@ -201,17 +206,40 @@ class EmbedFixService {
             }
 
             // Send the fixed embed(s)
-            await message.reply({
+            const reply = await message.reply({
                 content: content || undefined,
                 embeds: embeds.length > 0 ? embeds : undefined,
                 components: embeds.length > 0 ? [row] : undefined,
                 allowedMentions: { repliedUser: false },
             });
+
+            // Record artwork for voting (fire-and-forget)
+            if (embeds.length > 0 && message.guild) {
+                getEmbedVotesService().recordArtwork(artworkId, {
+                    originalUrl: primaryEmbed.originalUrl,
+                    platform: primaryEmbed.platform,
+                    artistUsername: primaryEmbed.author.username,
+                    artistName: primaryEmbed.author.name,
+                    guildId: message.guild.id,
+                    channelId: message.channel.id,
+                    messageId: reply.id,
+                    sharedBy: message.author.id,
+                }).catch(err => {
+                    console.error('[EmbedFix] Failed to record artwork:', err);
+                });
+            }
         } catch (error) {
             if (message.guild) {
                 logError(message.guild.id, message.guild.name, error as Error, 'EmbedFix.sendEmbedResponse');
             }
         }
+    }
+
+    /**
+     * Generate artwork ID from embed data
+     */
+    generateArtworkId(data: EmbedData): string {
+        return EmbedVotesService.generateArtworkId(data.platform, data.originalUrl);
     }
 
     /**
@@ -222,7 +250,7 @@ class EmbedFixService {
             .setColor(data.color)
             .setURL(data.originalUrl)
             .setTitle(`Artwork by ${data.author.name}`)
-            .setFooter({ text: 'Click ✉️ to DM' });
+            .setFooter({ text: 'Click ❤️ to vote • ✉️ to DM' });
 
         // Author with avatar and profile link
         embed.setAuthor({
@@ -250,10 +278,15 @@ class EmbedFixService {
     }
 
     /**
-     * Create DM button row
+     * Create action buttons (vote + DM)
      */
-    createBookmarkButton(messageId: string): ActionRowBuilder<ButtonBuilder> {
+    createActionButtons(messageId: string, artworkId: string, voteCount: number): ActionRowBuilder<ButtonBuilder> {
         return new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`embed_vote:${artworkId}`)
+                .setLabel(voteCount.toString())
+                .setEmoji('❤️')
+                .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
                 .setCustomId(`embed_save:${messageId}`)
                 .setLabel('DM')
