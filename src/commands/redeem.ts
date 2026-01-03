@@ -4,7 +4,10 @@ import {
     ChatInputCommandInteraction,
     AutocompleteInteraction,
     PermissionFlagsBits,
-    Role
+    Role,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } from 'discord.js';
 import { getGachaDataService } from '../services/gachaDataService';
 import { getGachaRedemptionService } from '../services/gachaRedemptionService';
@@ -913,6 +916,125 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
     }
 }
 
+async function handleModSubscribers(interaction: ChatInputCommandInteraction): Promise<void> {
+    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const modeFilter = interaction.options.getString('mode') || 'all';
+    const gameConfig = getGameConfig(gameId);
+
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+        const dataService = getGachaDataService();
+        const mode = modeFilter === 'all' ? undefined : modeFilter as SubscriptionMode;
+        const subscribers = await dataService.getGameSubscribers(gameId, mode);
+
+        if (subscribers.length === 0) {
+            await interaction.editReply({
+                content: `No subscribers found for ${gameConfig.name}${mode ? ` (${mode})` : ''}.`
+            });
+            return;
+        }
+
+        // Build paginated embeds (10 subscribers per page)
+        const SUBS_PER_PAGE = 10;
+        const pages: EmbedBuilder[] = [];
+        const totalPages = Math.ceil(subscribers.length / SUBS_PER_PAGE);
+
+        for (let i = 0; i < totalPages; i++) {
+            const pageSubscribers = subscribers.slice(i * SUBS_PER_PAGE, (i + 1) * SUBS_PER_PAGE);
+
+            const subscriberList = pageSubscribers.map((s, idx) => {
+                const sub = s.subscription;
+                const modeIcon = sub.mode === 'auto-redeem' ? '🤖' : '📬';
+                const redeemed = sub.redeemedCodes.length;
+                return `${i * SUBS_PER_PAGE + idx + 1}. <@${s.discordId}> ${modeIcon}\n` +
+                       `   └ ${gameConfig.userIdFieldName}: \`${sub.gameUserId}\` | Redeemed: ${redeemed}`;
+            }).join('\n');
+
+            const embed = new EmbedBuilder()
+                .setColor(gameConfig.embedColor)
+                .setTitle(`👥 ${gameConfig.shortName} Subscribers`)
+                .setThumbnail(gameConfig.logoPath)
+                .setDescription(
+                    `**Total:** ${subscribers.length} subscribers` +
+                    `${mode ? ` (${mode})` : ''}\n\n` +
+                    subscriberList
+                )
+                .setFooter({ text: `Page ${i + 1} of ${totalPages}`, iconURL: RAPI_BOT_THUMBNAIL_URL })
+                .setTimestamp();
+
+            pages.push(embed);
+        }
+
+        // Use pagination if multiple pages
+        if (pages.length > 1) {
+            let currentPage = 0;
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('sub_previous')
+                    .setLabel('Previous')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId('sub_page')
+                    .setLabel(`Page 1 of ${totalPages}`)
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId('sub_next')
+                    .setLabel('Next')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(totalPages <= 1)
+            );
+
+            const message = await interaction.editReply({
+                embeds: [pages[currentPage]],
+                components: [row]
+            });
+
+            const collector = message.createMessageComponentCollector({
+                time: 5 * 60 * 1000 // 5 minutes
+            });
+
+            collector.on('collect', async (i) => {
+                if (i.user.id !== interaction.user.id) {
+                    await i.reply({
+                        content: 'You cannot use these buttons.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                currentPage = i.customId === 'sub_next'
+                    ? (currentPage + 1) % pages.length
+                    : (currentPage - 1 + pages.length) % pages.length;
+
+                row.components[0].setDisabled(currentPage === 0);
+                row.components[1].setLabel(`Page ${currentPage + 1} of ${totalPages}`);
+                row.components[2].setDisabled(currentPage === pages.length - 1);
+
+                await i.update({
+                    embeds: [pages[currentPage]],
+                    components: [row]
+                });
+            });
+
+            collector.on('end', () => {
+                const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    row.components.map(component =>
+                        ButtonBuilder.from(component).setDisabled(true)
+                    )
+                );
+                message.edit({ components: [disabledRow] }).catch(() => {});
+            });
+        } else {
+            await interaction.editReply({ embeds: [pages[0]] });
+        }
+    } catch (error: any) {
+        await interaction.editReply({ content: `❌ ${error.message}` });
+    }
+}
+
 async function handleHelp(interaction: ChatInputCommandInteraction): Promise<void> {
     const isMod = await checkModPermission(interaction);
 
@@ -976,6 +1098,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
                 '`/redeem trigger` - Manually trigger auto-redemption',
                 '`/redeem scrape` - Fetch codes from BD2 Pulse',
                 '`/redeem stats` - View analytics',
+                '`/redeem subscribers` - View paginated list of subscribers',
                 '`/redeem lookup` - View user subscription details',
                 '`/redeem unsub` - Force unsubscribe a user',
                 '`/redeem update` - Update user\'s game ID',
@@ -1178,6 +1301,25 @@ module.exports = {
                 .setRequired(false)
                 .addChoices(...GAME_CHOICES)))
 
+        // Mod: Subscribers (paginated list)
+        .addSubcommand(sub => sub
+            .setName('subscribers')
+            .setDescription('[Mod] View paginated list of subscribers for a game')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('mode')
+                .setDescription('Filter by subscription mode')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All', value: 'all' },
+                    { name: '🤖 Auto-Redeem', value: 'auto-redeem' },
+                    { name: '📬 Notification Only', value: 'notification-only' }
+                )))
+
         // User: Preferences
         .addSubcommand(sub => sub
             .setName('preferences')
@@ -1239,7 +1381,7 @@ module.exports = {
         const subcommand = interaction.options.getSubcommand();
 
         // Mod-only commands
-        const modCommands = ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats'];
+        const modCommands = ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers'];
         if (modCommands.includes(subcommand)) {
             const hasPermission = await checkModPermission(interaction);
             if (!hasPermission) {
@@ -1266,6 +1408,7 @@ module.exports = {
             case 'reset': return handleModReset(interaction);
             case 'scrape': return handleModScrape(interaction);
             case 'stats': return handleModStats(interaction);
+            case 'subscribers': return handleModSubscribers(interaction);
             case 'preferences': return handlePreferences(interaction);
             case 'switch': return handleSwitch(interaction);
             case 'help': return handleHelp(interaction);
