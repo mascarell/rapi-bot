@@ -218,7 +218,7 @@ class EmbedFixService {
             .setColor(data.color)
             .setURL(data.originalUrl)
             .setFooter({
-                text: `${data.author.name} (@${data.author.username})`,
+                text: `${data.author.name} (@${data.author.username}) • Click DM to save`,
             });
 
         // Set timestamp if available
@@ -259,20 +259,20 @@ class EmbedFixService {
     }
 
     /**
-     * Create bookmark button row
+     * Create DM button row
      */
     createBookmarkButton(messageId: string): ActionRowBuilder<ButtonBuilder> {
         return new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
                 .setCustomId(`embed_save:${messageId}`)
-                .setLabel('Save')
-                .setEmoji('🔖')
+                .setLabel('DM')
+                .setEmoji('✉️')
                 .setStyle(ButtonStyle.Secondary)
         );
     }
 
     /**
-     * Handle bookmark button interaction
+     * Handle DM button interaction
      */
     async handleBookmarkInteraction(interaction: ButtonInteraction): Promise<void> {
         try {
@@ -294,7 +294,7 @@ class EmbedFixService {
             });
 
             await interaction.reply({
-                content: 'Link saved to your DMs!',
+                content: 'Sent to your DMs!',
                 flags: MessageFlags.Ephemeral,
             });
         } catch (error) {
