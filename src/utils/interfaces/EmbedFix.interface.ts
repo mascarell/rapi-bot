@@ -1,0 +1,131 @@
+/**
+ * Embed Fix Feature Interfaces
+ * Types for the SaucyBot-like embed fixing functionality
+ */
+
+/**
+ * Supported platforms for embed fixing
+ */
+export type EmbedPlatform = 'twitter' | 'pixiv' | 'instagram';
+
+/**
+ * Data extracted from a platform's API for building embeds
+ */
+export interface EmbedData {
+    platform: EmbedPlatform;
+    title?: string;
+    description?: string;
+    author: {
+        name: string;
+        username: string;
+        url: string;
+        iconUrl?: string;
+    };
+    images: string[];
+    videos?: Array<{
+        url: string;
+        thumbnail?: string;
+    }>;
+    timestamp?: string;
+    color: number;
+    originalUrl: string;
+    isNsfw?: boolean;
+    /** If true, use URL rewrite instead of custom embed */
+    _useUrlRewrite?: boolean;
+    /** The rewritten URL for platforms that use URL proxies */
+    _rewrittenUrl?: string;
+}
+
+/**
+ * Interface for platform-specific handlers
+ */
+export interface PlatformHandler {
+    /** The platform this handler supports */
+    platform: EmbedPlatform;
+    /** Regex patterns to match URLs for this platform */
+    patterns: RegExp[];
+    /**
+     * Try to match a URL against this handler's patterns
+     * @param url The URL to match
+     * @returns The regex match array if matched, null otherwise
+     */
+    match(url: string): RegExpMatchArray | null;
+    /**
+     * Fetch embed data from the platform's API
+     * @param match The regex match from the URL
+     * @param url The original URL
+     * @returns The embed data or null if fetch failed
+     */
+    fetchEmbed(match: RegExpMatchArray, url: string): Promise<EmbedData | null>;
+}
+
+/**
+ * Cached embed entry with TTL
+ */
+export interface CachedEmbed {
+    data: EmbedData;
+    timestamp: number;
+    expiresAt: number;
+}
+
+/**
+ * Rate limit entry for a guild or user
+ */
+export interface RateLimitEntry {
+    count: number;
+    windowStart: number;
+}
+
+/**
+ * Circuit breaker state for an API
+ */
+export interface CircuitBreakerState {
+    failures: number;
+    lastFailure: number;
+    isOpen: boolean;
+    openUntil: number;
+}
+
+/**
+ * Result of URL matching
+ */
+export interface MatchedUrl {
+    url: string;
+    platform: EmbedPlatform;
+    match: RegExpMatchArray;
+    handler: PlatformHandler;
+}
+
+/**
+ * Stats data for a user (PR4)
+ */
+export interface UserStats {
+    totalShares: number;
+    weeklyShares: number;
+    lastShare: string;
+    byPlatform: Record<EmbedPlatform, number>;
+}
+
+/**
+ * Guild stats data (PR4)
+ */
+export interface GuildStats {
+    users: Record<string, UserStats>;
+    weekStarted: string;
+}
+
+/**
+ * Root stats data structure for S3 (PR4)
+ */
+export interface EmbedStatsData {
+    stats: Record<string, GuildStats>;
+    schemaVersion: number;
+    lastUpdated: string;
+}
+
+/**
+ * Leaderboard entry
+ */
+export interface LeaderboardEntry extends UserStats {
+    userId: string;
+}

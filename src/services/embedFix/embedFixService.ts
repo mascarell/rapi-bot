@@ -1,0 +1,341 @@
+/**
+ * Main Embed Fix Service
+ * Orchestrates URL detection, caching, rate limiting, and embed generation
+ */
+
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonInteraction,
+    ButtonStyle,
+    EmbedBuilder,
+    Message,
+    MessageFlags,
+    TextChannel,
+} from 'discord.js';
+import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
+import { EmbedData, MatchedUrl } from '../../utils/interfaces/EmbedFix.interface';
+import { logError } from '../../utils/util';
+import { circuitBreaker } from './circuitBreaker';
+import { embedCache } from './embedCache';
+import { twitterHandler } from './handlers/twitterHandler';
+import { embedFixRateLimiter } from './rateLimiter';
+import { urlMatcher } from './urlMatcher';
+
+class EmbedFixService {
+    private static instance: EmbedFixService;
+    private initialized = false;
+
+    private constructor() {
+        // Private constructor for singleton
+    }
+
+    static getInstance(): EmbedFixService {
+        if (!EmbedFixService.instance) {
+            EmbedFixService.instance = new EmbedFixService();
+        }
+        return EmbedFixService.instance;
+    }
+
+    /**
+     * Initialize the service and register handlers
+     */
+    initialize(): void {
+        if (this.initialized) {
+            return;
+        }
+
+        // Register Twitter handler
+        urlMatcher.registerHandler(twitterHandler);
+
+        // Future handlers will be registered here:
+        // urlMatcher.registerHandler(pixivHandler);
+        // urlMatcher.registerHandler(instagramHandler);
+
+        this.initialized = true;
+        console.log('[EmbedFix] Service initialized with handlers:', urlMatcher.getHandlers().map(h => h.platform).join(', '));
+    }
+
+    /**
+     * Process a message for embed-worthy URLs
+     * This is the main entry point called from the message handler
+     * @param message The Discord message to process
+     */
+    async processMessage(message: Message): Promise<void> {
+        // Fast path checks
+        if (!message.content.includes('http')) return;
+        if (message.author.bot) return;
+        if (!message.guild) return;
+
+        // Check rate limits
+        if (!embedFixRateLimiter.check(message.guild.id, message.author.id)) {
+            return;
+        }
+
+        // Find matching URLs
+        const matches = urlMatcher.matchAllUrls(message.content);
+        if (matches.length === 0) return;
+
+        // Limit to max embeds per message
+        const limitedMatches = matches.slice(0, EMBED_FIX_CONFIG.MAX_EMBEDS_PER_MESSAGE);
+        const skippedCount = matches.length - limitedMatches.length;
+
+        // Process each URL in parallel
+        const embedPromises = limitedMatches.map(match => this.processUrl(match));
+        const results = await Promise.all(embedPromises);
+
+        // Filter out null results
+        const validEmbeds = results.filter((data): data is EmbedData => data !== null);
+
+        if (validEmbeds.length === 0) return;
+
+        // Send the response
+        await this.sendEmbedResponse(message, validEmbeds, skippedCount);
+    }
+
+    /**
+     * Process a single URL for embed generation
+     * Used by both message handler and /embed command
+     * @param url The URL to process
+     */
+    async processUrl(matched: MatchedUrl): Promise<EmbedData | null> {
+        const { platform, match, handler, url } = matched;
+
+        // Check circuit breaker
+        if (circuitBreaker.isOpen(platform)) {
+            console.log(`[EmbedFix] Circuit breaker open for ${platform}, skipping ${url}`);
+            return null;
+        }
+
+        // Generate cache key
+        const cacheKey = `${platform}:${url}`;
+
+        // Check positive cache
+        const cached = embedCache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        // Check negative cache
+        if (embedCache.isNegativelyCached(cacheKey)) {
+            return null;
+        }
+
+        try {
+            // Fetch from API
+            const embedData = await handler.fetchEmbed(match, url);
+
+            if (embedData) {
+                // Cache successful result
+                embedCache.set(cacheKey, embedData);
+                circuitBreaker.recordSuccess(platform);
+                return embedData;
+            } else {
+                // Cache negative result
+                embedCache.setNegative(cacheKey);
+                circuitBreaker.recordFailure(platform);
+                return null;
+            }
+        } catch (error) {
+            console.error(`[EmbedFix] Error processing ${url}:`, error);
+            embedCache.setNegative(cacheKey);
+            circuitBreaker.recordFailure(platform);
+            return null;
+        }
+    }
+
+    /**
+     * Process a single URL string (convenience method for /embed command)
+     * @param url The URL string to process
+     */
+    async processUrlString(url: string): Promise<EmbedData | null> {
+        const matched = urlMatcher.matchUrl(url);
+        if (!matched) return null;
+        return this.processUrl(matched);
+    }
+
+    /**
+     * Send embed response to a message
+     */
+    private async sendEmbedResponse(
+        message: Message,
+        embedDataList: EmbedData[],
+        skippedCount: number
+    ): Promise<void> {
+        const embeds: EmbedBuilder[] = [];
+        const urlRewrites: string[] = [];
+
+        for (const data of embedDataList) {
+            if (data._useUrlRewrite && data._rewrittenUrl) {
+                // URL rewrite approach (Pixiv, Instagram)
+                urlRewrites.push(data._rewrittenUrl);
+            } else {
+                // Custom embed approach (Twitter)
+                embeds.push(this.buildEmbed(data));
+            }
+        }
+
+        // Build content string
+        let content = '';
+        if (urlRewrites.length > 0) {
+            content = urlRewrites.join('\n');
+        }
+        if (skippedCount > 0) {
+            content += content ? '\n' : '';
+            content += `...and ${skippedCount} more ${skippedCount === 1 ? 'link' : 'links'}`;
+        }
+
+        // Create bookmark button
+        const row = this.createBookmarkButton(message.id);
+
+        try {
+            // Suppress the original message's embeds
+            if (message.embeds.length > 0 || message.content.includes('http')) {
+                await message.suppressEmbeds(true).catch(() => {
+                    // Ignore if we can't suppress embeds (missing permissions)
+                });
+            }
+
+            // Send the fixed embed(s)
+            await message.reply({
+                content: content || undefined,
+                embeds: embeds.length > 0 ? embeds : undefined,
+                components: embeds.length > 0 ? [row] : undefined,
+                allowedMentions: { repliedUser: false },
+            });
+        } catch (error) {
+            if (message.guild) {
+                logError(message.guild.id, message.guild.name, error as Error, 'EmbedFix.sendEmbedResponse');
+            }
+        }
+    }
+
+    /**
+     * Build a Discord embed from embed data
+     */
+    buildEmbed(data: EmbedData): EmbedBuilder {
+        const embed = new EmbedBuilder()
+            .setColor(data.color)
+            .setURL(data.originalUrl)
+            .setFooter({
+                text: `${data.author.name} (@${data.author.username})`,
+            });
+
+        // Set timestamp if available
+        if (data.timestamp) {
+            embed.setTimestamp(new Date(data.timestamp));
+        }
+
+        // Set author with icon if available
+        if (data.author.iconUrl) {
+            embed.setAuthor({
+                name: data.author.name,
+                url: data.author.url,
+                iconURL: data.author.iconUrl,
+            });
+        } else {
+            embed.setAuthor({
+                name: data.author.name,
+                url: data.author.url,
+            });
+        }
+
+        // Set description (tweet text, etc.)
+        if (data.description) {
+            embed.setDescription(data.description.slice(0, 4096));
+        }
+
+        // Set image (first image only in main embed)
+        if (data.images.length > 0) {
+            embed.setImage(data.images[0]);
+        }
+
+        // Set title if available
+        if (data.title) {
+            embed.setTitle(data.title.slice(0, 256));
+        }
+
+        return embed;
+    }
+
+    /**
+     * Create bookmark button row
+     */
+    createBookmarkButton(messageId: string): ActionRowBuilder<ButtonBuilder> {
+        return new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`embed_save:${messageId}`)
+                .setLabel('Save')
+                .setEmoji('🔖')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    }
+
+    /**
+     * Handle bookmark button interaction
+     */
+    async handleBookmarkInteraction(interaction: ButtonInteraction): Promise<void> {
+        try {
+            const originalMessage = interaction.message;
+            const embed = originalMessage.embeds[0];
+
+            if (!embed?.url) {
+                await interaction.reply({
+                    content: 'Could not find the original link.',
+                    flags: MessageFlags.Ephemeral,
+                });
+                return;
+            }
+
+            // Send DM with the saved link
+            await interaction.user.send({
+                content: `**Saved Link**\n${embed.url}`,
+                embeds: [EmbedBuilder.from(embed)],
+            });
+
+            await interaction.reply({
+                content: 'Link saved to your DMs!',
+                flags: MessageFlags.Ephemeral,
+            });
+        } catch (error) {
+            await interaction.reply({
+                content: 'Could not send DM. Please check your privacy settings.',
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+    }
+
+    /**
+     * Check if a URL is supported
+     */
+    isUrlSupported(url: string): boolean {
+        return urlMatcher.matchUrl(url) !== null;
+    }
+
+    /**
+     * Get supported platforms
+     */
+    getSupportedPlatforms(): string[] {
+        return urlMatcher.getHandlers().map(h => h.platform);
+    }
+}
+
+// Export singleton getter
+export function getEmbedFixService(): EmbedFixService {
+    return EmbedFixService.getInstance();
+}
+
+// Export for message handler hook
+export async function checkEmbedFixUrls(message: Message): Promise<void> {
+    // Fast path checks
+    if (!message.content.includes('http')) return;
+    if (message.author.bot) return;
+    if (!message.guild) return;
+
+    // Fire-and-forget - errors are logged internally
+    getEmbedFixService().processMessage(message).catch(err => {
+        if (message.guild) {
+            logError(message.guild.id, message.guild.name, err as Error, 'EmbedFix');
+        }
+    });
+}

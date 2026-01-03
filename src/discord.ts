@@ -41,6 +41,7 @@ import { getUptimeService } from './services/uptimeService';
 import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
+import { checkEmbedFixUrls, getEmbedFixService } from './services/embedFix/embedFixService';
 
 // Destructure only the necessary functions from util
 const {
@@ -1259,6 +1260,9 @@ function handleMessages() {
         // Check for scarrow mentions
         await checkScarrowMention(message);
 
+        // Check for embed-worthy URLs (Twitter, etc.)
+        await checkEmbedFixUrls(message);
+
         // Ignore rapi-bot channel for rate limiting
         const isRapiBotChannel = message.channel.type === ChannelType.GuildText && (message.channel as TextChannel).name === 'rapi-bot';
 
@@ -1654,6 +1658,23 @@ function enableAutoComplete() {
     });
 }
 
+function handleEmbedFixButtons() {
+    bot.on(Events.InteractionCreate, async (interaction) => {
+        if (!interaction.isButton()) return;
+        if (!interaction.customId.startsWith('embed_save:')) return;
+
+        try {
+            await getEmbedFixService().handleBookmarkInteraction(interaction);
+        } catch (error) {
+            if (error instanceof Error) {
+                logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix bookmark button');
+            } else {
+                logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix bookmark button');
+            }
+        }
+    });
+}
+
 async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
     try {
         const connection = joinVoiceChannel({
@@ -1774,6 +1795,9 @@ async function initDiscordBot() {
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();
 
+    // Initialize embed fix service
+    getEmbedFixService().initialize();
+
     bot.once(Events.ClientReady, async () => {
         try {
             setBotActivity();
@@ -1798,6 +1822,7 @@ async function initDiscordBot() {
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
+            handleEmbedFixButtons();
             startStreamStatusCheck(bot);
 
             const rest = new REST().setToken(DISCORD_TOKEN);
