@@ -134,6 +134,11 @@ class EmbedFixService {
         const messageLink = `https://discord.com/channels/${message.guild!.id}/${originalShare.channelId}/${originalShare.messageId}`;
 
         try {
+            // Suppress the duplicate message's embeds so Discord doesn't show them
+            await message.suppressEmbeds(true).catch(() => {
+                // Ignore if we can't suppress embeds (missing permissions)
+            });
+
             await message.reply({
                 content: `🔄 This was shared ${timeAgo} → [Jump to original](${messageLink})`,
                 allowedMentions: { repliedUser: false },

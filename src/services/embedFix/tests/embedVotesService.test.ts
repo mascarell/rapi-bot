@@ -291,6 +291,13 @@ describe('EmbedVotesService', () => {
             expect(id).toBe('twitter:123456789');
         });
 
+        it('should generate same ID for twitter.com and x.com URLs', () => {
+            const twitterId = EmbedVotesService.generateArtworkId('twitter', 'https://twitter.com/user/status/123456789');
+            const xId = EmbedVotesService.generateArtworkId('twitter', 'https://x.com/user/status/123456789');
+            expect(twitterId).toBe(xId);
+            expect(twitterId).toBe('twitter:123456789');
+        });
+
         it('should handle URL without status ID', () => {
             const id = EmbedVotesService.generateArtworkId('twitter', 'https://twitter.com/user');
             expect(id).toBe('twitter:https://twitter.com/user');
