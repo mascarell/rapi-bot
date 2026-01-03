@@ -410,6 +410,7 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
         const dataService = getGachaDataService();
         const allCoupons = await dataService.getAllCoupons(gameId);
         const stats = await dataService.getGameStats(gameId);
+        const now = new Date();
 
         const activeCoupons = allCoupons.filter(c => c.isActive);
         const inactiveCoupons = allCoupons.filter(c => !c.isActive);
@@ -418,23 +419,33 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
             .setColor(gameConfig.embedColor)
             .setTitle(`📋 ${gameConfig.shortName} Coupon Management`)
             .setThumbnail(gameConfig.logoPath)
-            .setDescription(`**Subscribers:** ${stats.total} (🤖 ${stats.autoRedeem} | 📬 ${stats.notifyOnly})`)
+            .setDescription(
+                `**Subscribers:** ${stats.total} (🤖 ${stats.autoRedeem} | 📬 ${stats.notifyOnly})\n` +
+                `✅ Active | ⏰ Expired (24h grace) | ❌ Inactive`
+            )
             .setTimestamp()
             .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
         if (activeCoupons.length > 0) {
             const activeList = activeCoupons.map(c => {
                 const expiry = c.expirationDate ? formatDate(c.expirationDate) : 'No expiry';
-                return `• \`${c.code}\` - ${c.rewards} (${expiry})`;
+                // Check if code is expired but still in grace period
+                const isExpired = c.expirationDate && new Date(c.expirationDate) <= now;
+                const status = isExpired ? '⏰' : '✅';
+                return `${status} \`${c.code}\` - ${c.rewards} (${expiry})`;
             }).join('\n');
-            embed.addFields({ name: `✅ Active (${activeCoupons.length})`, value: activeList.substring(0, 1024) });
+            embed.addFields({ name: `Active (${activeCoupons.length})`, value: activeList.substring(0, 1024) });
         } else {
-            embed.addFields({ name: '✅ Active', value: 'No active coupons' });
+            embed.addFields({ name: 'Active', value: 'No active coupons' });
         }
 
         if (inactiveCoupons.length > 0) {
-            const inactiveList = inactiveCoupons.slice(-5).map(c => `• \`${c.code}\``).join('\n');
-            embed.addFields({ name: `❌ Inactive (last 5 of ${inactiveCoupons.length})`, value: inactiveList });
+            const inactiveList = inactiveCoupons.slice(-5).map(c => {
+                // Show reason: expired vs manually removed
+                const reason = c.expirationDate ? '(expired)' : '(removed)';
+                return `❌ \`${c.code}\` ${reason}`;
+            }).join('\n');
+            embed.addFields({ name: `Inactive (last 5 of ${inactiveCoupons.length})`, value: inactiveList });
         }
 
         await interaction.reply({ embeds: [embed], ephemeral: true });
