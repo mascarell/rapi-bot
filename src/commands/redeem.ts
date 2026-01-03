@@ -902,6 +902,80 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
     }
 }
 
+async function handleHelp(interaction: ChatInputCommandInteraction): Promise<void> {
+    const isMod = await checkModPermission(interaction);
+
+    const embed = new EmbedBuilder()
+        .setColor(0x3498DB)
+        .setTitle('Coupon Redemption System Help')
+        .setDescription('Automatically redeem coupon codes for supported gacha games.')
+        .setTimestamp()
+        .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+
+    // User Commands Section
+    embed.addFields({
+        name: 'User Commands',
+        value: [
+            '`/redeem subscribe` - Subscribe to a game for auto-redeem or notifications',
+            '`/redeem unsubscribe` - Unsubscribe from a game',
+            '`/redeem status` - View your subscription status',
+            '`/redeem codes` - View active coupon codes',
+            '`/redeem preferences` - Configure notification settings',
+            '`/redeem switch` - Switch between auto-redeem and notification modes',
+        ].join('\n'),
+    });
+
+    // Modes FAQ
+    embed.addFields({
+        name: 'Subscription Modes',
+        value: [
+            '**Auto-Redeem**: Bot automatically redeems codes for you (immediately on subscribe + every 6 hours)',
+            '**Notification-Only**: Get DM alerts about new codes (redeem manually)',
+        ].join('\n'),
+    });
+
+    // Game-Specific Info
+    embed.addFields({
+        name: 'Brown Dust 2',
+        value: [
+            '**Important**: Use your **in-game nickname**, NOT your UID!',
+            'Find it in-game: Profile > Your display name',
+            'Auto-redemption runs every 6 hours + immediately when new codes are added',
+        ].join('\n'),
+    });
+
+    // Preferences FAQ
+    embed.addFields({
+        name: 'Notification Preferences',
+        value: [
+            '**Expiration Warnings**: Daily alerts for codes expiring within 3 days',
+            '**Weekly Digest**: Sunday summary of unredeemed codes',
+            '**New Code Alerts**: Instant DM when new codes are added',
+        ].join('\n'),
+    });
+
+    // Mod Commands Section (only if user is mod)
+    if (isMod) {
+        embed.addFields({
+            name: 'Mod Commands',
+            value: [
+                '`/redeem add` - Add a new coupon code',
+                '`/redeem remove` - Deactivate a coupon code',
+                '`/redeem list` - View all codes with stats',
+                '`/redeem trigger` - Manually trigger auto-redemption',
+                '`/redeem scrape` - Fetch codes from BD2 Pulse',
+                '`/redeem stats` - View analytics',
+                '`/redeem lookup` - View user subscription details',
+                '`/redeem unsub` - Force unsubscribe a user',
+                '`/redeem update` - Update user\'s game ID',
+                '`/redeem reset` - Reset user\'s redeemed codes',
+            ].join('\n'),
+        });
+    }
+
+    await interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
 // ==================== Command Export ====================
 
 module.exports = {
@@ -1131,7 +1205,12 @@ module.exports = {
                 .addChoices(
                     { name: '🤖 Auto-Redeem', value: 'auto-redeem' },
                     { name: '📬 Notification Only', value: 'notification-only' }
-                ))),
+                )))
+
+        // User: Help
+        .addSubcommand(sub => sub
+            .setName('help')
+            .setDescription('View help and FAQs about the coupon redemption system')),
 
     async execute(interaction: ChatInputCommandInteraction) {
         // Check if this server is allowed to use the gacha coupon system
@@ -1178,6 +1257,7 @@ module.exports = {
             case 'stats': return handleModStats(interaction);
             case 'preferences': return handlePreferences(interaction);
             case 'switch': return handleSwitch(interaction);
+            case 'help': return handleHelp(interaction);
         }
     },
 
