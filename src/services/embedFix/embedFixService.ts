@@ -275,11 +275,10 @@ class EmbedFixService {
             }
 
             if (deleteSucceeded) {
-                // Send new message with embeds (not a reply since original is deleted)
+                // Send new message with embeds only (author credit is in the embed)
+                // If user had text content, include it as message content
                 const newMessage = await channel.send({
-                    content: originalContent
-                        ? `**${originalAuthor.displayName || originalAuthor.username}** shared:\n${originalContent}`
-                        : `**${originalAuthor.displayName || originalAuthor.username}** shared:`,
+                    content: originalContent || undefined,
                     embeds,
                     allowedMentions: { users: [] },
                 });
