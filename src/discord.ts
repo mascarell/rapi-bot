@@ -1735,15 +1735,27 @@ function handleEmbedFixReactions() {
         // Only process envelope emoji
         if (reaction.emoji.name !== '✉️') return;
 
-        // Check if this is on a bot message (our embed replies)
         const message = reaction.message;
-        if (!message.author?.bot) return;
 
-        // Check if the bot is the author (our messages only)
-        if (message.author.id !== bot.user?.id) return;
+        // Must be on a bot message (our embed replies)
+        if (message.author?.id !== bot.user?.id) return;
+        if (message.embeds.length === 0) return;
 
         try {
-            await getEmbedFixService().handleEnvelopeReaction(reaction, user);
+            const embed = message.embeds[0];
+            // Check if this is an upload embed (originalUrl points to discord.com/channels/...)
+            const isUploadEmbed = embed.url?.includes('discord.com/channels/');
+
+            if (isUploadEmbed) {
+                // Upload embed - send image URLs via DM
+                await getEmbedFixService().handleUploadEnvelopeReaction(
+                    message as Message,
+                    user
+                );
+            } else {
+                // URL-based embed - existing behavior
+                await getEmbedFixService().handleEnvelopeReaction(reaction, user);
+            }
         } catch (error) {
             if (error instanceof Error) {
                 logError(message.guildId || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error, 'EmbedFix envelope reaction');

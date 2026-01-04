@@ -42,6 +42,7 @@ export const EMBED_FIX_CONFIG = {
     EMBED_COLOR_TWITTER: 0x1DA1F2,
     EMBED_COLOR_PIXIV: 0x0096FA,
     EMBED_COLOR_INSTAGRAM: 0xE1306C,
+    EMBED_COLOR_UPLOAD: 0x5865F2,  // Discord Blurple
 
     // Platform icons for footer
     TWITTER_ICON_URL: 'https://abs.twimg.com/icons/apple-touch-icon-192x192.png',

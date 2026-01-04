@@ -168,19 +168,158 @@ class EmbedFixService {
     }
 
     /**
+     * Check if message has image/video attachments
+     */
+    private hasMediaAttachments(message: Message): boolean {
+        if (message.attachments.size === 0) return false;
+        return message.attachments.some(att =>
+            att.contentType?.startsWith('image/') ||
+            att.contentType?.startsWith('video/') ||
+            /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i.test(att.name || '')
+        );
+    }
+
+    /**
+     * Create EmbedData from user-uploaded attachments
+     */
+    private createUploadEmbedData(message: Message): EmbedData {
+        const images: string[] = [];
+        const videos: Array<{ url: string; thumbnail?: string }> = [];
+
+        message.attachments.forEach(att => {
+            const isImage = att.contentType?.startsWith('image/') ||
+                /\.(jpg|jpeg|png|gif|webp)$/i.test(att.name || '');
+            const isVideo = att.contentType?.startsWith('video/') ||
+                /\.(mp4|webm|mov)$/i.test(att.name || '');
+
+            if (isImage) {
+                images.push(att.url);
+            } else if (isVideo) {
+                videos.push({
+                    url: att.url,
+                    thumbnail: att.proxyURL,
+                });
+            }
+        });
+
+        return {
+            platform: 'upload',
+            author: {
+                name: message.author.displayName || message.author.username,
+                username: message.author.username,
+                url: message.url,  // Link to original message
+                iconUrl: message.author.displayAvatarURL() || undefined,
+            },
+            images,
+            videos: videos.length > 0 ? videos : undefined,
+            color: EMBED_FIX_CONFIG.EMBED_COLOR_UPLOAD,
+            originalUrl: message.url,
+            description: message.content || undefined,
+            timestamp: message.createdAt.toISOString(),
+        };
+    }
+
+    /**
+     * Process user-uploaded images/videos (no tracking, just embeds + reactions)
+     */
+    private async processUserUpload(message: Message): Promise<void> {
+        const embedData = this.createUploadEmbedData(message);
+
+        // Skip if no media found
+        if (embedData.images.length === 0 && (!embedData.videos || embedData.videos.length === 0)) {
+            return;
+        }
+
+        // Send embed response (reuse existing method, but skip vote recording)
+        await this.sendUploadEmbedResponse(message, embedData);
+    }
+
+    /**
+     * Send embed response for user uploads (no vote tracking)
+     */
+    private async sendUploadEmbedResponse(message: Message, embedData: EmbedData): Promise<void> {
+        const embeds: EmbedBuilder[] = [];
+
+        // Create one embed per image
+        const imageCount = Math.min(embedData.images.length, 10);  // Discord's limit
+        for (let i = 0; i < imageCount; i++) {
+            embeds.push(this.buildEmbed(embedData, i));
+        }
+
+        // If no images but has videos, we currently don't download/reattach user videos
+        // Just show metadata embed (Discord will show the attachment anyway)
+        if (embeds.length === 0 && embedData.videos && embedData.videos.length > 0) {
+            // For user-uploaded videos, just add reactions to the original message
+            // since the video is already attached and visible
+            try {
+                await message.react('❤️').catch(() => {});
+                await message.react('✉️').catch(() => {});
+            } catch {
+                // Ignore reaction failures
+            }
+            return;
+        }
+
+        if (embeds.length === 0) return;
+
+        try {
+            // Suppress original embeds
+            const suppressOriginalEmbeds = async () => {
+                await message.suppressEmbeds(true).catch(() => {});
+            };
+
+            if (message.embeds.length > 0) {
+                await suppressOriginalEmbeds();
+            }
+
+            // Send embed reply
+            const reply = await message.reply({
+                embeds,
+                allowedMentions: { repliedUser: false },
+            });
+
+            // Delayed suppression
+            setTimeout(async () => {
+                await suppressOriginalEmbeds();
+            }, 1500);
+
+            // Add reactions (no vote tracking for uploads)
+            await reply.react('❤️').catch(() => {});
+            await reply.react('✉️').catch(() => {});
+        } catch (error) {
+            if (message.guild) {
+                logError(message.guild.id, message.guild.name, error as Error, 'EmbedFix.sendUploadEmbedResponse');
+            }
+        }
+    }
+
+    /**
      * Process a message for embed-worthy URLs
      * This is the main entry point called from the message handler
      * @param message The Discord message to process
      */
     async processMessage(message: Message): Promise<void> {
         // Fast path checks
-        if (!message.content.includes('http')) return;
         if (message.author.bot) return;
         if (!message.guild) return;
+
+        // Check for URLs or media attachments
+        const hasUrls = message.content.includes('http');
+        const hasMediaUploads = this.hasMediaAttachments(message);
+        if (!hasUrls && !hasMediaUploads) return;
 
         // Only process in art-focused channels (#art, #nsfw)
         const channelName = (message.channel as TextChannel).name?.toLowerCase() ?? '';
         if (!['art', 'nsfw'].includes(channelName)) return;
+
+        // Handle user uploads (embeds but no tracking)
+        if (hasMediaUploads && !hasUrls) {
+            await this.processUserUpload(message);
+            return;
+        }
+
+        // From here on, we're processing URL-based embeds
+        if (!hasUrls) return;
 
         // Check rate limits
         if (!embedFixRateLimiter.check(message.guild.id, message.author.id)) {
@@ -757,6 +896,32 @@ class EmbedFixService {
     }
 
     /**
+     * Handle envelope reaction on user upload bot replies
+     * Sends image URLs from embeds via DM
+     */
+    async handleUploadEnvelopeReaction(
+        message: Message,
+        user: User | PartialUser
+    ): Promise<void> {
+        try {
+            // Get image URLs from embeds
+            const imageUrls = message.embeds
+                .map(embed => embed.image?.url)
+                .filter((url): url is string => Boolean(url))
+                .join('\n');
+
+            if (!imageUrls) return;
+
+            const fullUser = user.partial ? await user.fetch() : user;
+            await fullUser.send({
+                content: `📎 **Saved from ${message.guild?.name || 'a server'}:**\n${imageUrls}`,
+            });
+        } catch (error) {
+            console.log(`[EmbedFix] Could not send upload DM to user ${user.id}: ${error}`);
+        }
+    }
+
+    /**
      * Check if a URL is supported
      */
     isUrlSupported(url: string): boolean {
@@ -885,7 +1050,9 @@ export function getEmbedFixService(): EmbedFixService {
 // Export for message handler hook
 export async function checkEmbedFixUrls(message: Message): Promise<void> {
     // Fast path checks
-    if (!message.content.includes('http')) return;
+    const hasUrls = message.content.includes('http');
+    const hasAttachments = message.attachments.size > 0;
+    if (!hasUrls && !hasAttachments) return;
     if (message.author.bot) return;
     if (!message.guild) return;
 
