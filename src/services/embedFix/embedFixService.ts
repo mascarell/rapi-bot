@@ -268,6 +268,8 @@ class EmbedFixService {
      * Process user-uploaded images/videos (with duplicate detection)
      */
     private async processUserUpload(message: Message): Promise<void> {
+        console.log(`[EmbedFix] processUserUpload called for message ${message.id} in #${(message.channel as TextChannel).name}`);
+
         // Get filenames for duplicate checking
         const filenames = message.attachments
             .filter(att =>
@@ -377,6 +379,7 @@ class EmbedFixService {
 
         // Handle user uploads (embeds but no tracking)
         if (hasMediaUploads && !hasUrls) {
+            console.log(`[EmbedFix] Detected upload in #${channelName}, hasMedia=${hasMediaUploads}, hasUrls=${hasUrls}, content="${message.content.slice(0, 50)}"`);
             await this.processUserUpload(message);
             return;
         }
