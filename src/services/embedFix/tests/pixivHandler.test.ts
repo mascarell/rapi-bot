@@ -54,7 +54,8 @@ describe('PixivHandler', () => {
             expect(result?.platform).toBe('pixiv');
             expect(result?._useUrlRewrite).toBe(true);
             expect(result?._rewrittenUrl).toBe('https://phixiv.net/artworks/12345678');
-            expect(result?.originalUrl).toBe('https://pixiv.net/artworks/12345678');
+            // originalUrl should always be canonical pixiv.net URL for duplicate detection
+            expect(result?.originalUrl).toBe('https://www.pixiv.net/artworks/12345678');
         });
 
         it('should return URL rewrite data for English artwork URL', async () => {
@@ -62,6 +63,8 @@ describe('PixivHandler', () => {
             const result = await handler.fetchEmbed(match, 'https://pixiv.net/en/artworks/87654321');
 
             expect(result?._rewrittenUrl).toBe('https://phixiv.net/artworks/87654321');
+            // originalUrl should always be canonical
+            expect(result?.originalUrl).toBe('https://www.pixiv.net/artworks/87654321');
         });
 
         it('should return URL rewrite data for legacy URL', async () => {
@@ -69,6 +72,17 @@ describe('PixivHandler', () => {
             const result = await handler.fetchEmbed(match, 'https://pixiv.net/member_illust.php?illust_id=11111111');
 
             expect(result?._rewrittenUrl).toBe('https://phixiv.net/artworks/11111111');
+            // originalUrl should always be canonical
+            expect(result?.originalUrl).toBe('https://www.pixiv.net/artworks/11111111');
+        });
+
+        it('should return canonical originalUrl for phixiv proxy URLs', async () => {
+            const match = handler.match('https://phixiv.net/artworks/99999999')!;
+            const result = await handler.fetchEmbed(match, 'https://phixiv.net/artworks/99999999');
+
+            expect(result?._rewrittenUrl).toBe('https://phixiv.net/artworks/99999999');
+            // Even for phixiv URLs, originalUrl should be canonical pixiv.net for duplicate detection
+            expect(result?.originalUrl).toBe('https://www.pixiv.net/artworks/99999999');
         });
 
         it('should have correct color', async () => {

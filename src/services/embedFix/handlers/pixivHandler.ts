@@ -30,16 +30,20 @@ export class PixivHandler extends BaseHandler {
         // Use URL rewrite approach - phixiv.net handles the embed
         const rewrittenUrl = `${EMBED_FIX_CONFIG.PIXIV_PROXY}/artworks/${artworkId}`;
 
+        // Always use canonical pixiv.net URL for originalUrl
+        // This ensures duplicate detection works for both pixiv.net and phixiv.net URLs
+        const canonicalUrl = `https://www.pixiv.net/artworks/${artworkId}`;
+
         return {
             platform: 'pixiv',
             author: {
                 name: 'Pixiv Artist',
                 username: 'pixiv',
-                url: url,
+                url: canonicalUrl,
             },
             images: [],
             color: EMBED_FIX_CONFIG.EMBED_COLOR_PIXIV,
-            originalUrl: url,
+            originalUrl: canonicalUrl,
             _useUrlRewrite: true,
             _rewrittenUrl: rewrittenUrl,
         };
