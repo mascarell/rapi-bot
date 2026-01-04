@@ -25,6 +25,13 @@ export interface EmbedData {
     videos?: Array<{
         url: string;
         thumbnail?: string;
+        /** Video variants sorted by quality (highest first) */
+        variants?: Array<{
+            url: string;
+            bitrate?: number;
+            content_type?: string;
+        }>;
+        type?: 'video' | 'gif';
     }>;
     timestamp?: string;
     color: number;
@@ -34,6 +41,13 @@ export interface EmbedData {
     _useUrlRewrite?: boolean;
     /** The rewritten URL for platforms that use URL proxies */
     _rewrittenUrl?: string;
+    /** Video attachment data (after download) */
+    _videoAttachment?: {
+        buffer: Buffer;
+        filename: string;
+    };
+    /** Fallback URL if video is too large to attach */
+    _videoFallbackUrl?: string;
 }
 
 /**

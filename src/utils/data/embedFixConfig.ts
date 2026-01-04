@@ -33,6 +33,11 @@ export const EMBED_FIX_CONFIG = {
     MAX_IMAGES_PER_TWEET: 10,  // Max images to display per tweet (Discord's limit)
     BOOKMARK_BUTTON_TIMEOUT: 5 * 60 * 1000, // 5 minutes
 
+    // Video settings
+    MAX_VIDEO_SIZE_BYTES: 8_388_119,  // ~8MB - Discord's non-nitro limit
+    VIDEO_DOWNLOAD_TIMEOUT_MS: 30_000,  // 30 seconds for video download
+    VXTWITTER_FALLBACK: 'https://vxtwitter.com',  // Fallback for large videos
+
     // Embed colors (hex)
     EMBED_COLOR_TWITTER: 0x1DA1F2,
     EMBED_COLOR_PIXIV: 0x0096FA,

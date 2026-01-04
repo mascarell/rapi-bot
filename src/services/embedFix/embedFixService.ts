@@ -5,6 +5,7 @@
 
 import {
     ActionRowBuilder,
+    AttachmentBuilder,
     ButtonBuilder,
     ButtonInteraction,
     ButtonStyle,
@@ -24,6 +25,111 @@ import { pixivHandler } from './handlers/pixivHandler';
 import { twitterHandler } from './handlers/twitterHandler';
 import { embedFixRateLimiter } from './rateLimiter';
 import { urlMatcher } from './urlMatcher';
+
+/**
+ * Download a video file, checking size constraints
+ * Returns the buffer if under limit, or null to trigger fallback
+ */
+async function downloadVideo(
+    videoUrl: string,
+    maxSize: number = EMBED_FIX_CONFIG.MAX_VIDEO_SIZE_BYTES
+): Promise<{ buffer: Buffer; filename: string } | null> {
+    try {
+        // First, check file size with HEAD request
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        try {
+            const headResponse = await fetch(videoUrl, {
+                method: 'HEAD',
+                signal: controller.signal,
+            });
+            clearTimeout(timeout);
+
+            const contentLength = headResponse.headers.get('content-length');
+            if (contentLength && parseInt(contentLength) > maxSize) {
+                console.log(`[EmbedFix] Video too large: ${contentLength} bytes > ${maxSize} limit`);
+                return null;
+            }
+        } catch {
+            clearTimeout(timeout);
+            // HEAD request failed, try downloading anyway
+        }
+
+        // Download the video
+        const downloadController = new AbortController();
+        const downloadTimeout = setTimeout(
+            () => downloadController.abort(),
+            EMBED_FIX_CONFIG.VIDEO_DOWNLOAD_TIMEOUT_MS
+        );
+
+        const response = await fetch(videoUrl, { signal: downloadController.signal });
+        clearTimeout(downloadTimeout);
+
+        if (!response.ok) {
+            console.log(`[EmbedFix] Video download failed: ${response.status}`);
+            return null;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Check actual size
+        if (buffer.length > maxSize) {
+            console.log(`[EmbedFix] Downloaded video too large: ${buffer.length} bytes`);
+            return null;
+        }
+
+        // Extract filename from URL
+        const urlPath = new URL(videoUrl).pathname;
+        const filename = urlPath.split('/').pop() || 'video.mp4';
+
+        return { buffer, filename };
+    } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.log('[EmbedFix] Video download timed out');
+        } else {
+            console.error('[EmbedFix] Video download error:', error);
+        }
+        return null;
+    }
+}
+
+/**
+ * Find the best video URL that fits within size limit
+ * Tries variants from highest to lowest quality
+ */
+async function findBestVideoUrl(
+    video: NonNullable<EmbedData['videos']>[0],
+    maxSize: number = EMBED_FIX_CONFIG.MAX_VIDEO_SIZE_BYTES
+): Promise<string | null> {
+    // If we have variants, try them in order (highest quality first)
+    if (video.variants && video.variants.length > 0) {
+        for (const variant of video.variants) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+
+                const headResponse = await fetch(variant.url, {
+                    method: 'HEAD',
+                    signal: controller.signal,
+                });
+                clearTimeout(timeout);
+
+                const contentLength = headResponse.headers.get('content-length');
+                if (contentLength && parseInt(contentLength) <= maxSize) {
+                    return variant.url;
+                }
+            } catch {
+                // Try next variant
+                continue;
+            }
+        }
+    }
+
+    // Fallback to main URL if no suitable variant found
+    return video.url;
+}
 
 class EmbedFixService {
     private static instance: EmbedFixService;
@@ -270,13 +376,37 @@ class EmbedFixService {
     ): Promise<void> {
         const embeds: EmbedBuilder[] = [];
         const urlRewrites: string[] = [];
+        const files: AttachmentBuilder[] = [];
+        let videoFallbackUrl: string | undefined;
 
         for (const data of embedDataList) {
             if (data._useUrlRewrite && data._rewrittenUrl) {
                 // URL rewrite approach (Pixiv, Instagram)
                 urlRewrites.push(data._rewrittenUrl);
+            } else if (data.videos && data.videos.length > 0 && data.images.length === 0) {
+                // Video tweet - try to download and attach
+                const video = data.videos[0];
+                const bestVideoUrl = await findBestVideoUrl(video);
+
+                if (bestVideoUrl) {
+                    const downloaded = await downloadVideo(bestVideoUrl);
+
+                    if (downloaded) {
+                        // Successfully downloaded - attach the video
+                        files.push(new AttachmentBuilder(downloaded.buffer, { name: downloaded.filename }));
+                        // Build embed with video thumbnail and metadata
+                        const embed = this.buildVideoEmbed(data, video.thumbnail);
+                        embeds.push(embed);
+                    } else {
+                        // Video too large - use vxtwitter fallback
+                        videoFallbackUrl = this.getVxTwitterFallbackUrl(data.originalUrl);
+                    }
+                } else {
+                    // No suitable video URL found - use vxtwitter fallback
+                    videoFallbackUrl = this.getVxTwitterFallbackUrl(data.originalUrl);
+                }
             } else {
-                // Custom embed approach (Twitter) - create one embed per image
+                // Image tweet or text-only - create one embed per image
                 const imageCount = Math.min(
                     data.images.length || 1,  // At least 1 for text-only tweets
                     EMBED_FIX_CONFIG.MAX_IMAGES_PER_TWEET
@@ -291,7 +421,10 @@ class EmbedFixService {
 
         // Build content string
         let content = '';
-        if (urlRewrites.length > 0) {
+        if (videoFallbackUrl) {
+            // Use vxtwitter URL for large videos (Discord will embed it natively)
+            content = videoFallbackUrl;
+        } else if (urlRewrites.length > 0) {
             content = urlRewrites.join('\n');
         }
         if (skippedCount > 0) {
@@ -303,8 +436,9 @@ class EmbedFixService {
         const primaryEmbed = embedDataList[0];
         const artworkId = this.generateArtworkId(primaryEmbed);
 
-        // Create action buttons (vote + DM)
+        // Create action buttons (vote + DM) - only if we have embeds
         const row = this.createActionButtons(message.id, artworkId, 0);
+        const hasEmbedsOrVideo = embeds.length > 0 || files.length > 0;
 
         try {
             // Suppress the original message's embeds
@@ -314,16 +448,17 @@ class EmbedFixService {
                 });
             }
 
-            // Send the fixed embed(s)
+            // Send the fixed embed(s) with optional video attachment
             const reply = await message.reply({
                 content: content || undefined,
                 embeds: embeds.length > 0 ? embeds : undefined,
-                components: embeds.length > 0 ? [row] : undefined,
+                files: files.length > 0 ? files : undefined,
+                components: hasEmbedsOrVideo && !videoFallbackUrl ? [row] : undefined,
                 allowedMentions: { repliedUser: false },
             });
 
             // Record artwork for voting (fire-and-forget)
-            if (embeds.length > 0 && message.guild) {
+            if (hasEmbedsOrVideo && message.guild) {
                 getEmbedVotesService().recordArtwork(artworkId, {
                     originalUrl: primaryEmbed.originalUrl,
                     platform: primaryEmbed.platform,
@@ -342,6 +477,51 @@ class EmbedFixService {
                 logError(message.guild.id, message.guild.name, error as Error, 'EmbedFix.sendEmbedResponse');
             }
         }
+    }
+
+    /**
+     * Build embed for video tweets (shows metadata with thumbnail)
+     */
+    private buildVideoEmbed(data: EmbedData, thumbnailUrl?: string): EmbedBuilder {
+        const embed = new EmbedBuilder()
+            .setColor(data.color)
+            .setURL(data.originalUrl)
+            .setTitle(`Video by ${data.author.name}`)
+            .setFooter({ text: 'Click ❤️ to vote • ✉️ to DM' });
+
+        // Author with avatar and profile link
+        embed.setAuthor({
+            name: `@${data.author.username}`,
+            url: data.author.url,
+            iconURL: data.author.iconUrl,
+        });
+
+        // Tweet text as description
+        if (data.description && !data.description.match(/^https?:\/\//)) {
+            embed.setDescription(data.description.slice(0, 4096));
+        }
+
+        // Video thumbnail
+        if (thumbnailUrl) {
+            embed.setImage(thumbnailUrl);
+        }
+
+        // Timestamp
+        if (data.timestamp) {
+            embed.setTimestamp(new Date(data.timestamp));
+        }
+
+        return embed;
+    }
+
+    /**
+     * Convert original Twitter/X URL to vxtwitter fallback
+     */
+    private getVxTwitterFallbackUrl(originalUrl: string): string {
+        // Replace twitter.com or x.com with vxtwitter.com
+        return originalUrl
+            .replace(/https?:\/\/(www\.)?(twitter\.com|x\.com)/, EMBED_FIX_CONFIG.VXTWITTER_FALLBACK)
+            .replace(/https?:\/\/(www\.)?(vxtwitter|fxtwitter|fixupx|fixvx|twittpr)\.com/, EMBED_FIX_CONFIG.VXTWITTER_FALLBACK);
     }
 
     /**

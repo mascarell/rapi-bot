@@ -14,9 +14,24 @@ interface FxTwitterAuthor {
     url?: string;
 }
 
+interface FxTwitterVideoVariant {
+    url: string;
+    bitrate?: number;
+    content_type?: string;
+}
+
+interface FxTwitterVideo {
+    url: string;
+    thumbnail_url?: string;
+    duration?: number;
+    format?: string;
+    type?: 'video' | 'gif';
+    variants?: FxTwitterVideoVariant[];
+}
+
 interface FxTwitterMedia {
     photos?: Array<{ url: string }>;
-    videos?: Array<{ url: string; thumbnail_url?: string }>;
+    videos?: FxTwitterVideo[];
 }
 
 interface FxTwitterTweet {
@@ -85,14 +100,26 @@ export class TwitterHandler extends BaseHandler {
                 }
             }
 
-            // Extract videos from media
-            const videos: Array<{ url: string; thumbnail?: string }> = [];
+            // Extract videos from media (with variants for quality selection)
+            const videos: Array<{
+                url: string;
+                thumbnail?: string;
+                variants?: Array<{ url: string; bitrate?: number; content_type?: string }>;
+                type?: 'video' | 'gif';
+            }> = [];
             if (tweet.media?.videos) {
                 for (const video of tweet.media.videos) {
                     if (video.url) {
+                        // Sort variants by bitrate (highest first) for quality selection
+                        const sortedVariants = video.variants
+                            ?.filter(v => v.content_type === 'video/mp4')
+                            .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0));
+
                         videos.push({
                             url: video.url,
                             thumbnail: video.thumbnail_url,
+                            variants: sortedVariants,
+                            type: video.type,
                         });
                     }
                 }
