@@ -443,11 +443,16 @@ class EmbedFixService {
         const hasEmbedsOrVideo = embeds.length > 0 || files.length > 0;
 
         try {
-            // Suppress the original message's embeds
-            if (message.embeds.length > 0 || message.content.includes('http')) {
+            // Helper to suppress embeds on the original message
+            const suppressOriginalEmbeds = async () => {
                 await message.suppressEmbeds(true).catch(() => {
                     // Ignore if we can't suppress embeds (missing permissions)
                 });
+            };
+
+            // Suppress embeds immediately if they exist
+            if (message.embeds.length > 0) {
+                await suppressOriginalEmbeds();
             }
 
             // Send the fixed embed(s) with optional video attachment (no buttons - use reactions)
@@ -457,6 +462,13 @@ class EmbedFixService {
                 files: files.length > 0 ? files : undefined,
                 allowedMentions: { repliedUser: false },
             });
+
+            // Suppress embeds again after a short delay
+            // Discord generates embeds asynchronously, so we need to wait and suppress again
+            // to catch any embeds that appeared after our initial check
+            setTimeout(async () => {
+                await suppressOriginalEmbeds();
+            }, 1500);
 
             // Add emoji reactions for voting and DM (heart first, then envelope)
             if (hasEmbedsOrVideo && !videoFallbackUrl) {
