@@ -235,7 +235,7 @@ class EmbedFixService {
     }
 
     /**
-     * Send embed response for user uploads (no vote tracking)
+     * Send embed response for user uploads (delete original, repost as embed)
      */
     private async sendUploadEmbedResponse(message: Message, embedData: EmbedData): Promise<void> {
         const embeds: EmbedBuilder[] = [];
@@ -246,11 +246,9 @@ class EmbedFixService {
             embeds.push(this.buildEmbed(embedData, i));
         }
 
-        // If no images but has videos, we currently don't download/reattach user videos
-        // Just show metadata embed (Discord will show the attachment anyway)
+        // If no images but has videos, just add reactions to the original message
+        // since we can't easily re-embed user-uploaded videos
         if (embeds.length === 0 && embedData.videos && embedData.videos.length > 0) {
-            // For user-uploaded videos, just add reactions to the original message
-            // since the video is already attached and visible
             try {
                 await message.react('❤️').catch(() => {});
                 await message.react('✉️').catch(() => {});
@@ -262,30 +260,43 @@ class EmbedFixService {
 
         if (embeds.length === 0) return;
 
-        try {
-            // Suppress original embeds
-            const suppressOriginalEmbeds = async () => {
-                await message.suppressEmbeds(true).catch(() => {});
-            };
+        const channel = message.channel as TextChannel;
+        const originalAuthor = message.author;
+        const originalContent = message.content;
 
-            if (message.embeds.length > 0) {
-                await suppressOriginalEmbeds();
+        try {
+            // Try to delete the original message
+            let deleteSucceeded = false;
+            try {
+                await message.delete();
+                deleteSucceeded = true;
+            } catch {
+                console.log('[EmbedFix] Could not delete original upload message, falling back to reply');
             }
 
-            // Send embed reply
-            const reply = await message.reply({
-                embeds,
-                allowedMentions: { repliedUser: false },
-            });
+            if (deleteSucceeded) {
+                // Send new message with embeds (not a reply since original is deleted)
+                const newMessage = await channel.send({
+                    content: originalContent
+                        ? `**${originalAuthor.displayName || originalAuthor.username}** shared:\n${originalContent}`
+                        : `**${originalAuthor.displayName || originalAuthor.username}** shared:`,
+                    embeds,
+                    allowedMentions: { users: [] },
+                });
 
-            // Delayed suppression
-            setTimeout(async () => {
-                await suppressOriginalEmbeds();
-            }, 1500);
+                // Add reactions
+                await newMessage.react('❤️').catch(() => {});
+                await newMessage.react('✉️').catch(() => {});
+            } else {
+                // Fallback: reply to original message
+                const reply = await message.reply({
+                    embeds,
+                    allowedMentions: { repliedUser: false },
+                });
 
-            // Add reactions (no vote tracking for uploads)
-            await reply.react('❤️').catch(() => {});
-            await reply.react('✉️').catch(() => {});
+                await reply.react('❤️').catch(() => {});
+                await reply.react('✉️').catch(() => {});
+            }
         } catch (error) {
             if (message.guild) {
                 logError(message.guild.id, message.guild.name, error as Error, 'EmbedFix.sendUploadEmbedResponse');
