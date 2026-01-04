@@ -62,7 +62,7 @@ export const EMBED_FIX_CONFIG = {
     DUPLICATE_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours
 
     // Message edit monitoring window
-    MESSAGE_EDIT_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours - monitor edits for this long
+    MESSAGE_EDIT_WINDOW_MS: 72 * 60 * 60 * 1000,  // 72 hours - monitor edits for this long
 
     // Fixup service domains (used to detect when to show fallback message)
     FIXUP_DOMAINS: ['vxtwitter.com', 'fxtwitter.com', 'fixupx.com', 'fixvx.com', 'twittpr.com', 'girlcockx.com', 'cunnyx.com'],
