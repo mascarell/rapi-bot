@@ -261,40 +261,27 @@ class EmbedFixService {
         if (embeds.length === 0) return;
 
         const channel = message.channel as TextChannel;
-        const originalAuthor = message.author;
         const originalContent = message.content;
 
         try {
-            // Try to delete the original message
-            let deleteSucceeded = false;
+            // Send embed FIRST while original message (and its CDN URLs) still exist
+            // Discord fetches the images when rendering the embed, so the URLs must be valid at send time
+            const newMessage = await channel.send({
+                content: originalContent || undefined,
+                embeds,
+                allowedMentions: { users: [] },
+            });
+
+            // Add reactions
+            await newMessage.react('❤️').catch(() => {});
+            await newMessage.react('✉️').catch(() => {});
+
+            // NOW delete the original message after embed is sent
+            // The images are already fetched/cached by Discord at this point
             try {
                 await message.delete();
-                deleteSucceeded = true;
             } catch {
-                console.log('[EmbedFix] Could not delete original upload message, falling back to reply');
-            }
-
-            if (deleteSucceeded) {
-                // Send new message with embeds only (author credit is in the embed)
-                // If user had text content, include it as message content
-                const newMessage = await channel.send({
-                    content: originalContent || undefined,
-                    embeds,
-                    allowedMentions: { users: [] },
-                });
-
-                // Add reactions
-                await newMessage.react('❤️').catch(() => {});
-                await newMessage.react('✉️').catch(() => {});
-            } else {
-                // Fallback: reply to original message
-                const reply = await message.reply({
-                    embeds,
-                    allowedMentions: { repliedUser: false },
-                });
-
-                await reply.react('❤️').catch(() => {});
-                await reply.react('✉️').catch(() => {});
+                console.log('[EmbedFix] Could not delete original upload message');
             }
         } catch (error) {
             if (message.guild) {
