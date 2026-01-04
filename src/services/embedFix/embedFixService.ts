@@ -784,19 +784,37 @@ class EmbedFixService {
         const channelName = (newMessage.channel as TextChannel).name?.toLowerCase() ?? '';
         if (!['art', 'nsfw'].includes(channelName)) return;
 
-        // Check if message is within edit window (24h)
+        // Check if message is within edit window (72h)
         const messageAge = Date.now() - newMessage.createdTimestamp;
         if (messageAge > EMBED_FIX_CONFIG.MESSAGE_EDIT_WINDOW_MS) {
             return;
         }
 
-        // Check if URLs changed (avoid reprocessing identical content)
-        const oldUrls = urlMatcher.matchAllUrls(oldMessage.content ?? '');
+        // Check if message has any supported URLs
         const newUrls = urlMatcher.matchAllUrls(newMessage.content);
+        if (newUrls.length === 0) return;
+
+        // Always suppress embeds on edited messages with supported URLs
+        // Discord regenerates embeds on edit, so we need to suppress them again
+        const suppressEmbeds = async () => {
+            await newMessage.suppressEmbeds(true).catch(() => {});
+        };
+
+        // Suppress immediately if embeds exist
+        if (newMessage.embeds.length > 0) {
+            await suppressEmbeds();
+        }
+
+        // Delayed suppression to catch Discord's async embed generation
+        setTimeout(async () => {
+            await suppressEmbeds();
+        }, 1500);
+
+        // Check if URLs changed (avoid reprocessing identical content for new embeds)
+        const oldUrls = urlMatcher.matchAllUrls(oldMessage.content ?? '');
 
         // Get URL strings for comparison
         const oldUrlSet = new Set(oldUrls.map(m => m.url));
-        const newUrlSet = new Set(newUrls.map(m => m.url));
 
         // Check if there are any new URLs
         const hasNewUrls = newUrls.some(m => !oldUrlSet.has(m.url));
