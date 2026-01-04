@@ -346,10 +346,12 @@ class EmbedFixService {
 
             // NOW delete the original message after embed is sent
             // The images are already fetched/cached by Discord at this point
+            console.log(`[EmbedFix] Attempting to delete original message ${message.id}`);
             try {
                 await message.delete();
-            } catch {
-                console.log('[EmbedFix] Could not delete original upload message');
+                console.log(`[EmbedFix] Successfully deleted original message ${message.id}`);
+            } catch (deleteError) {
+                console.log(`[EmbedFix] Could not delete original upload message: ${deleteError}`);
             }
         } catch (error) {
             if (message.guild) {
