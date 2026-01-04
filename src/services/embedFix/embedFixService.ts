@@ -12,7 +12,11 @@ import {
     EmbedBuilder,
     Message,
     MessageFlags,
+    MessageReaction,
+    PartialMessageReaction,
+    PartialUser,
     TextChannel,
+    User,
 } from 'discord.js';
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
 import { EmbedData, EmbedPlatform, MatchedUrl } from '../../utils/interfaces/EmbedFix.interface';
@@ -436,8 +440,6 @@ class EmbedFixService {
         const primaryEmbed = embedDataList[0];
         const artworkId = this.generateArtworkId(primaryEmbed);
 
-        // Create action buttons (vote + DM) - only if we have embeds
-        const row = this.createActionButtons(message.id, artworkId, 0);
         const hasEmbedsOrVideo = embeds.length > 0 || files.length > 0;
 
         try {
@@ -448,14 +450,23 @@ class EmbedFixService {
                 });
             }
 
-            // Send the fixed embed(s) with optional video attachment
+            // Send the fixed embed(s) with optional video attachment (no buttons - use reactions)
             const reply = await message.reply({
                 content: content || undefined,
                 embeds: embeds.length > 0 ? embeds : undefined,
                 files: files.length > 0 ? files : undefined,
-                components: hasEmbedsOrVideo && !videoFallbackUrl ? [row] : undefined,
                 allowedMentions: { repliedUser: false },
             });
+
+            // Add emoji reactions for voting and DM (heart first, then envelope)
+            if (hasEmbedsOrVideo && !videoFallbackUrl) {
+                await reply.react('❤️').catch(() => {
+                    // Ignore if we can't react (missing permissions)
+                });
+                await reply.react('✉️').catch(() => {
+                    // Ignore if we can't react (missing permissions)
+                });
+            }
 
             // Record artwork for voting (fire-and-forget)
             if (hasEmbedsOrVideo && message.guild) {
@@ -691,6 +702,45 @@ class EmbedFixService {
                 content: 'Could not send DM. Please check your privacy settings.',
                 flags: MessageFlags.Ephemeral,
             });
+        }
+    }
+
+    /**
+     * Handle envelope emoji reaction for DM functionality
+     * @param reaction The reaction that was added
+     * @param user The user who added the reaction
+     */
+    async handleEnvelopeReaction(
+        reaction: MessageReaction | PartialMessageReaction,
+        user: User | PartialUser
+    ): Promise<void> {
+        try {
+            // Fetch partial reaction if needed
+            if (reaction.partial) {
+                await reaction.fetch();
+            }
+
+            const message = reaction.message;
+
+            // Only process if it's on a bot message with embeds
+            if (!message.author?.bot || message.embeds.length === 0) {
+                return;
+            }
+
+            const embed = message.embeds[0];
+            if (!embed?.url) {
+                return;
+            }
+
+            // Send DM with the link and embed
+            const fullUser = user.partial ? await user.fetch() : user;
+            await fullUser.send({
+                content: embed.url,
+                embeds: [EmbedBuilder.from(embed)],
+            });
+        } catch (error) {
+            // Silently fail - user likely has DMs disabled
+            console.log(`[EmbedFix] Could not send DM to user ${user.id}: ${error}`);
         }
     }
 

@@ -1726,6 +1726,34 @@ function handleEmbedFixButtons() {
     });
 }
 
+function handleEmbedFixReactions() {
+    // Handle envelope emoji reaction for DM functionality
+    bot.on(Events.MessageReactionAdd, async (reaction, user) => {
+        // Ignore bot's own reactions
+        if (user.bot) return;
+
+        // Only process envelope emoji
+        if (reaction.emoji.name !== '✉️') return;
+
+        // Check if this is on a bot message (our embed replies)
+        const message = reaction.message;
+        if (!message.author?.bot) return;
+
+        // Check if the bot is the author (our messages only)
+        if (message.author.id !== bot.user?.id) return;
+
+        try {
+            await getEmbedFixService().handleEnvelopeReaction(reaction, user);
+        } catch (error) {
+            if (error instanceof Error) {
+                logError(message.guildId || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error, 'EmbedFix envelope reaction');
+            } else {
+                logError(message.guildId || 'UNKNOWN', message.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix envelope reaction');
+            }
+        }
+    });
+}
+
 async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
     try {
         const connection = joinVoiceChannel({
@@ -1873,7 +1901,8 @@ async function initDiscordBot() {
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
-            handleEmbedFixButtons();
+            handleEmbedFixButtons();  // Keep for backwards compatibility with existing button posts
+            handleEmbedFixReactions(); // New: handle emoji reactions for DM
             startStreamStatusCheck(bot);
 
             const rest = new REST().setToken(DISCORD_TOKEN);
