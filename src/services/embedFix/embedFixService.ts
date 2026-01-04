@@ -276,8 +276,16 @@ class EmbedFixService {
                 // URL rewrite approach (Pixiv, Instagram)
                 urlRewrites.push(data._rewrittenUrl);
             } else {
-                // Custom embed approach (Twitter)
-                embeds.push(this.buildEmbed(data));
+                // Custom embed approach (Twitter) - create one embed per image
+                const imageCount = Math.min(
+                    data.images.length || 1,  // At least 1 for text-only tweets
+                    EMBED_FIX_CONFIG.MAX_IMAGES_PER_TWEET
+                );
+                for (let i = 0; i < imageCount; i++) {
+                    // Stop if we've hit Discord's 10 embed limit
+                    if (embeds.length >= 10) break;
+                    embeds.push(this.buildEmbed(data, i));
+                }
             }
         }
 
@@ -345,34 +353,41 @@ class EmbedFixService {
 
     /**
      * Build a Discord embed from embed data (artist spotlight design)
+     * @param data The embed data
+     * @param imageIndex Which image to display (0 = first, with full metadata)
      */
-    buildEmbed(data: EmbedData): EmbedBuilder {
+    buildEmbed(data: EmbedData, imageIndex: number = 0): EmbedBuilder {
+        const isFirstImage = imageIndex === 0;
         const embed = new EmbedBuilder()
             .setColor(data.color)
-            .setURL(data.originalUrl)
-            .setTitle(`Artwork by ${data.author.name}`)
-            .setFooter({ text: 'Click ❤️ to vote • ✉️ to DM' });
+            .setURL(data.originalUrl);  // Same URL groups embeds visually in Discord
 
-        // Author with avatar and profile link
-        embed.setAuthor({
-            name: `@${data.author.username}`,
-            url: data.author.url,
-            iconURL: data.author.iconUrl,
-        });
+        if (isFirstImage) {
+            // Full metadata for first image
+            embed.setTitle(`Artwork by ${data.author.name}`);
+            embed.setFooter({ text: 'Click ❤️ to vote • ✉️ to DM' });
 
-        // Tweet text as description (if present and not just a URL)
-        if (data.description && !data.description.match(/^https?:\/\//)) {
-            embed.setDescription(data.description.slice(0, 4096));
+            // Author with avatar and profile link
+            embed.setAuthor({
+                name: `@${data.author.username}`,
+                url: data.author.url,
+                iconURL: data.author.iconUrl,
+            });
+
+            // Tweet text as description (if present and not just a URL)
+            if (data.description && !data.description.match(/^https?:\/\//)) {
+                embed.setDescription(data.description.slice(0, 4096));
+            }
+
+            // Timestamp
+            if (data.timestamp) {
+                embed.setTimestamp(new Date(data.timestamp));
+            }
         }
 
-        // Artwork image
-        if (data.images.length > 0) {
-            embed.setImage(data.images[0]);
-        }
-
-        // Timestamp
-        if (data.timestamp) {
-            embed.setTimestamp(new Date(data.timestamp));
+        // Set image for this index
+        if (data.images[imageIndex]) {
+            embed.setImage(data.images[imageIndex]);
         }
 
         return embed;
