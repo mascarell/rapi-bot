@@ -139,8 +139,53 @@ class EmbedFixService {
     private static instance: EmbedFixService;
     private initialized = false;
 
+    // Track recent uploads by guildId:userId:filename -> timestamp
+    // Used for duplicate detection within the same guild
+    private recentUploads = new Map<string, number>();
+
     private constructor() {
         // Private constructor for singleton
+        // Periodically clean up old entries (every 10 minutes)
+        setInterval(() => this.cleanupRecentUploads(), 10 * 60 * 1000);
+    }
+
+    /**
+     * Clean up expired upload tracking entries
+     */
+    private cleanupRecentUploads(): void {
+        const now = Date.now();
+        const expireTime = EMBED_FIX_CONFIG.DUPLICATE_WINDOW_MS;
+        for (const [key, timestamp] of this.recentUploads) {
+            if (now - timestamp > expireTime) {
+                this.recentUploads.delete(key);
+            }
+        }
+    }
+
+    /**
+     * Check if an upload is a duplicate (same user, same filename, same guild, within window)
+     */
+    private checkUploadDuplicate(guildId: string, userId: string, filenames: string[]): boolean {
+        const now = Date.now();
+        for (const filename of filenames) {
+            const key = `${guildId}:${userId}:${filename}`;
+            const lastUpload = this.recentUploads.get(key);
+            if (lastUpload && now - lastUpload < EMBED_FIX_CONFIG.DUPLICATE_WINDOW_MS) {
+                return true;  // Duplicate found
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Record uploads for duplicate tracking
+     */
+    private recordUploads(guildId: string, userId: string, filenames: string[]): void {
+        const now = Date.now();
+        for (const filename of filenames) {
+            const key = `${guildId}:${userId}:${filename}`;
+            this.recentUploads.set(key, now);
+        }
     }
 
     static getInstance(): EmbedFixService {
@@ -220,9 +265,26 @@ class EmbedFixService {
     }
 
     /**
-     * Process user-uploaded images/videos (no tracking, just embeds + reactions)
+     * Process user-uploaded images/videos (with duplicate detection)
      */
     private async processUserUpload(message: Message): Promise<void> {
+        // Get filenames for duplicate checking
+        const filenames = message.attachments
+            .filter(att =>
+                att.contentType?.startsWith('image/') ||
+                att.contentType?.startsWith('video/') ||
+                /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i.test(att.name || '')
+            )
+            .map(att => att.name || 'unknown');
+
+        if (filenames.length === 0) return;
+
+        // Check for duplicate (same user posting same filename within 24h)
+        if (message.guild && this.checkUploadDuplicate(message.guild.id, message.author.id, filenames)) {
+            // Silently skip duplicates from same user
+            return;
+        }
+
         const embedData = this.createUploadEmbedData(message);
 
         // Skip if no media found
@@ -230,7 +292,12 @@ class EmbedFixService {
             return;
         }
 
-        // Send embed response (reuse existing method, but skip vote recording)
+        // Record this upload for duplicate tracking
+        if (message.guild) {
+            this.recordUploads(message.guild.id, message.author.id, filenames);
+        }
+
+        // Send embed response
         await this.sendUploadEmbedResponse(message, embedData);
     }
 
@@ -261,13 +328,12 @@ class EmbedFixService {
         if (embeds.length === 0) return;
 
         const channel = message.channel as TextChannel;
-        const originalContent = message.content;
 
         try {
             // Send embed FIRST while original message (and its CDN URLs) still exist
             // Discord fetches the images when rendering the embed, so the URLs must be valid at send time
+            // Note: Don't include message content - it's already in the embed description
             const newMessage = await channel.send({
-                content: originalContent || undefined,
                 embeds,
                 allowedMentions: { users: [] },
             });
