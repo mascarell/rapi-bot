@@ -40,6 +40,12 @@ interface FxTwitterTweet {
     author: FxTwitterAuthor;
     media?: FxTwitterMedia;
     possibly_sensitive?: boolean;
+    // Engagement metrics
+    likes?: number;
+    retweets?: number;
+    replies?: number;
+    views?: number | null;
+    bookmarks?: number | null;
 }
 
 interface FxTwitterResponse {
@@ -140,6 +146,13 @@ export class TwitterHandler extends BaseHandler {
                 color: EMBED_FIX_CONFIG.EMBED_COLOR_TWITTER,
                 originalUrl: url,
                 isNsfw: tweet.possibly_sensitive,
+                engagement: {
+                    likes: tweet.likes,
+                    retweets: tweet.retweets,
+                    replies: tweet.replies,
+                    views: tweet.views ?? undefined,
+                    bookmarks: tweet.bookmarks ?? undefined,
+                },
             };
         } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {

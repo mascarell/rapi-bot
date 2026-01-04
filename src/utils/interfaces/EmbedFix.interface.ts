@@ -37,6 +37,14 @@ export interface EmbedData {
     color: number;
     originalUrl: string;
     isNsfw?: boolean;
+    /** Engagement metrics */
+    engagement?: {
+        likes?: number;
+        retweets?: number;
+        replies?: number;
+        views?: number;
+        bookmarks?: number;
+    };
     /** If true, use URL rewrite instead of custom embed */
     _useUrlRewrite?: boolean;
     /** The rewritten URL for platforms that use URL proxies */

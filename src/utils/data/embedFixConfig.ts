@@ -43,6 +43,9 @@ export const EMBED_FIX_CONFIG = {
     EMBED_COLOR_PIXIV: 0x0096FA,
     EMBED_COLOR_INSTAGRAM: 0xE1306C,
 
+    // Platform icons for footer
+    TWITTER_ICON_URL: 'https://abs.twimg.com/icons/apple-touch-icon-192x192.png',
+
     // S3 paths
     DATA_PATH: 'data/embed-fix',
     S3_STATS_KEY: isDevelopment

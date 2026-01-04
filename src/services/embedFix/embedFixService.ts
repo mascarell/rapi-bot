@@ -394,8 +394,8 @@ class EmbedFixService {
                     if (downloaded) {
                         // Successfully downloaded - attach the video
                         files.push(new AttachmentBuilder(downloaded.buffer, { name: downloaded.filename }));
-                        // Build embed with video thumbnail and metadata
-                        const embed = this.buildVideoEmbed(data, video.thumbnail);
+                        // Build embed with metadata only (no thumbnail - video attachment will play inline)
+                        const embed = this.buildVideoEmbed(data, downloaded.filename);
                         embeds.push(embed);
                     } else {
                         // Video too large - use vxtwitter fallback
@@ -480,14 +480,13 @@ class EmbedFixService {
     }
 
     /**
-     * Build embed for video tweets (shows metadata with thumbnail)
+     * Build embed for video tweets (shows metadata, video plays inline via attachment)
+     * @param videoFilename The filename of the attached video (e.g., "video.mp4")
      */
-    private buildVideoEmbed(data: EmbedData, thumbnailUrl?: string): EmbedBuilder {
+    private buildVideoEmbed(data: EmbedData, videoFilename: string): EmbedBuilder {
         const embed = new EmbedBuilder()
             .setColor(data.color)
-            .setURL(data.originalUrl)
-            .setTitle(`Video by ${data.author.name}`)
-            .setFooter({ text: 'Click ❤️ to vote • ✉️ to DM' });
+            .setURL(data.originalUrl);
 
         // Author with avatar and profile link
         embed.setAuthor({
@@ -501,17 +500,64 @@ class EmbedFixService {
             embed.setDescription(data.description.slice(0, 4096));
         }
 
-        // Video thumbnail
-        if (thumbnailUrl) {
-            embed.setImage(thumbnailUrl);
+        // Add engagement metrics as inline fields (like saucy-bot)
+        if (data.engagement && data.platform === 'twitter') {
+            const fields = [];
+            if (data.engagement.likes !== undefined) {
+                fields.push({
+                    name: '❤️ Likes',
+                    value: this.formatNumber(data.engagement.likes),
+                    inline: true,
+                });
+            }
+            if (data.engagement.retweets !== undefined) {
+                fields.push({
+                    name: '🔁 Retweets',
+                    value: this.formatNumber(data.engagement.retweets),
+                    inline: true,
+                });
+            }
+            if (data.engagement.views !== undefined && data.engagement.views > 0) {
+                fields.push({
+                    name: '👁️ Views',
+                    value: this.formatNumber(data.engagement.views),
+                    inline: true,
+                });
+            }
+            if (fields.length > 0) {
+                embed.addFields(fields);
+            }
         }
+
+        // Footer with Twitter branding
+        embed.setFooter({
+            text: 'Twitter',
+            iconURL: EMBED_FIX_CONFIG.TWITTER_ICON_URL,
+        });
 
         // Timestamp
         if (data.timestamp) {
             embed.setTimestamp(new Date(data.timestamp));
         }
 
+        // Set video to play inline via attachment URL (like saucy-bot does)
+        // Discord will display the attached video when the embed references it
+        embed.setImage(`attachment://${videoFilename}`);
+
         return embed;
+    }
+
+    /**
+     * Format large numbers (e.g., 1234567 -> "1.2M")
+     */
+    private formatNumber(num: number): string {
+        if (num >= 1_000_000) {
+            return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+        }
+        if (num >= 1_000) {
+            return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+        }
+        return num.toString();
     }
 
     /**
@@ -543,10 +589,6 @@ class EmbedFixService {
             .setURL(data.originalUrl);  // Same URL groups embeds visually in Discord
 
         if (isFirstImage) {
-            // Full metadata for first image
-            embed.setTitle(`Artwork by ${data.author.name}`);
-            embed.setFooter({ text: 'Click ❤️ to vote • ✉️ to DM' });
-
             // Author with avatar and profile link
             embed.setAuthor({
                 name: `@${data.author.username}`,
@@ -557,6 +599,43 @@ class EmbedFixService {
             // Tweet text as description (if present and not just a URL)
             if (data.description && !data.description.match(/^https?:\/\//)) {
                 embed.setDescription(data.description.slice(0, 4096));
+            }
+
+            // Add engagement metrics as inline fields (like saucy-bot)
+            if (data.engagement && data.platform === 'twitter') {
+                const fields = [];
+                if (data.engagement.likes !== undefined) {
+                    fields.push({
+                        name: '❤️ Likes',
+                        value: this.formatNumber(data.engagement.likes),
+                        inline: true,
+                    });
+                }
+                if (data.engagement.retweets !== undefined) {
+                    fields.push({
+                        name: '🔁 Retweets',
+                        value: this.formatNumber(data.engagement.retweets),
+                        inline: true,
+                    });
+                }
+                if (data.engagement.views !== undefined && data.engagement.views > 0) {
+                    fields.push({
+                        name: '👁️ Views',
+                        value: this.formatNumber(data.engagement.views),
+                        inline: true,
+                    });
+                }
+                if (fields.length > 0) {
+                    embed.addFields(fields);
+                }
+            }
+
+            // Footer with platform branding
+            if (data.platform === 'twitter') {
+                embed.setFooter({
+                    text: 'Twitter',
+                    iconURL: EMBED_FIX_CONFIG.TWITTER_ICON_URL,
+                });
             }
 
             // Timestamp
