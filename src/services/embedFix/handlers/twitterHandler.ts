@@ -64,6 +64,8 @@ export class TwitterHandler extends BaseHandler {
         /https?:\/\/(mobile\.)?(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/i,
         // Fixup services (vxtwitter, fxtwitter, fixupx, fixvx, twittpr, etc.)
         /https?:\/\/(www\.)?(vxtwitter\.com|fxtwitter\.com|fixupx\.com|fixvx\.com|twittpr\.com)\/(\w+)\/status\/(\d+)/i,
+        // Additional NSFW fixup services
+        /https?:\/\/(www\.)?(girlcockx\.com|cunnyx\.com)\/(\w+)\/status\/(\d+)/i,
     ];
 
     async fetchEmbed(match: RegExpMatchArray, url: string): Promise<EmbedData | null> {
