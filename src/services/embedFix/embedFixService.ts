@@ -484,25 +484,9 @@ class EmbedFixService {
      * @param videoFilename The filename of the attached video (e.g., "video.mp4")
      */
     private buildVideoEmbed(data: EmbedData, videoFilename: string): EmbedBuilder {
-        const embed = new EmbedBuilder()
-            .setColor(data.color)
-            .setURL(data.originalUrl);
-
-        // Author with avatar and profile link
-        embed.setAuthor({
-            name: `@${data.author.username}`,
-            url: data.author.url,
-            iconURL: data.author.iconUrl,
-        });
-
-        // Tweet text as description
-        if (data.description && !data.description.match(/^https?:\/\//)) {
-            embed.setDescription(data.description.slice(0, 4096));
-        }
-
-        // Add engagement metrics as inline fields (like saucy-bot)
+        // Build engagement fields
+        const fields: Array<{ name: string; value: string; inline: boolean }> = [];
         if (data.engagement && data.platform === 'twitter') {
-            const fields = [];
             if (data.engagement.likes !== undefined) {
                 fields.push({
                     name: '❤️ Likes',
@@ -524,25 +508,31 @@ class EmbedFixService {
                     inline: true,
                 });
             }
-            if (fields.length > 0) {
-                embed.addFields(fields);
-            }
         }
 
-        // Footer with Twitter branding
-        embed.setFooter({
-            text: 'Twitter',
-            iconURL: EMBED_FIX_CONFIG.TWITTER_ICON_URL,
+        // Use constructor with video property (like saucy-bot does)
+        // This allows the attached video to play inline in Discord
+        const embed = new EmbedBuilder({
+            url: data.originalUrl,
+            color: data.color,
+            description: data.description && !data.description.match(/^https?:\/\//)
+                ? data.description.slice(0, 4096)
+                : undefined,
+            author: {
+                name: `@${data.author.username}`,
+                url: data.author.url,
+                icon_url: data.author.iconUrl,
+            },
+            video: {
+                url: `attachment://${videoFilename}`,
+            },
+            fields: fields.length > 0 ? fields : undefined,
+            footer: {
+                text: 'Twitter',
+                icon_url: EMBED_FIX_CONFIG.TWITTER_ICON_URL,
+            },
+            timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : undefined,
         });
-
-        // Timestamp
-        if (data.timestamp) {
-            embed.setTimestamp(new Date(data.timestamp));
-        }
-
-        // Set video to play inline via attachment URL (like saucy-bot does)
-        // Discord will display the attached video when the embed references it
-        embed.setImage(`attachment://${videoFilename}`);
 
         return embed;
     }
