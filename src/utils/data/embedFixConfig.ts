@@ -30,6 +30,7 @@ export const EMBED_FIX_CONFIG = {
 
     // Embed settings
     MAX_EMBEDS_PER_MESSAGE: 4,
+    MAX_IMAGES_PER_TWEET: 10,  // Max images to display per tweet (Discord's limit)
     BOOKMARK_BUTTON_TIMEOUT: 5 * 60 * 1000, // 5 minutes
 
     // Embed colors (hex)
