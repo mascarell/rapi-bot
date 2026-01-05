@@ -135,6 +135,23 @@ async function findBestVideoUrl(
     return video.url;
 }
 
+// Batch data structure for grouping uploads from same user
+interface UploadBatch {
+    images: string[];                    // Collected image URLs
+    videos: Array<{ url: string; thumbnail?: string }>;
+    firstAuthor: {                       // First uploader's info
+        name: string;
+        username: string;
+        avatarUrl: string | undefined;
+    };
+    description: string | undefined;     // First message's content
+    guildId: string;
+    channelId: string;
+    sentMessageId: string | null;        // Bot's embed message ID (for editing)
+    firstUploadTime: number;
+    timerHandle: NodeJS.Timeout | null;
+}
+
 class EmbedFixService {
     private static instance: EmbedFixService;
     private initialized = false;
@@ -143,10 +160,15 @@ class EmbedFixService {
     // Used for duplicate detection within the same guild
     private recentUploads = new Map<string, number>();
 
+    // Track upload batches by guildId:userId -> batch data
+    // Used for batching multiple uploads from same user within 2-minute window
+    private uploadBatches = new Map<string, UploadBatch>();
+
     private constructor() {
         // Private constructor for singleton
         // Periodically clean up old entries (every 10 minutes)
         setInterval(() => this.cleanupRecentUploads(), 10 * 60 * 1000);
+        setInterval(() => this.cleanupBatches(), 10 * 60 * 1000);
     }
 
     /**
@@ -185,6 +207,89 @@ class EmbedFixService {
         for (const filename of filenames) {
             const key = `${guildId}:${userId}:${filename}`;
             this.recentUploads.set(key, now);
+        }
+    }
+
+    /**
+     * Clean up expired batch entries
+     */
+    private cleanupBatches(): void {
+        const now = Date.now();
+        for (const [key, batch] of this.uploadBatches) {
+            // Remove batches that are older than the window and have no pending timer
+            if (now - batch.firstUploadTime > EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS && !batch.timerHandle) {
+                this.uploadBatches.delete(key);
+            }
+        }
+    }
+
+    /**
+     * Generate batch key for user
+     */
+    private getBatchKey(guildId: string, userId: string): string {
+        return `${guildId}:${userId}`;
+    }
+
+    /**
+     * Build embeds from batch data
+     */
+    private buildBatchEmbeds(batch: UploadBatch): EmbedBuilder[] {
+        const embeds: EmbedBuilder[] = [];
+        const imageCount = Math.min(batch.images.length, EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH);
+
+        for (let i = 0; i < imageCount; i++) {
+            const embed = new EmbedBuilder()
+                .setColor(EMBED_FIX_CONFIG.EMBED_COLOR_UPLOAD)
+                .setURL(`https://discord.com/channels/${batch.guildId}/${batch.channelId}`)  // Same URL groups embeds
+                .setImage(batch.images[i]);
+
+            // First embed gets full metadata
+            if (i === 0) {
+                embed.setAuthor({
+                    name: `@${batch.firstAuthor.username}`,
+                    iconURL: batch.firstAuthor.avatarUrl,
+                });
+                if (batch.description) {
+                    embed.setDescription(batch.description.slice(0, 4096));
+                }
+                embed.setTimestamp(new Date(batch.firstUploadTime));
+            }
+
+            embeds.push(embed);
+        }
+
+        return embeds;
+    }
+
+    /**
+     * Send or edit the batch embed message
+     */
+    private async sendOrEditBatchEmbed(batch: UploadBatch, channel: TextChannel): Promise<void> {
+        const embeds = this.buildBatchEmbeds(batch);
+        if (embeds.length === 0) return;
+
+        try {
+            if (batch.sentMessageId) {
+                // Edit existing message
+                try {
+                    const existingMessage = await channel.messages.fetch(batch.sentMessageId);
+                    await existingMessage.edit({ embeds });
+                } catch (editError) {
+                    // Fallback to sending new message if edit fails
+                    const newMessage = await channel.send({ embeds, allowedMentions: { users: [] } });
+                    batch.sentMessageId = newMessage.id;
+                    await newMessage.react('❤️').catch(() => {});
+                    await newMessage.react('✉️').catch(() => {});
+                }
+            } else {
+                // Send new message
+                const newMessage = await channel.send({ embeds, allowedMentions: { users: [] } });
+                batch.sentMessageId = newMessage.id;
+                await newMessage.react('❤️').catch(() => {});
+                await newMessage.react('✉️').catch(() => {});
+            }
+        } catch (error) {
+            console.error('[EmbedFix] Error sending/editing batch embed:', error);
         }
     }
 
@@ -265,59 +370,47 @@ class EmbedFixService {
     }
 
     /**
-     * Process user-uploaded images/videos (with duplicate detection)
+     * Process user-uploaded images/videos (with batching and duplicate detection)
      */
     private async processUserUpload(message: Message): Promise<void> {
-        console.log(`[EmbedFix] processUserUpload called for message ${message.id} in #${(message.channel as TextChannel).name}`);
+        if (!message.guild) return;
 
-        // Get filenames for duplicate checking
-        const filenames = message.attachments
-            .filter(att =>
-                att.contentType?.startsWith('image/') ||
-                att.contentType?.startsWith('video/') ||
-                /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i.test(att.name || '')
-            )
-            .map(att => att.name || 'unknown');
+        const guildId = message.guild.id;
+        const userId = message.author.id;
+        const channelId = message.channel.id;
 
-        if (filenames.length === 0) return;
+        // Extract media from attachments
+        const images: string[] = [];
+        const videos: Array<{ url: string; thumbnail?: string }> = [];
+        const filenames: string[] = [];
+
+        message.attachments.forEach(att => {
+            const isImage = att.contentType?.startsWith('image/') ||
+                /\.(jpg|jpeg|png|gif|webp)$/i.test(att.name || '');
+            const isVideo = att.contentType?.startsWith('video/') ||
+                /\.(mp4|webm|mov)$/i.test(att.name || '');
+
+            if (isImage) {
+                images.push(att.url);
+                filenames.push(att.name || 'unknown');
+            } else if (isVideo) {
+                videos.push({ url: att.url, thumbnail: att.proxyURL });
+                filenames.push(att.name || 'unknown');
+            }
+        });
+
+        if (images.length === 0 && videos.length === 0) return;
 
         // Check for duplicate (same user posting same filename within 24h)
-        if (message.guild && this.checkUploadDuplicate(message.guild.id, message.author.id, filenames)) {
-            // Silently skip duplicates from same user
-            return;
-        }
-
-        const embedData = this.createUploadEmbedData(message);
-
-        // Skip if no media found
-        if (embedData.images.length === 0 && (!embedData.videos || embedData.videos.length === 0)) {
+        if (this.checkUploadDuplicate(guildId, userId, filenames)) {
             return;
         }
 
         // Record this upload for duplicate tracking
-        if (message.guild) {
-            this.recordUploads(message.guild.id, message.author.id, filenames);
-        }
+        this.recordUploads(guildId, userId, filenames);
 
-        // Send embed response
-        await this.sendUploadEmbedResponse(message, embedData);
-    }
-
-    /**
-     * Send embed response for user uploads (delete original, repost as embed)
-     */
-    private async sendUploadEmbedResponse(message: Message, embedData: EmbedData): Promise<void> {
-        const embeds: EmbedBuilder[] = [];
-
-        // Create one embed per image
-        const imageCount = Math.min(embedData.images.length, 10);  // Discord's limit
-        for (let i = 0; i < imageCount; i++) {
-            embeds.push(this.buildEmbed(embedData, i));
-        }
-
-        // If no images but has videos, just add reactions to the original message
-        // since we can't easily re-embed user-uploaded videos
-        if (embeds.length === 0 && embedData.videos && embedData.videos.length > 0) {
+        // Videos get reactions only (no batching)
+        if (images.length === 0 && videos.length > 0) {
             try {
                 await message.react('❤️').catch(() => {});
                 await message.react('✉️').catch(() => {});
@@ -327,36 +420,110 @@ class EmbedFixService {
             return;
         }
 
-        if (embeds.length === 0) return;
+        // Handle image batching
+        const batchKey = this.getBatchKey(guildId, userId);
+        let batch = this.uploadBatches.get(batchKey);
+        const now = Date.now();
+
+        // Check if existing batch is expired or in a different channel
+        if (batch && (now - batch.firstUploadTime > EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS || batch.channelId !== channelId)) {
+            // Clear old batch
+            if (batch.timerHandle) clearTimeout(batch.timerHandle);
+            this.uploadBatches.delete(batchKey);
+            batch = undefined;
+        }
+
+        if (!batch) {
+            // Create new batch
+            batch = {
+                images: [],
+                videos: [],
+                firstAuthor: {
+                    name: message.author.displayName || message.author.username,
+                    username: message.author.username,
+                    avatarUrl: message.author.displayAvatarURL() || undefined,
+                },
+                description: message.content || undefined,
+                guildId,
+                channelId,
+                sentMessageId: null,
+                firstUploadTime: now,
+                timerHandle: null,
+            };
+            this.uploadBatches.set(batchKey, batch);
+        }
+
+        // Check if adding these images would overflow the batch
+        const spaceAvailable = EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH - batch.images.length;
+
+        if (spaceAvailable <= 0) {
+            // Current batch is full - start a new one
+            if (batch.timerHandle) clearTimeout(batch.timerHandle);
+            batch = {
+                images: [],
+                videos: [],
+                firstAuthor: {
+                    name: message.author.displayName || message.author.username,
+                    username: message.author.username,
+                    avatarUrl: message.author.displayAvatarURL() || undefined,
+                },
+                description: message.content || undefined,
+                guildId,
+                channelId,
+                sentMessageId: null,
+                firstUploadTime: now,
+                timerHandle: null,
+            };
+            this.uploadBatches.set(batchKey, batch);
+        }
+
+        // Add images to batch (up to available space)
+        const imagesToAdd = images.slice(0, EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH - batch.images.length);
+        batch.images.push(...imagesToAdd);
 
         const channel = message.channel as TextChannel;
 
+        // Send/edit embed IMMEDIATELY (before deleting original, to preserve CDN URLs)
+        await this.sendOrEditBatchEmbed(batch, channel);
+
+        // Now delete the original message
         try {
-            // Send embed FIRST while original message (and its CDN URLs) still exist
-            // Discord fetches the images when rendering the embed, so the URLs must be valid at send time
-            // Note: Don't include message content - it's already in the embed description
-            const newMessage = await channel.send({
-                embeds,
-                allowedMentions: { users: [] },
-            });
+            await message.delete();
+        } catch {
+            // Silently ignore delete failures
+        }
 
-            // Add reactions
-            await newMessage.react('❤️').catch(() => {});
-            await newMessage.react('✉️').catch(() => {});
+        // Handle overflow - if we couldn't add all images, process remainder recursively
+        const overflowImages = images.slice(imagesToAdd.length);
+        if (overflowImages.length > 0) {
+            // Clear current batch timer and mark as complete
+            if (batch.timerHandle) clearTimeout(batch.timerHandle);
+            batch.timerHandle = null;
 
-            // NOW delete the original message after embed is sent
-            // The images are already fetched/cached by Discord at this point
-            console.log(`[EmbedFix] Attempting to delete original message ${message.id}`);
-            try {
-                await message.delete();
-                console.log(`[EmbedFix] Successfully deleted original message ${message.id}`);
-            } catch (deleteError) {
-                console.log(`[EmbedFix] Could not delete original upload message: ${deleteError}`);
-            }
-        } catch (error) {
-            if (message.guild) {
-                logError(message.guild.id, message.guild.name, error as Error, 'EmbedFix.sendUploadEmbedResponse');
-            }
+            // Create new batch for overflow
+            const overflowBatch: UploadBatch = {
+                images: overflowImages,
+                videos: [],
+                firstAuthor: batch.firstAuthor,
+                description: undefined,  // Only first batch gets description
+                guildId,
+                channelId,
+                sentMessageId: null,
+                firstUploadTime: now,
+                timerHandle: null,
+            };
+            this.uploadBatches.set(batchKey, overflowBatch);
+            await this.sendOrEditBatchEmbed(overflowBatch, channel);
+        } else {
+            // Reset/set batch expiry timer
+            if (batch.timerHandle) clearTimeout(batch.timerHandle);
+            batch.timerHandle = setTimeout(() => {
+                // Clean up batch after window expires
+                const currentBatch = this.uploadBatches.get(batchKey);
+                if (currentBatch && currentBatch.firstUploadTime === batch!.firstUploadTime) {
+                    this.uploadBatches.delete(batchKey);
+                }
+            }, EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS);
         }
     }
 
@@ -379,9 +546,8 @@ class EmbedFixService {
         const channelName = (message.channel as TextChannel).name?.toLowerCase() ?? '';
         if (!['art', 'nsfw'].includes(channelName)) return;
 
-        // Handle user uploads (embeds but no tracking)
+        // Handle user uploads (with batching)
         if (hasMediaUploads && !hasUrls) {
-            console.log(`[EmbedFix] Detected upload in #${channelName}, hasMedia=${hasMediaUploads}, hasUrls=${hasUrls}, content="${message.content.slice(0, 50)}"`);
             await this.processUserUpload(message);
             return;
         }

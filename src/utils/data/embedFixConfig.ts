@@ -62,6 +62,10 @@ export const EMBED_FIX_CONFIG = {
     // Duplicate detection
     DUPLICATE_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours
 
+    // Upload batching
+    UPLOAD_BATCH_WINDOW_MS: 2 * 60 * 1000,  // 2 minutes - batch uploads from same user
+    MAX_IMAGES_PER_BATCH: 10,               // Discord's max embeds per message
+
     // Message edit monitoring window
     MESSAGE_EDIT_WINDOW_MS: 72 * 60 * 60 * 1000,  // 72 hours - monitor edits for this long
 
