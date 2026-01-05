@@ -405,14 +405,26 @@ class EmbedFixService {
 
         if (images.length === 0 && videos.length === 0) return;
 
-        // Check for duplicate (same user posting same filename within 24h)
-        if (this.checkUploadDuplicate(guildId, userId, filenames)) {
-            console.log(`[EmbedFix] Duplicate detected, skipping`);
+        // Check if there's an active batch for this user - if so, skip duplicate check
+        // (we want to allow adding to an existing batch even with same filename)
+        const batchKey = this.getBatchKey(guildId, userId);
+        const existingBatch = this.uploadBatches.get(batchKey);
+        const now = Date.now();
+        const hasActiveBatch = existingBatch &&
+            (now - existingBatch.firstUploadTime <= EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS) &&
+            existingBatch.channelId === channelId;
+
+        // Only check for duplicates if there's no active batch
+        // This prevents blocking legitimate batch additions while still catching reposts
+        if (!hasActiveBatch && this.checkUploadDuplicate(guildId, userId, filenames)) {
+            console.log(`[EmbedFix] Duplicate detected (no active batch), skipping`);
             return;
         }
 
-        // Record this upload for duplicate tracking
-        this.recordUploads(guildId, userId, filenames);
+        // Record this upload for duplicate tracking (only if not in active batch)
+        if (!hasActiveBatch) {
+            this.recordUploads(guildId, userId, filenames);
+        }
 
         // Videos get reactions only (no batching)
         if (images.length === 0 && videos.length > 0) {
@@ -425,10 +437,8 @@ class EmbedFixService {
             return;
         }
 
-        // Handle image batching
-        const batchKey = this.getBatchKey(guildId, userId);
-        let batch = this.uploadBatches.get(batchKey);
-        const now = Date.now();
+        // Handle image batching (batchKey and now already computed above for duplicate check)
+        let batch = existingBatch;
 
         console.log(`[EmbedFix] Batch check: key=${batchKey}, existingBatch=${!!batch}, existingImages=${batch?.images.length ?? 0}, sentMessageId=${batch?.sentMessageId ?? 'none'}`);
 
