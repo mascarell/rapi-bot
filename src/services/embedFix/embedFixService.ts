@@ -3,6 +3,7 @@
  * Orchestrates URL detection, caching, rate limiting, and embed generation
  */
 
+import { DeleteObjectsCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import {
     ActionRowBuilder,
     AttachmentBuilder,
@@ -18,6 +19,7 @@ import {
     TextChannel,
     User,
 } from 'discord.js';
+import { CDN_DOMAIN_URL, s3Client, S3_BUCKET } from '../../utils/cdn/config';
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
 import { EmbedData, EmbedPlatform, MatchedUrl } from '../../utils/interfaces/EmbedFix.interface';
 import { logError } from '../../utils/util';
@@ -29,6 +31,110 @@ import { pixivHandler } from './handlers/pixivHandler';
 import { twitterHandler } from './handlers/twitterHandler';
 import { embedFixRateLimiter } from './rateLimiter';
 import { urlMatcher } from './urlMatcher';
+
+// S3 prefix for temporary upload batch images
+const TEMP_UPLOAD_PREFIX = 'data/embed-fix/temp-uploads';
+
+/**
+ * Download an image from URL and upload to S3 temporary storage
+ * Returns the S3 key and CDN URL, or null on failure
+ */
+async function downloadAndStoreImage(
+    imageUrl: string,
+    filename: string,
+    batchKey: string
+): Promise<{ s3Key: string; cdnUrl: string; filename: string } | null> {
+    try {
+        // Download the image
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);  // 10 second timeout
+
+        const response = await fetch(imageUrl, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            console.log(`[EmbedFix] Image download failed: ${response.status} for ${filename}`);
+            return null;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Generate unique S3 key
+        const timestamp = Date.now();
+        const uniqueId = Math.random().toString(36).substring(2, 8);
+        const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const s3Key = `${TEMP_UPLOAD_PREFIX}/${batchKey}/${timestamp}_${uniqueId}_${sanitizedFilename}`;
+
+        // Detect content type
+        const contentType = response.headers.get('content-type') || 'image/png';
+
+        // Upload to S3
+        await s3Client.send(new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: s3Key,
+            Body: buffer,
+            ContentType: contentType,
+            ACL: 'public-read',  // Make publicly accessible via CDN
+        }));
+
+        const cdnUrl = `${CDN_DOMAIN_URL}/${s3Key}`;
+        console.log(`[EmbedFix] Uploaded temp image to S3: ${s3Key}`);
+
+        return { s3Key, cdnUrl, filename };
+    } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.log(`[EmbedFix] Image download timed out: ${filename}`);
+        } else {
+            console.error(`[EmbedFix] Image download/upload error for ${filename}:`, error);
+        }
+        return null;
+    }
+}
+
+/**
+ * Delete temporary images from S3 after batch is complete
+ */
+async function cleanupTempImages(s3Keys: string[]): Promise<void> {
+    if (s3Keys.length === 0) return;
+
+    try {
+        await s3Client.send(new DeleteObjectsCommand({
+            Bucket: S3_BUCKET,
+            Delete: {
+                Objects: s3Keys.map(Key => ({ Key })),
+                Quiet: true,
+            },
+        }));
+        console.log(`[EmbedFix] Cleaned up ${s3Keys.length} temp images from S3`);
+    } catch (error) {
+        console.error('[EmbedFix] Error cleaning up temp images:', error);
+    }
+}
+
+/**
+ * Download an image from S3 CDN URL for attachment
+ */
+async function downloadFromCdn(cdnUrl: string): Promise<Buffer | null> {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(cdnUrl, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            console.log(`[EmbedFix] CDN download failed: ${response.status}`);
+            return null;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+    } catch (error) {
+        console.error('[EmbedFix] CDN download error:', error);
+        return null;
+    }
+}
 
 /**
  * Download a video file, checking size constraints
@@ -135,9 +241,16 @@ async function findBestVideoUrl(
     return video.url;
 }
 
+// Stored image data (on S3)
+interface StoredImage {
+    s3Key: string;      // S3 key for cleanup
+    cdnUrl: string;     // Public CDN URL for embedding
+    filename: string;
+}
+
 // Batch data structure for grouping uploads from same user
 interface UploadBatch {
-    images: string[];                    // Collected image URLs
+    images: StoredImage[];               // Images stored on S3
     videos: Array<{ url: string; thumbnail?: string }>;
     firstAuthor: {                       // First uploader's info
         name: string;
@@ -150,6 +263,7 @@ interface UploadBatch {
     sentMessageId: string | null;        // Bot's embed message ID (for editing)
     firstUploadTime: number;
     timerHandle: NodeJS.Timeout | null;
+    cleanupHandle: NodeJS.Timeout | null;  // Timer for S3 cleanup
 }
 
 class EmbedFixService {
@@ -211,13 +325,21 @@ class EmbedFixService {
     }
 
     /**
-     * Clean up expired batch entries
+     * Clean up expired batch entries and their S3 images
      */
     private cleanupBatches(): void {
         const now = Date.now();
+        // Use longer expiry for cleanup check (batch window + 10 min buffer for S3 cleanup)
+        const expiryThreshold = EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS + 10 * 60 * 1000;
+
         for (const [key, batch] of this.uploadBatches) {
-            // Remove batches that are older than the window and have no pending timer
-            if (now - batch.firstUploadTime > EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS && !batch.timerHandle) {
+            // Remove batches that are older than the threshold and have no pending timers
+            if (now - batch.firstUploadTime > expiryThreshold && !batch.timerHandle && !batch.cleanupHandle) {
+                // Clean up any remaining S3 images that weren't cleaned up
+                const s3Keys = batch.images.map(img => img.s3Key);
+                if (s3Keys.length > 0) {
+                    cleanupTempImages(s3Keys);
+                }
                 this.uploadBatches.delete(key);
             }
         }
@@ -231,20 +353,41 @@ class EmbedFixService {
     }
 
     /**
-     * Build embeds from batch data
+     * Build embeds and attachments from batch data
+     * Downloads images from S3 and creates Discord attachments
      */
-    private buildBatchEmbeds(batch: UploadBatch): EmbedBuilder[] {
+    private async buildBatchEmbedsWithAttachments(batch: UploadBatch): Promise<{
+        embeds: EmbedBuilder[];
+        files: AttachmentBuilder[];
+    }> {
         const embeds: EmbedBuilder[] = [];
+        const files: AttachmentBuilder[] = [];
         const imageCount = Math.min(batch.images.length, EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH);
 
-        for (let i = 0; i < imageCount; i++) {
+        // Download all images from S3 CDN in parallel
+        const downloadPromises = batch.images.slice(0, imageCount).map(async (image, i) => {
+            const buffer = await downloadFromCdn(image.cdnUrl);
+            return { buffer, image, index: i };
+        });
+        const downloadResults = await Promise.all(downloadPromises);
+
+        for (const { buffer, image, index } of downloadResults) {
+            if (!buffer) {
+                console.log(`[EmbedFix] Skipping image ${index} - download failed`);
+                continue;
+            }
+
+            // Create attachment with unique filename
+            const attachmentFilename = `image_${index}_${image.filename}`;
+            files.push(new AttachmentBuilder(buffer, { name: attachmentFilename }));
+
             const embed = new EmbedBuilder()
                 .setColor(EMBED_FIX_CONFIG.EMBED_COLOR_UPLOAD)
                 .setURL(`https://discord.com/channels/${batch.guildId}/${batch.channelId}`)  // Same URL groups embeds
-                .setImage(batch.images[i]);
+                .setImage(`attachment://${attachmentFilename}`);  // Reference the attachment
 
             // First embed gets full metadata
-            if (i === 0) {
+            if (embeds.length === 0) {
                 embed.setAuthor({
                     name: `@${batch.firstAuthor.username}`,
                     iconURL: batch.firstAuthor.avatarUrl,
@@ -258,36 +401,40 @@ class EmbedFixService {
             embeds.push(embed);
         }
 
-        return embeds;
+        return { embeds, files };
     }
 
     /**
      * Send or edit the batch embed message
+     * Downloads images from S3 and attaches to Discord message
+     * S3 cleanup happens after the batch window expires (scheduled elsewhere)
      */
     private async sendOrEditBatchEmbed(batch: UploadBatch, channel: TextChannel): Promise<void> {
-        const embeds = this.buildBatchEmbeds(batch);
+        const { embeds, files } = await this.buildBatchEmbedsWithAttachments(batch);
         if (embeds.length === 0) return;
 
         try {
             if (batch.sentMessageId) {
-                // Edit existing message
+                // Edit existing message - need to delete and resend since we can't edit attachments
                 try {
                     const existingMessage = await channel.messages.fetch(batch.sentMessageId);
-                    await existingMessage.edit({ embeds });
-                } catch (editError) {
-                    // Fallback to sending new message if edit fails
-                    const newMessage = await channel.send({ embeds, allowedMentions: { users: [] } });
-                    batch.sentMessageId = newMessage.id;
-                    await newMessage.react('❤️').catch(() => {});
-                    await newMessage.react('✉️').catch(() => {});
+                    await existingMessage.delete();
+                } catch {
+                    // Ignore delete failures
                 }
+                // Send new message with updated images
+                const newMessage = await channel.send({ embeds, files, allowedMentions: { users: [] } });
+                batch.sentMessageId = newMessage.id;
+                await newMessage.react('❤️').catch(() => {});
+                await newMessage.react('✉️').catch(() => {});
             } else {
                 // Send new message
-                const newMessage = await channel.send({ embeds, allowedMentions: { users: [] } });
+                const newMessage = await channel.send({ embeds, files, allowedMentions: { users: [] } });
                 batch.sentMessageId = newMessage.id;
                 await newMessage.react('❤️').catch(() => {});
                 await newMessage.react('✉️').catch(() => {});
             }
+            // Note: S3 cleanup happens after batch window expires via scheduled cleanup
         } catch (error) {
             console.error('[EmbedFix] Error sending/editing batch embed:', error);
         }
@@ -381,8 +528,8 @@ class EmbedFixService {
 
         console.log(`[EmbedFix] processUserUpload: user=${message.author.username}, messageId=${message.id}`);
 
-        // Extract media from attachments
-        const images: string[] = [];
+        // Extract media info from attachments
+        const imageInfos: Array<{ url: string; filename: string }> = [];
         const videos: Array<{ url: string; thumbnail?: string }> = [];
         const filenames: string[] = [];
 
@@ -393,7 +540,7 @@ class EmbedFixService {
                 /\.(mp4|webm|mov)$/i.test(att.name || '');
 
             if (isImage) {
-                images.push(att.url);
+                imageInfos.push({ url: att.url, filename: att.name || 'image.png' });
                 filenames.push(att.name || 'unknown');
             } else if (isVideo) {
                 videos.push({ url: att.url, thumbnail: att.proxyURL });
@@ -401,9 +548,9 @@ class EmbedFixService {
             }
         });
 
-        console.log(`[EmbedFix] Found ${images.length} images, ${videos.length} videos, filenames: ${filenames.join(', ')}`);
+        console.log(`[EmbedFix] Found ${imageInfos.length} images, ${videos.length} videos, filenames: ${filenames.join(', ')}`);
 
-        if (images.length === 0 && videos.length === 0) return;
+        if (imageInfos.length === 0 && videos.length === 0) return;
 
         // Check if there's an active batch for this user - if so, skip duplicate check
         // (we want to allow adding to an existing batch even with same filename)
@@ -427,7 +574,7 @@ class EmbedFixService {
         }
 
         // Videos get reactions only (no batching)
-        if (images.length === 0 && videos.length > 0) {
+        if (imageInfos.length === 0 && videos.length > 0) {
             try {
                 await message.react('❤️').catch(() => {});
                 await message.react('✉️').catch(() => {});
@@ -436,6 +583,19 @@ class EmbedFixService {
             }
             return;
         }
+
+        // Download images and upload to S3 temporary storage
+        // This ensures we have the data before the original message might be deleted
+        console.log(`[EmbedFix] Downloading and storing ${imageInfos.length} images to S3...`);
+        const downloadPromises = imageInfos.map(info => downloadAndStoreImage(info.url, info.filename, batchKey));
+        const downloadResults = await Promise.all(downloadPromises);
+        const storedImages = downloadResults.filter((img): img is StoredImage => img !== null);
+
+        if (storedImages.length === 0) {
+            console.log(`[EmbedFix] All image downloads failed, skipping`);
+            return;
+        }
+        console.log(`[EmbedFix] Successfully stored ${storedImages.length}/${imageInfos.length} images to S3`);
 
         // Handle image batching (batchKey and now already computed above for duplicate check)
         let batch = existingBatch;
@@ -447,6 +607,7 @@ class EmbedFixService {
             console.log(`[EmbedFix] Batch expired or different channel, clearing`);
             // Clear old batch
             if (batch.timerHandle) clearTimeout(batch.timerHandle);
+            if (batch.cleanupHandle) clearTimeout(batch.cleanupHandle);
             this.uploadBatches.delete(batchKey);
             batch = undefined;
         }
@@ -468,6 +629,7 @@ class EmbedFixService {
                 sentMessageId: null,
                 firstUploadTime: now,
                 timerHandle: null,
+                cleanupHandle: null,
             };
             this.uploadBatches.set(batchKey, batch);
         }
@@ -476,8 +638,9 @@ class EmbedFixService {
         const spaceAvailable = EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH - batch.images.length;
 
         if (spaceAvailable <= 0) {
-            // Current batch is full - start a new one
+            // Current batch is full - start a new one (but keep cleanup scheduled for old batch images)
             if (batch.timerHandle) clearTimeout(batch.timerHandle);
+            // Note: Don't clear cleanupHandle - let old batch images get cleaned up on their schedule
             batch = {
                 images: [],
                 videos: [],
@@ -492,35 +655,48 @@ class EmbedFixService {
                 sentMessageId: null,
                 firstUploadTime: now,
                 timerHandle: null,
+                cleanupHandle: null,
             };
             this.uploadBatches.set(batchKey, batch);
         }
 
-        // Add images to batch (up to available space)
-        const imagesToAdd = images.slice(0, EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH - batch.images.length);
+        // Add stored images to batch (up to available space)
+        const spaceInBatch = EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH - batch.images.length;
+        const imagesToAdd = storedImages.slice(0, spaceInBatch);
         batch.images.push(...imagesToAdd);
 
         console.log(`[EmbedFix] Added ${imagesToAdd.length} images to batch, total now: ${batch.images.length}, will ${batch.sentMessageId ? 'EDIT' : 'SEND NEW'}`);
 
         const channel = message.channel as TextChannel;
 
-        // Send/edit embed IMMEDIATELY (before deleting original, to preserve CDN URLs)
+        // Send/edit embed with S3 CDN URLs
         await this.sendOrEditBatchEmbed(batch, channel);
         console.log(`[EmbedFix] After sendOrEditBatchEmbed, sentMessageId=${batch.sentMessageId}`);
 
-        // Now delete the original message
+        // Now delete the original message (safe since we already stored images to S3)
         try {
             await message.delete();
         } catch {
             // Silently ignore delete failures
         }
 
-        // Handle overflow - if we couldn't add all images, process remainder recursively
-        const overflowImages = images.slice(imagesToAdd.length);
+        // Schedule S3 cleanup after batch window + buffer time
+        // We keep images for 5 minutes after batch window to ensure Discord has cached them
+        const scheduleCleanup = (batchToClean: UploadBatch) => {
+            if (batchToClean.cleanupHandle) clearTimeout(batchToClean.cleanupHandle);
+            batchToClean.cleanupHandle = setTimeout(() => {
+                const s3Keys = batchToClean.images.map(img => img.s3Key);
+                cleanupTempImages(s3Keys);
+            }, EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS + 5 * 60 * 1000);  // batch window + 5 min buffer
+        };
+
+        // Handle overflow - if we couldn't add all images, process remainder
+        const overflowImages = storedImages.slice(spaceInBatch);
         if (overflowImages.length > 0) {
-            // Clear current batch timer and mark as complete
+            // Clear current batch timer and schedule cleanup
             if (batch.timerHandle) clearTimeout(batch.timerHandle);
             batch.timerHandle = null;
+            scheduleCleanup(batch);
 
             // Create new batch for overflow
             const overflowBatch: UploadBatch = {
@@ -533,19 +709,24 @@ class EmbedFixService {
                 sentMessageId: null,
                 firstUploadTime: now,
                 timerHandle: null,
+                cleanupHandle: null,
             };
             this.uploadBatches.set(batchKey, overflowBatch);
             await this.sendOrEditBatchEmbed(overflowBatch, channel);
+            scheduleCleanup(overflowBatch);
         } else {
             // Reset/set batch expiry timer
             if (batch.timerHandle) clearTimeout(batch.timerHandle);
             batch.timerHandle = setTimeout(() => {
-                // Clean up batch after window expires
+                // Clean up batch tracking after window expires
                 const currentBatch = this.uploadBatches.get(batchKey);
                 if (currentBatch && currentBatch.firstUploadTime === batch!.firstUploadTime) {
                     this.uploadBatches.delete(batchKey);
                 }
             }, EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS);
+
+            // Schedule S3 cleanup
+            scheduleCleanup(batch);
         }
     }
 
