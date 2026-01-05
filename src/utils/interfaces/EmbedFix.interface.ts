@@ -6,7 +6,7 @@
 /**
  * Supported platforms for embed fixing
  */
-export type EmbedPlatform = 'twitter' | 'pixiv' | 'instagram';
+export type EmbedPlatform = 'twitter' | 'pixiv' | 'instagram' | 'upload';
 
 /**
  * Data extracted from a platform's API for building embeds
