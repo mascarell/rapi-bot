@@ -379,6 +379,8 @@ class EmbedFixService {
         const userId = message.author.id;
         const channelId = message.channel.id;
 
+        console.log(`[EmbedFix] processUserUpload: user=${message.author.username}, messageId=${message.id}`);
+
         // Extract media from attachments
         const images: string[] = [];
         const videos: Array<{ url: string; thumbnail?: string }> = [];
@@ -399,10 +401,13 @@ class EmbedFixService {
             }
         });
 
+        console.log(`[EmbedFix] Found ${images.length} images, ${videos.length} videos, filenames: ${filenames.join(', ')}`);
+
         if (images.length === 0 && videos.length === 0) return;
 
         // Check for duplicate (same user posting same filename within 24h)
         if (this.checkUploadDuplicate(guildId, userId, filenames)) {
+            console.log(`[EmbedFix] Duplicate detected, skipping`);
             return;
         }
 
@@ -425,8 +430,11 @@ class EmbedFixService {
         let batch = this.uploadBatches.get(batchKey);
         const now = Date.now();
 
+        console.log(`[EmbedFix] Batch check: key=${batchKey}, existingBatch=${!!batch}, existingImages=${batch?.images.length ?? 0}, sentMessageId=${batch?.sentMessageId ?? 'none'}`);
+
         // Check if existing batch is expired or in a different channel
         if (batch && (now - batch.firstUploadTime > EMBED_FIX_CONFIG.UPLOAD_BATCH_WINDOW_MS || batch.channelId !== channelId)) {
+            console.log(`[EmbedFix] Batch expired or different channel, clearing`);
             // Clear old batch
             if (batch.timerHandle) clearTimeout(batch.timerHandle);
             this.uploadBatches.delete(batchKey);
@@ -434,6 +442,7 @@ class EmbedFixService {
         }
 
         if (!batch) {
+            console.log(`[EmbedFix] Creating new batch`);
             // Create new batch
             batch = {
                 images: [],
@@ -481,10 +490,13 @@ class EmbedFixService {
         const imagesToAdd = images.slice(0, EMBED_FIX_CONFIG.MAX_IMAGES_PER_BATCH - batch.images.length);
         batch.images.push(...imagesToAdd);
 
+        console.log(`[EmbedFix] Added ${imagesToAdd.length} images to batch, total now: ${batch.images.length}, will ${batch.sentMessageId ? 'EDIT' : 'SEND NEW'}`);
+
         const channel = message.channel as TextChannel;
 
         // Send/edit embed IMMEDIATELY (before deleting original, to preserve CDN URLs)
         await this.sendOrEditBatchEmbed(batch, channel);
+        console.log(`[EmbedFix] After sendOrEditBatchEmbed, sentMessageId=${batch.sentMessageId}`);
 
         // Now delete the original message
         try {
