@@ -1029,8 +1029,8 @@ export class GachaRedemptionService {
                 value: reactionService.getReactionInstructions(),
             });
 
-            // Include metadata in footer for reaction handling
-            const footerText = reactionService.buildFooterText('Gacha Coupon System', coupon.gameId, coupon.code);
+            // Clean footer with game name (code is parsed from embed content)
+            const footerText = reactionService.buildFooterText('Gacha Coupon System', coupon.gameId);
             embed.setFooter({ text: footerText, iconURL: RAPI_BOT_THUMBNAIL_URL });
         } else {
             // Standard footer for auto-redeem games
@@ -1191,8 +1191,8 @@ export class GachaRedemptionService {
                                 })
                                 .setTimestamp();
 
-                            // Include metadata in footer for reaction handling
-                            const footerText = reactionService.buildFooterText('Gacha Coupon System', gameId, coupon.code);
+                            // Clean footer with game name (code is parsed from embed content)
+                            const footerText = reactionService.buildFooterText('Gacha Coupon System', gameId);
                             embed.setFooter({ text: footerText, iconURL: RAPI_BOT_THUMBNAIL_URL });
 
                             const message = await this.sendDMWithDelay(user, { embeds: [embed] }, gameId);

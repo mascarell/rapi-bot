@@ -1,4 +1,4 @@
-import { Client, Message, MessageReaction, User, PartialMessageReaction, PartialUser, EmbedBuilder } from 'discord.js';
+import { Client, Message, MessageReaction, User, PartialMessageReaction, PartialUser, EmbedBuilder, Embed } from 'discord.js';
 import { getGachaDataService } from './gachaDataService';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { getGameConfig, GACHA_GAMES } from '../utils/data/gachaGamesConfig';
@@ -11,12 +11,6 @@ export const CONFIRMATION_EMOJIS = {
     IGNORE: '❌',       // Ignore warnings for this code
     RESET: '🔄',        // Reset (undo previous reaction)
 } as const;
-
-/**
- * Metadata stored in embed footer for parsing
- * Format: "GAMEDATA:gameId:code"
- */
-const METADATA_PREFIX = 'GAMEDATA';
 
 /**
  * Service for handling reaction-based confirmations on DM messages
@@ -44,34 +38,38 @@ class ReactionConfirmationService {
     }
 
     /**
-     * Create metadata string for embed footer
-     * This allows us to recover context when handling reactions
+     * Extract game ID and code from embed content
+     * Parses the title for game shortName and the Code field for the coupon code
      */
-    public createMetadata(gameId: GachaGameId, code: string): string {
-        return `${METADATA_PREFIX}:${gameId}:${code}`;
-    }
+    public parseEmbedContent(embed: Embed): { gameId: GachaGameId; code: string } | null {
+        // Extract code from the "Code" field (format: `CODE123`)
+        const codeField = embed.fields.find(f => f.name === 'Code');
+        if (!codeField) return null;
 
-    /**
-     * Parse metadata from embed footer
-     */
-    public parseMetadata(footerText: string): { gameId: GachaGameId; code: string } | null {
-        const parts = footerText.split(' | ');
-        for (const part of parts) {
-            if (part.startsWith(METADATA_PREFIX)) {
-                const [, gameId, code] = part.split(':');
-                if (gameId && code && gameId in GACHA_GAMES) {
-                    return { gameId: gameId as GachaGameId, code };
-                }
+        // Remove backticks from code value
+        const code = codeField.value.replace(/`/g, '').trim();
+        if (!code) return null;
+
+        // Extract game from title by matching shortName
+        // Title formats: "🆕 New LS Coupon Code!" or "⚠️ LS Code Expiring Soon!"
+        const title = embed.title || '';
+
+        // Find which game's shortName is in the title
+        for (const [gameId, config] of Object.entries(GACHA_GAMES)) {
+            if (title.includes(config.shortName)) {
+                return { gameId: gameId as GachaGameId, code };
             }
         }
+
         return null;
     }
 
     /**
-     * Build embed footer text with metadata
+     * Build embed footer text with game name (clean, no metadata needed)
      */
-    public buildFooterText(baseText: string, gameId: GachaGameId, code: string): string {
-        return `${baseText} | ${this.createMetadata(gameId, code)}`;
+    public buildFooterText(baseText: string, gameId: GachaGameId): string {
+        const gameConfig = GACHA_GAMES[gameId];
+        return `${baseText} • ${gameConfig.name}`;
     }
 
     /**
@@ -125,26 +123,32 @@ class ReactionConfirmationService {
         const emoji = reaction.emoji.name;
         if (!emoji || !Object.values(CONFIRMATION_EMOJIS).includes(emoji as any)) return;
 
-        // Parse metadata from embed footer
+        // Parse game and code from embed content
         const embed = message.embeds[0];
-        if (!embed?.footer?.text) return;
+        if (!embed) return;
 
-        const metadata = this.parseMetadata(embed.footer.text);
-        if (!metadata) return;
+        const parsed = this.parseEmbedContent(embed);
+        if (!parsed) return;
 
-        const { gameId, code } = metadata;
+        const { gameId, code } = parsed;
         const discordId = user.id;
 
         console.log(`[ReactionConfirmation] User ${discordId} reacted with ${emoji} on ${gameId}:${code}`);
 
         const dataService = getGachaDataService();
 
+        // Fetch user for sending confirmation DM
+        const fullUser = user.partial ? await user.fetch() : user;
+
         try {
+            let confirmationMessage = '';
+
             switch (emoji) {
                 case CONFIRMATION_EMOJIS.REDEEMED:
                     // Mark code as redeemed
                     await dataService.markCodesRedeemed(discordId, gameId, [code]);
                     await this.updateMessageForRedeemed(message, code);
+                    confirmationMessage = `✅ Code \`${code}\` marked as redeemed! You won't receive more reminders for this code.`;
                     console.log(`[ReactionConfirmation] Marked ${code} as redeemed for ${discordId}`);
                     break;
 
@@ -152,6 +156,7 @@ class ReactionConfirmationService {
                     // Add to ignored codes
                     await dataService.addIgnoredCode(discordId, gameId, code);
                     await this.updateMessageForIgnored(message, code);
+                    confirmationMessage = `❌ Code \`${code}\` ignored. You won't receive more reminders for this code.`;
                     console.log(`[ReactionConfirmation] Added ${code} to ignored for ${discordId}`);
                     break;
 
@@ -160,12 +165,16 @@ class ReactionConfirmationService {
                     await dataService.removeRedeemedCode(discordId, gameId, code);
                     await dataService.removeIgnoredCode(discordId, gameId, code);
                     await this.updateMessageForReset(message, code);
+                    confirmationMessage = `🔄 Code \`${code}\` status reset. You'll receive reminders for this code again.`;
                     console.log(`[ReactionConfirmation] Reset ${code} status for ${discordId}`);
                     break;
             }
 
-            // Remove user's reaction to allow re-use
-            await reaction.users.remove(user.id);
+            // Send confirmation DM
+            if (confirmationMessage) {
+                await fullUser.send(confirmationMessage);
+            }
+            // Note: reaction.users.remove() doesn't work in DMs - users can unreact manually
         } catch (error) {
             console.error(`[ReactionConfirmation] Error handling reaction:`, error);
         }
@@ -238,6 +247,8 @@ class ReactionConfirmationService {
 ✅ - I've redeemed this code
 ❌ - Ignore warnings for this code
 🔄 - Reset (undo previous reaction)
+
+*Unreact and react again to change your selection*
 `.trim();
     }
 }

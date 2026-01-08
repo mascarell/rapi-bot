@@ -64,6 +64,8 @@ export interface GachaGameConfig {
     maxCodeLength: number;
     /** Field name for user identifier (e.g., "nickname", "UID", "player ID") */
     userIdFieldName: string;
+    /** Whether this game requires a user ID for subscription (e.g., for auto-redeem API calls) */
+    requiresUserId: boolean;
     /** Whether this game uses Discord channel monitoring for code announcements */
     hasChannelMonitor?: boolean;
     /** Regex patterns for parsing announcement messages */

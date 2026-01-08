@@ -12,7 +12,8 @@ import {
     ChannelType,
     ActionRowBuilder,
     ButtonBuilder,
-    ComponentType
+    ComponentType,
+    Partials
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
@@ -103,6 +104,13 @@ const bot: CustomClient = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageReactions,
+    ],
+    partials: [
+        Partials.Message,
+        Partials.Channel,
+        Partials.Reaction,
     ],
 }) as CustomClient;
 

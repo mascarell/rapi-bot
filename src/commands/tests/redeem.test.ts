@@ -59,6 +59,7 @@ vi.mock('../../utils/data/gachaGamesConfig', () => ({
             maxNicknameLength: 24,
             maxCodeLength: 20,
             userIdFieldName: 'Nickname',
+            requiresUserId: true,
         },
         'nikke': {
             id: 'nikke',
@@ -71,6 +72,7 @@ vi.mock('../../utils/data/gachaGamesConfig', () => ({
             maxNicknameLength: 20,
             maxCodeLength: 20,
             userIdFieldName: 'Player ID',
+            requiresUserId: false,
         },
     },
     getGameConfig: vi.fn(),
@@ -194,6 +196,7 @@ describe('Redeem Command', () => {
                     maxNicknameLength: 24,
                     maxCodeLength: 20,
                     userIdFieldName: 'Nickname',
+                    requiresUserId: true,
                 },
                 'nikke': {
                     id: 'nikke',
@@ -206,6 +209,7 @@ describe('Redeem Command', () => {
                     maxNicknameLength: 20,
                     maxCodeLength: 20,
                     userIdFieldName: 'Player ID',
+                    requiresUserId: false,
                 },
             };
             return configs[gameId];
@@ -433,7 +437,7 @@ describe('Redeem Command', () => {
             );
         });
 
-        it('should reject empty usernames', async () => {
+        it('should reject empty usernames for games that require userId', async () => {
             (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
                 if (name === 'game') return 'bd2';
                 if (name === 'userid') return '   '; // Whitespace only
@@ -446,7 +450,7 @@ describe('Redeem Command', () => {
             expect(mockDataService.subscribe).not.toHaveBeenCalled();
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('cannot be empty'),
+                    content: expect.stringContaining('is required for'),
                     ephemeral: true
                 })
             );

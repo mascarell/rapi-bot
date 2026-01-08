@@ -27,6 +27,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         maxNicknameLength: 24,
         maxCodeLength: 30,
         userIdFieldName: 'nickname',
+        requiresUserId: true,
     },
     'lost-sword': {
         id: 'lost-sword',
@@ -40,11 +41,17 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         maxNicknameLength: 20,
         maxCodeLength: 20,
         userIdFieldName: 'Account ID',
+        requiresUserId: false,
         hasChannelMonitor: true,
         parsePatterns: {
-            code: /📌\s*Coupon Code\s*\n([A-Z0-9]+)/i,
-            rewards: /📌\s*Rewards\s*\n(.+?)(?=\n📌|$)/s,
-            expiration: /📌\s*Redemption Period\s*\nUntil\s+(.+)/i,
+            // Match both formats:
+            // Simple: "📌 Coupon Code\nCODE123"
+            // Discord: "> **📌 Coupon Code**\n> `CODE123`"
+            code: /\*{0,2}📌\s*Coupon Code\*{0,2}\s*\n(?:>\s*)?`?([A-Z0-9]+)`?/i,
+            // Match rewards (handles both simple and Discord formatted)
+            rewards: /\*{0,2}📌\s*Rewards\*{0,2}\s*\n(?:>\s*)?-?\s*(.+?)(?=\n(?:>\s*)?\n|\n(?:>\s*)?\*{0,2}📌|$)/s,
+            // Match expiration date (handles both formats)
+            expiration: /\*{0,2}📌\s*Redemption Period\*{0,2}\s*\n(?:>\s*)?-?\s*Until\s+(.+)/i,
         },
     },
     // TODO: Implement NIKKE support later

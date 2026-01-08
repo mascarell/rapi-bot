@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from '../reactionConfirmationService';
+import { Embed } from 'discord.js';
 
 // Mock dependencies
 vi.mock('../gachaDataService', () => ({
@@ -16,20 +17,33 @@ vi.mock('../../utils/data/gachaGamesConfig', () => ({
         'bd2': {
             id: 'bd2',
             name: 'Brown Dust 2',
+            shortName: 'BD2',
             supportsAutoRedeem: true,
         },
         'lost-sword': {
             id: 'lost-sword',
             name: 'Lost Sword',
+            shortName: 'LS',
             supportsAutoRedeem: false,
         },
     },
     getGameConfig: vi.fn((gameId: string) => ({
         id: gameId,
         name: gameId === 'bd2' ? 'Brown Dust 2' : 'Lost Sword',
+        shortName: gameId === 'bd2' ? 'BD2' : 'LS',
         supportsAutoRedeem: gameId === 'bd2',
     })),
 }));
+
+/**
+ * Create a mock embed for testing
+ */
+function createMockEmbed(title: string, codeValue: string | null): Partial<Embed> {
+    return {
+        title,
+        fields: codeValue ? [{ name: 'Code', value: codeValue, inline: true }] : [],
+    };
+}
 
 describe('ReactionConfirmationService', () => {
     let service: ReturnType<typeof getReactionConfirmationService>;
@@ -46,59 +60,78 @@ describe('ReactionConfirmationService', () => {
         });
     });
 
-    describe('createMetadata', () => {
-        it('should create metadata string in correct format', () => {
-            const result = service.createMetadata('lost-sword', 'TESTCODE123');
-
-            expect(result).toBe('GAMEDATA:lost-sword:TESTCODE123');
-        });
-
-        it('should work with different game IDs', () => {
-            const result = service.createMetadata('bd2', 'BD2CODE');
-
-            expect(result).toBe('GAMEDATA:bd2:BD2CODE');
-        });
-    });
-
-    describe('parseMetadata', () => {
-        it('should parse metadata from footer text', () => {
-            const footerText = 'Gacha Coupon System | GAMEDATA:lost-sword:TESTCODE123';
-            const result = service.parseMetadata(footerText);
+    describe('parseEmbedContent', () => {
+        it('should parse game and code from new code notification embed', () => {
+            const embed = createMockEmbed('🆕 New LS Coupon Code!', '`TESTCODE123`');
+            const result = service.parseEmbedContent(embed as Embed);
 
             expect(result).not.toBeNull();
             expect(result?.gameId).toBe('lost-sword');
             expect(result?.code).toBe('TESTCODE123');
         });
 
-        it('should return null for footer without metadata', () => {
-            const footerText = 'Gacha Coupon System';
-            const result = service.parseMetadata(footerText);
-
-            expect(result).toBeNull();
-        });
-
-        it('should return null for invalid game ID in metadata', () => {
-            const footerText = 'Gacha Coupon System | GAMEDATA:invalid-game:CODE';
-            const result = service.parseMetadata(footerText);
-
-            expect(result).toBeNull();
-        });
-
-        it('should handle metadata at different positions in footer', () => {
-            const footerText = 'GAMEDATA:lost-sword:CODE | Some other text';
-            const result = service.parseMetadata(footerText);
+        it('should parse game and code from expiration warning embed', () => {
+            const embed = createMockEmbed('⚠️ LS Code Expiring Soon!', '`EXPIRINGCODE`');
+            const result = service.parseEmbedContent(embed as Embed);
 
             expect(result).not.toBeNull();
             expect(result?.gameId).toBe('lost-sword');
-            expect(result?.code).toBe('CODE');
+            expect(result?.code).toBe('EXPIRINGCODE');
+        });
+
+        it('should handle code without backticks', () => {
+            const embed = createMockEmbed('🆕 New LS Coupon Code!', 'PLAINCODE');
+            const result = service.parseEmbedContent(embed as Embed);
+
+            expect(result).not.toBeNull();
+            expect(result?.code).toBe('PLAINCODE');
+        });
+
+        it('should return null when Code field is missing', () => {
+            const embed = createMockEmbed('🆕 New LS Coupon Code!', null);
+            const result = service.parseEmbedContent(embed as Embed);
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when game shortName not found in title', () => {
+            const embed = createMockEmbed('Some Unknown Title', '`CODE123`');
+            const result = service.parseEmbedContent(embed as Embed);
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when title is empty', () => {
+            const embed = {
+                title: null,
+                fields: [{ name: 'Code', value: '`CODE123`', inline: true }],
+            };
+            const result = service.parseEmbedContent(embed as Embed);
+
+            expect(result).toBeNull();
+        });
+
+        it('should work with BD2 embeds', () => {
+            const embed = createMockEmbed('🆕 New BD2 Coupon Code!', '`BD2CODE`');
+            const result = service.parseEmbedContent(embed as Embed);
+
+            expect(result).not.toBeNull();
+            expect(result?.gameId).toBe('bd2');
+            expect(result?.code).toBe('BD2CODE');
         });
     });
 
     describe('buildFooterText', () => {
-        it('should build footer text with metadata', () => {
-            const result = service.buildFooterText('Gacha Coupon System', 'lost-sword', 'CODE123');
+        it('should build clean footer text with game name', () => {
+            const result = service.buildFooterText('Gacha Coupon System', 'lost-sword');
 
-            expect(result).toBe('Gacha Coupon System | GAMEDATA:lost-sword:CODE123');
+            expect(result).toBe('Gacha Coupon System • Lost Sword');
+        });
+
+        it('should work with different games', () => {
+            const result = service.buildFooterText('Gacha Coupon System', 'bd2');
+
+            expect(result).toBe('Gacha Coupon System • Brown Dust 2');
         });
     });
 
@@ -126,20 +159,6 @@ describe('ReactionConfirmationService', () => {
             expect(result).toContain('redeemed');
             expect(result).toContain('Ignore');
             expect(result).toContain('Reset');
-        });
-    });
-
-    describe('Metadata round-trip', () => {
-        it('should correctly round-trip metadata creation and parsing', () => {
-            const gameId = 'lost-sword';
-            const code = 'ROUNDTRIP123';
-
-            const footerText = service.buildFooterText('Gacha Coupon System', gameId, code);
-            const parsed = service.parseMetadata(footerText);
-
-            expect(parsed).not.toBeNull();
-            expect(parsed?.gameId).toBe(gameId);
-            expect(parsed?.code).toBe(code);
         });
     });
 });
