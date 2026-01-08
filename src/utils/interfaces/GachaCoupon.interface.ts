@@ -30,7 +30,7 @@
  * Add new games here as they are supported
  * TODO: Re-add 'nikke' | 'blue-archive' when those games are implemented
  */
-export type GachaGameId = 'bd2';
+export type GachaGameId = 'bd2' | 'lost-sword';
 
 /**
  * Configuration for a supported gacha game
@@ -64,6 +64,17 @@ export interface GachaGameConfig {
     maxCodeLength: number;
     /** Field name for user identifier (e.g., "nickname", "UID", "player ID") */
     userIdFieldName: string;
+    /** Whether this game uses Discord channel monitoring for code announcements */
+    hasChannelMonitor?: boolean;
+    /** Regex patterns for parsing announcement messages */
+    parsePatterns?: {
+        /** Pattern to extract coupon code */
+        code: RegExp;
+        /** Pattern to extract rewards description */
+        rewards: RegExp;
+        /** Pattern to extract expiration date/time */
+        expiration: RegExp;
+    };
 }
 
 /**
@@ -115,6 +126,8 @@ export interface GameSubscription {
     subscribedAt: string;
     /** Array of coupon codes already redeemed for this user */
     redeemedCodes: string[];
+    /** Array of coupon codes user chose to ignore (no more warnings) */
+    ignoredCodes?: string[];
     /** ISO timestamp of last notification sent */
     lastNotified?: string;
     /** ISO timestamp of last force re-run request (for cooldown tracking) */

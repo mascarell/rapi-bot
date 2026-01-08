@@ -28,6 +28,25 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         maxCodeLength: 30,
         userIdFieldName: 'nickname',
     },
+    'lost-sword': {
+        id: 'lost-sword',
+        name: 'Lost Sword',
+        shortName: 'LS',
+        // Lost Sword uses in-game redemption only (Settings > Account > Redeem Coupon)
+        manualRedeemUrl: undefined,
+        supportsAutoRedeem: false,
+        logoPath: `${cdnDomainUrl}/assets/logos/lost-sword-logo.png`,
+        embedColor: 0x8B4513, // Brown/sword color
+        maxNicknameLength: 20,
+        maxCodeLength: 20,
+        userIdFieldName: 'Account ID',
+        hasChannelMonitor: true,
+        parsePatterns: {
+            code: /📌\s*Coupon Code\s*\n([A-Z0-9]+)/i,
+            rewards: /📌\s*Rewards\s*\n(.+?)(?=\n📌|$)/s,
+            expiration: /📌\s*Redemption Period\s*\nUntil\s+(.+)/i,
+        },
+    },
     // TODO: Implement NIKKE support later
     // 'nikke': {
     //     id: 'nikke',

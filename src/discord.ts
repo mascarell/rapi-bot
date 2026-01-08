@@ -46,6 +46,8 @@ import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
 import { checkEmbedFixUrls, checkEmbedFixUrlsOnEdit, getEmbedFixService } from './services/embedFix/embedFixService';
 import { getEmbedVotesService } from './services/embedFix/embedVotesService';
+import { getChannelMonitorService } from './services/channelMonitorService';
+import { getReactionConfirmationService } from './services/reactionConfirmationService';
 
 // Destructure only the necessary functions from util
 const {
@@ -1897,6 +1899,15 @@ async function initDiscordBot() {
                 startupDelay: 10,               // Seconds to wait before startup trigger
             });
             gachaCouponScheduler.initializeSchedules();
+
+            // Initialize channel monitor service for coupon announcements (e.g., Lost Sword)
+            const channelMonitorService = getChannelMonitorService();
+            await channelMonitorService.initialize();
+            channelMonitorService.startMonitoring(bot);
+
+            // Initialize reaction confirmation service for manual redemption tracking
+            const reactionConfirmationService = getReactionConfirmationService();
+            reactionConfirmationService.startListening(bot);
 
             enableAutoComplete();
             handleMessages();

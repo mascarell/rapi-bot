@@ -1,6 +1,8 @@
 import { Client, EmbedBuilder, User, Message } from 'discord.js';
 import pLimit from 'p-limit';
 import { getGachaDataService } from './gachaDataService';
+import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from './reactionConfirmationService';
+import { getChannelMonitorService } from './channelMonitorService';
 import {
     RedemptionResult,
     GachaCoupon,
@@ -320,15 +322,15 @@ export class GachaRedemptionService {
     /**
      * Send a DM with rate limiting to avoid Discord rate limits
      * Tracks DM failures to skip users who have DMs disabled
-     * @returns true if DM was sent successfully, false if failed
+     * @returns The sent Message if successful, null if failed
      */
     private async sendDMWithDelay(
         user: User,
         content: { embeds: EmbedBuilder[] },
         gameId?: GachaGameId
-    ): Promise<boolean> {
+    ): Promise<Message | null> {
         try {
-            await user.send(content);
+            const message = await user.send(content);
             await new Promise(resolve => setTimeout(resolve, GACHA_CONFIG.DM_RATE_LIMIT_DELAY));
 
             // Clear DM disabled status if previously marked
@@ -336,7 +338,7 @@ export class GachaRedemptionService {
                 const dataService = getGachaDataService();
                 await dataService.clearDMDisabled(user.id, gameId);
             }
-            return true;
+            return message;
         } catch (error: any) {
             // Check if this is a "Cannot send messages to this user" error
             if (error.code === 50007) {
@@ -348,7 +350,7 @@ export class GachaRedemptionService {
             } else {
                 console.error(`Failed to send DM to ${user.id}:`, error.message);
             }
-            return false;
+            return null;
         }
     }
 
@@ -981,6 +983,8 @@ export class GachaRedemptionService {
     public async notifyNewCode(bot: Client, coupon: GachaCoupon): Promise<void> {
         const dataService = getGachaDataService();
         const gameConfig = getGameConfig(coupon.gameId);
+        const reactionService = getReactionConfirmationService();
+        const channelMonitorService = getChannelMonitorService();
 
         // Skip notification if code is already expired (handles edge case of codes added with past dates)
         if (coupon.expirationDate && new Date(coupon.expirationDate) <= new Date()) {
@@ -991,6 +995,10 @@ export class GachaRedemptionService {
         // Use optimized batch method that includes preferences and DM status
         const subscribers = await dataService.getSubscribersForNotification(coupon.gameId);
 
+        // Check if this game uses reaction-based confirmation (no auto-redeem)
+        const usesReactionConfirmation = reactionService.supportsReactionConfirmation(coupon.gameId);
+
+        // Build the embed
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
             .setTitle(`🆕 New ${gameConfig.shortName} Coupon Code!`)
@@ -1000,14 +1008,40 @@ export class GachaRedemptionService {
                 { name: 'Code', value: `\`${coupon.code}\``, inline: true },
                 { name: 'Rewards', value: coupon.rewards, inline: true }
             )
-            .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setTimestamp();
 
-        if (coupon.expirationDate) {
-            const expiry = new Date(coupon.expirationDate).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'short', day: 'numeric'
+        // For reaction-based games, use Discord timestamp format and add metadata to footer
+        if (usesReactionConfirmation) {
+            if (coupon.expirationDate) {
+                const discordTimestamp = channelMonitorService.toDiscordTimestamp(coupon.expirationDate, 'R');
+                embed.addFields({ name: '⏰ Expires', value: discordTimestamp, inline: true });
+            }
+
+            // Add redemption instructions for manual games
+            embed.addFields({
+                name: '📌 How to Redeem',
+                value: 'Redeem in-game: Settings > Account > Redeem Coupon',
             });
-            embed.addFields({ name: '⏰ Expires', value: expiry, inline: true });
+
+            // Add reaction instructions
+            embed.addFields({
+                name: '📝 Track This Code',
+                value: reactionService.getReactionInstructions(),
+            });
+
+            // Include metadata in footer for reaction handling
+            const footerText = reactionService.buildFooterText('Gacha Coupon System', coupon.gameId, coupon.code);
+            embed.setFooter({ text: footerText, iconURL: RAPI_BOT_THUMBNAIL_URL });
+        } else {
+            // Standard footer for auto-redeem games
+            embed.setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+
+            if (coupon.expirationDate) {
+                const expiry = new Date(coupon.expirationDate).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric'
+                });
+                embed.addFields({ name: '⏰ Expires', value: expiry, inline: true });
+            }
         }
 
         if (coupon.source) {
@@ -1029,7 +1063,12 @@ export class GachaRedemptionService {
                     }
 
                     const user = await bot.users.fetch(discordId);
-                    await this.sendDMWithDelay(user, { embeds: [embed] }, coupon.gameId);
+                    const message = await this.sendDMWithDelay(user, { embeds: [embed] }, coupon.gameId);
+
+                    // Add reaction buttons for manual confirmation games
+                    if (usesReactionConfirmation && message) {
+                        await reactionService.addReactionButtons(message);
+                    }
                 })
             )
         );
@@ -1090,13 +1129,19 @@ export class GachaRedemptionService {
      * Send expiration warning DMs for a game
      * Uses Promise.allSettled for graceful partial failure handling
      * Respects user notification preferences and DM status
+     * For reaction-based games, sends individual DMs per code with reaction buttons
      */
     public async sendExpirationWarnings(bot: Client, gameId: GachaGameId): Promise<void> {
         const dataService = getGachaDataService();
         const gameConfig = getGameConfig(gameId);
+        const reactionService = getReactionConfirmationService();
+        const channelMonitorService = getChannelMonitorService();
         const expiringCoupons = await dataService.getExpiringCoupons(gameId, 3);
 
         if (expiringCoupons.length === 0) return;
+
+        // Check if this game uses reaction-based confirmation
+        const usesReactionConfirmation = reactionService.supportsReactionConfirmation(gameId);
 
         // Use optimized batch method that includes preferences and DM status
         const subscribers = await dataService.getSubscribersForNotification(gameId);
@@ -1109,14 +1154,56 @@ export class GachaRedemptionService {
                         return { discordId, sent: false, reason: 'disabled' };
                     }
 
-                    const unredeemed = expiringCoupons.filter(
+                    // Filter out redeemed codes
+                    let unredeemed = expiringCoupons.filter(
                         c => !subscription.redeemedCodes.includes(c.code.toUpperCase())
                     );
+
+                    // For reaction-based games, also filter out ignored codes
+                    if (usesReactionConfirmation && subscription.ignoredCodes) {
+                        unredeemed = unredeemed.filter(
+                            c => !subscription.ignoredCodes!.includes(c.code.toUpperCase())
+                        );
+                    }
 
                     if (unredeemed.length === 0) return { discordId, sent: false };
 
                     const user = await bot.users.fetch(discordId);
 
+                    // For reaction-based games, send individual DMs per code
+                    if (usesReactionConfirmation) {
+                        for (const coupon of unredeemed.slice(0, 5)) { // Limit to 5 to avoid spam
+                            const discordTimestamp = channelMonitorService.toDiscordTimestamp(coupon.expirationDate, 'R');
+
+                            const embed = new EmbedBuilder()
+                                .setColor(0xFFA500)
+                                .setTitle(`⚠️ ${gameConfig.shortName} Code Expiring Soon!`)
+                                .setThumbnail(gameConfig.logoPath)
+                                .setDescription(`**Code:** \`${coupon.code}\`\n**Rewards:** ${coupon.rewards}`)
+                                .addFields({ name: '⏰ Expires', value: discordTimestamp, inline: true })
+                                .addFields({
+                                    name: '📌 How to Redeem',
+                                    value: 'Redeem in-game: Settings > Account > Redeem Coupon',
+                                })
+                                .addFields({
+                                    name: '📝 Track This Code',
+                                    value: reactionService.getReactionInstructions(),
+                                })
+                                .setTimestamp();
+
+                            // Include metadata in footer for reaction handling
+                            const footerText = reactionService.buildFooterText('Gacha Coupon System', gameId, coupon.code);
+                            embed.setFooter({ text: footerText, iconURL: RAPI_BOT_THUMBNAIL_URL });
+
+                            const message = await this.sendDMWithDelay(user, { embeds: [embed] }, gameId);
+                            if (message) {
+                                await reactionService.addReactionButtons(message);
+                            }
+                        }
+                        return { discordId, sent: true };
+                    }
+
+                    // Standard batch expiration warning for auto-redeem games
                     const embed = new EmbedBuilder()
                         .setColor(0xFFA500)
                         .setTitle(`⚠️ ${gameConfig.shortName} Coupons Expiring Soon!`)
