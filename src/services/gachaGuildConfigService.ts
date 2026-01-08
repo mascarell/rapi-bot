@@ -8,12 +8,26 @@ const CONFIG_KEY = isDevelopment
     : `${GACHA_CONFIG.DATA_PATH}/guild-config.json`;
 
 /**
+ * Configuration for a Discord channel monitor (for auto-detecting coupon codes)
+ */
+export interface ChannelMonitorConfig {
+    /** Discord guild/server ID where the channel is located */
+    guildId: string;
+    /** Channel ID to monitor in production */
+    prodChannelId: string;
+    /** Channel ID to monitor in development (for testing) */
+    devChannelId: string;
+}
+
+/**
  * Guild configuration for the gacha coupon system
  * Stored in S3 to keep server IDs private (not in open source code)
  */
 export interface GachaGuildConfig {
     /** List of Discord server IDs allowed to use the gacha coupon system */
     allowedGuildIds: string[];
+    /** Channel monitoring configurations keyed by game ID */
+    channelMonitors?: Record<string, ChannelMonitorConfig>;
     /** ISO timestamp of last update */
     lastUpdated: string;
     /** Schema version for future migrations */
@@ -89,6 +103,31 @@ class GachaGuildConfigService {
     public async getAllowedGuildIds(): Promise<string[]> {
         const config = await this.getConfig();
         return config.allowedGuildIds;
+    }
+
+    /**
+     * Get all channel monitor configurations
+     */
+    public async getChannelMonitors(): Promise<Record<string, ChannelMonitorConfig>> {
+        const config = await this.getConfig();
+        return config.channelMonitors || {};
+    }
+
+    /**
+     * Get channel monitor config for a specific game
+     */
+    public async getChannelMonitorForGame(gameId: string): Promise<ChannelMonitorConfig | null> {
+        const monitors = await this.getChannelMonitors();
+        return monitors[gameId] || null;
+    }
+
+    /**
+     * Get the active channel ID for a game (based on environment)
+     */
+    public async getActiveChannelId(gameId: string): Promise<string | null> {
+        const monitor = await this.getChannelMonitorForGame(gameId);
+        if (!monitor) return null;
+        return isDevelopment ? monitor.devChannelId : monitor.prodChannelId;
     }
 
     /**

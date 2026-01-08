@@ -12,7 +12,8 @@ import {
     ChannelType,
     ActionRowBuilder,
     ButtonBuilder,
-    ComponentType
+    ComponentType,
+    Partials
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
@@ -46,6 +47,8 @@ import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
 import { checkEmbedFixUrls, checkEmbedFixUrlsOnEdit, getEmbedFixService } from './services/embedFix/embedFixService';
 import { getEmbedVotesService } from './services/embedFix/embedVotesService';
+import { getChannelMonitorService } from './services/channelMonitorService';
+import { getReactionConfirmationService } from './services/reactionConfirmationService';
 
 // Destructure only the necessary functions from util
 const {
@@ -101,6 +104,13 @@ const bot: CustomClient = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageReactions,
+    ],
+    partials: [
+        Partials.Message,
+        Partials.Channel,
+        Partials.Reaction,
     ],
 }) as CustomClient;
 
@@ -1897,6 +1907,15 @@ async function initDiscordBot() {
                 startupDelay: 10,               // Seconds to wait before startup trigger
             });
             gachaCouponScheduler.initializeSchedules();
+
+            // Initialize channel monitor service for coupon announcements (e.g., Lost Sword)
+            const channelMonitorService = getChannelMonitorService();
+            await channelMonitorService.initialize();
+            channelMonitorService.startMonitoring(bot);
+
+            // Initialize reaction confirmation service for manual redemption tracking
+            const reactionConfirmationService = getReactionConfirmationService();
+            reactionConfirmationService.startListening(bot);
 
             enableAutoComplete();
             handleMessages();

@@ -100,19 +100,38 @@ function validateGameUserId(gameId: GachaGameId, userId: string): { valid: boole
 
 async function handleSubscribe(interaction: ChatInputCommandInteraction): Promise<void> {
     const gameId = interaction.options.getString('game', true) as GachaGameId;
-    const gameUserId = interaction.options.getString('userid', true);
-    const mode = interaction.options.getString('mode', true) as SubscriptionMode;
+    const gameUserIdInput = interaction.options.getString('userid', false); // Now optional
+    let mode = interaction.options.getString('mode', true) as SubscriptionMode;
 
     const gameConfig = getGameConfig(gameId);
 
-    // Validate game user ID format
-    const validation = validateGameUserId(gameId, gameUserId);
-    if (!validation.valid) {
+    // Force notification-only for games that don't support auto-redeem
+    if (mode === 'auto-redeem' && !gameConfig.supportsAutoRedeem) {
+        mode = 'notification-only';
+    }
+
+    // Use provided userid or empty string for games that don't need it
+    const gameUserId = gameUserIdInput?.trim() || '';
+
+    // Validate userid is provided for games that require it
+    if (gameConfig.requiresUserId && !gameUserId) {
         await interaction.reply({
-            content: `❌ ${validation.error}`,
+            content: `❌ ${gameConfig.userIdFieldName} is required for ${gameConfig.name}. Please provide your in-game ${gameConfig.userIdFieldName}.`,
             ephemeral: true
         });
         return;
+    }
+
+    // Only validate format if userid is provided
+    if (gameUserId) {
+        const validation = validateGameUserId(gameId, gameUserId);
+        if (!validation.valid) {
+            await interaction.reply({
+                content: `❌ ${validation.error}`,
+                ephemeral: true
+            });
+            return;
+        }
     }
 
     try {
@@ -128,19 +147,18 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
             .setTitle('✅ Subscription Activated')
             .setThumbnail(gameConfig.logoPath)
             .setDescription(`You are now subscribed to ${gameConfig.name} coupon updates!`)
-            .addFields(
-                { name: gameConfig.userIdFieldName, value: `\`${gameUserId}\``, inline: true },
-                { name: 'Mode', value: mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only', inline: true }
-            )
             .setTimestamp()
             .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-        if (!gameConfig.supportsAutoRedeem && mode === 'auto-redeem') {
-            embed.addFields({
-                name: '⚠️ Note',
-                value: `Auto-redeem is not yet supported for ${gameConfig.shortName}. You will receive notifications instead.`
-            });
+        // Only show userid field if the game requires one and it was provided
+        if (gameConfig.requiresUserId && gameUserId) {
+            embed.addFields(
+                { name: gameConfig.userIdFieldName, value: `\`${gameUserId}\``, inline: true }
+            );
         }
+        embed.addFields(
+            { name: 'Mode', value: mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only', inline: true }
+        );
 
         // Immediately redeem all active codes for auto-redeem subscribers
         if (mode === 'auto-redeem' && gameConfig.supportsAutoRedeem) {
@@ -1156,18 +1174,29 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
     embed.addFields({
         name: 'Subscription Modes',
         value: [
-            '**Auto-Redeem**: Bot automatically redeems codes for you (immediately on subscribe + every 6 hours)',
-            '**Notification-Only**: Get DM alerts about new codes (redeem manually)',
+            '**Auto-Redeem**: Bot automatically redeems codes for you (BD2 only)',
+            '**Notification-Only**: Get DM alerts about new codes (all games)',
         ].join('\n'),
     });
 
-    // Game-Specific Info
+    // Game-Specific Info - Brown Dust 2
     embed.addFields({
         name: 'Brown Dust 2',
         value: [
             '**Important**: Use your **in-game nickname**, NOT your UID!',
             'Find it in-game: Profile > Your display name',
             'Auto-redemption runs every 6 hours + immediately when new codes are added',
+        ].join('\n'),
+    });
+
+    // Game-Specific Info - Lost Sword
+    embed.addFields({
+        name: 'Lost Sword',
+        value: [
+            '**No account ID required** - Just subscribe to get notifications',
+            '**Notification-only mode** - Codes must be redeemed in-game',
+            'Redeem in-game: Settings > Account > Redeem Coupon',
+            'React with ✅ on DM notifications to mark codes as redeemed',
         ].join('\n'),
     });
 
@@ -1221,17 +1250,17 @@ module.exports = {
                 .setRequired(true)
                 .addChoices(...GAME_CHOICES))
             .addStringOption(opt => opt
-                .setName('userid')
-                .setDescription('Your in-game ID (nickname/UID)')
-                .setRequired(true))
-            .addStringOption(opt => opt
                 .setName('mode')
                 .setDescription('Subscription mode')
                 .setRequired(true)
                 .addChoices(
                     { name: '🤖 Auto-Redeem', value: 'auto-redeem' },
                     { name: '📬 Notification Only', value: 'notification-only' }
-                )))
+                ))
+            .addStringOption(opt => opt
+                .setName('userid')
+                .setDescription('Your in-game ID (required for BD2, optional for Lost Sword)')
+                .setRequired(false)))
 
         // User: Unsubscribe
         .addSubcommand(sub => sub

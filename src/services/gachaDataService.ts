@@ -490,6 +490,88 @@ export class GachaDataService {
     }
 
     /**
+     * Remove a code from a user's redeemed codes list
+     */
+    public async removeRedeemedCode(discordId: string, gameId: GachaGameId, code: string): Promise<boolean> {
+        const data = await this.getData();
+        const user = data.subscriptions.find(s => s.discordId === discordId);
+        const gameSub = user?.games[gameId];
+
+        if (!gameSub) {
+            return false;
+        }
+
+        const normalizedCode = code.toUpperCase();
+        const index = gameSub.redeemedCodes.indexOf(normalizedCode);
+        if (index === -1) {
+            return false;
+        }
+
+        gameSub.redeemedCodes.splice(index, 1);
+        await this.saveData(data);
+        return true;
+    }
+
+    /**
+     * Add a code to a user's ignored codes list
+     */
+    public async addIgnoredCode(discordId: string, gameId: GachaGameId, code: string): Promise<boolean> {
+        const data = await this.getData();
+        const user = data.subscriptions.find(s => s.discordId === discordId);
+        const gameSub = user?.games[gameId];
+
+        if (!gameSub) {
+            return false;
+        }
+
+        const normalizedCode = code.toUpperCase();
+        if (!gameSub.ignoredCodes) {
+            gameSub.ignoredCodes = [];
+        }
+
+        if (!gameSub.ignoredCodes.includes(normalizedCode)) {
+            gameSub.ignoredCodes.push(normalizedCode);
+            await this.saveData(data);
+        }
+
+        return true;
+    }
+
+    /**
+     * Remove a code from a user's ignored codes list
+     */
+    public async removeIgnoredCode(discordId: string, gameId: GachaGameId, code: string): Promise<boolean> {
+        const data = await this.getData();
+        const user = data.subscriptions.find(s => s.discordId === discordId);
+        const gameSub = user?.games[gameId];
+
+        if (!gameSub || !gameSub.ignoredCodes) {
+            return false;
+        }
+
+        const normalizedCode = code.toUpperCase();
+        const index = gameSub.ignoredCodes.indexOf(normalizedCode);
+        if (index === -1) {
+            return false;
+        }
+
+        gameSub.ignoredCodes.splice(index, 1);
+        await this.saveData(data);
+        return true;
+    }
+
+    /**
+     * Check if a code is ignored by a user
+     */
+    public async isCodeIgnored(discordId: string, gameId: GachaGameId, code: string): Promise<boolean> {
+        const gameSub = await this.getGameSubscription(discordId, gameId);
+        if (!gameSub || !gameSub.ignoredCodes) {
+            return false;
+        }
+        return gameSub.ignoredCodes.includes(code.toUpperCase());
+    }
+
+    /**
      * Batch mark codes as redeemed for multiple users
      * Reduces S3 operations from N to 1 for batch processing
      */
