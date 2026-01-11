@@ -1919,12 +1919,14 @@ async function initDiscordBot() {
             reactionConfirmationService.startListening(bot);
 
             // Initialize rules management service (primary server only)
+            // This will fail gracefully in dev if bot is not in the primary server
             const rulesManagementService = getRulesManagementService();
             const rulesResult = await rulesManagementService.initializeRulesMessage(bot);
             if (rulesResult.success) {
                 console.log('[RulesManagement] Rules message initialized successfully');
             } else {
-                console.error(`[RulesManagement] Failed to initialize rules message: ${rulesResult.error}`);
+                // Expected to fail in dev if bot isn't in primary server
+                console.log(`[RulesManagement] Skipped (not in primary server or missing permissions): ${rulesResult.error}`);
             }
 
             enableAutoComplete();

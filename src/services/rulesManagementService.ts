@@ -56,9 +56,9 @@ class RulesManagementService {
     public async initializeRulesMessage(bot: Client): Promise<{ success: boolean; error?: string }> {
         try {
             // Fetch the primary guild
-            const guild = await bot.guilds.fetch(PRIMARY_GUILD_ID);
+            const guild = await bot.guilds.fetch(PRIMARY_GUILD_ID).catch(() => null);
             if (!guild) {
-                return { success: false, error: 'Primary guild not found' };
+                return { success: false, error: 'Bot not in primary guild (expected in dev)' };
             }
 
             // Fetch the rules channel
@@ -113,10 +113,12 @@ class RulesManagementService {
 
             return { success: true };
         } catch (error) {
-            console.error('[RulesManagement] Error initializing rules message:', error);
+            // Log error but don't throw - this allows bot to continue starting up
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.log(`[RulesManagement] Could not initialize rules message: ${errorMessage}`);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : String(error)
+                error: errorMessage
             };
         }
     }
