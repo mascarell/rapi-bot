@@ -362,3 +362,13 @@ S3_BUCKET=your-bucket-name
 ```
 
 ---
+
+## Rules Command
+
+The `/rules` command displays the server rules ephemerally (visible only to you).
+
+**Usage**: `/rules`
+
+The bot also automatically manages a persistent rules message in the `#rules` channel for all configured servers. This message is created/updated automatically when the bot starts
+
+---

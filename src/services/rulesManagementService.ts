@@ -158,13 +158,6 @@ class RulesManagementService {
             error: failureCount === allowedGuildIds.length ? 'Failed to initialize in any guild' : undefined
         };
     }
-
-    /**
-     * Manually update the rules message for a specific guild (admin command)
-     */
-    public async updateRulesMessage(bot: Client, guildId: string): Promise<{ success: boolean; error?: string }> {
-        return this.initializeRulesMessageForGuild(bot, guildId);
-    }
 }
 
 /**
