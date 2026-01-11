@@ -2,8 +2,7 @@ import { Client, TextChannel, Message } from 'discord.js';
 import { getGachaGuildConfigService } from './gachaGuildConfigService';
 
 // Constants
-const PRIMARY_GUILD_ID = '1054761356416528475';
-const RULES_CHANNEL_ID = '1054761672167931995';
+const RULES_CHANNEL_NAME = 'rules'; // Channel name to search for
 const SURE_EMOJI = '<:sure:1056601190726651985>';
 const VIDEOS_CHANNEL_ID = '1054761687779123270';
 
@@ -43,28 +42,40 @@ class RulesManagementService {
     }
 
     /**
-     * Get the primary guild ID where rules are managed
+     * Get the list of guild IDs where rules command is allowed (from S3 config)
      */
-    public getPrimaryGuildId(): string {
-        return PRIMARY_GUILD_ID;
+    public async getAllowedGuildIds(): Promise<string[]> {
+        const configService = getGachaGuildConfigService();
+        return await configService.getAllowedGuildIds();
     }
 
     /**
-     * Initialize or update the rules message in the #rules channel
-     * Called on bot startup or via admin command
+     * Check if a guild ID is allowed to use the rules system (from S3 config)
      */
-    public async initializeRulesMessage(bot: Client): Promise<{ success: boolean; error?: string }> {
+    public async isGuildAllowed(guildId: string | null): Promise<boolean> {
+        if (!guildId) return false;
+        const allowedIds = await this.getAllowedGuildIds();
+        return allowedIds.includes(guildId);
+    }
+
+    /**
+     * Initialize or update the rules message in the #rules channel for a specific guild
+     */
+    private async initializeRulesMessageForGuild(bot: Client, guildId: string): Promise<{ success: boolean; error?: string }> {
         try {
-            // Fetch the primary guild
-            const guild = await bot.guilds.fetch(PRIMARY_GUILD_ID).catch(() => null);
+            // Fetch the guild
+            const guild = await bot.guilds.fetch(guildId).catch(() => null);
             if (!guild) {
-                return { success: false, error: 'Bot not in primary guild (expected in dev)' };
+                return { success: false, error: `Bot not in guild ${guildId}` };
             }
 
-            // Fetch the rules channel
-            const channel = await guild.channels.fetch(RULES_CHANNEL_ID);
-            if (!channel || !channel.isTextBased()) {
-                return { success: false, error: 'Rules channel not found or not text-based' };
+            // Find the rules channel by name
+            const channel = guild.channels.cache.find(
+                ch => ch.name === RULES_CHANNEL_NAME && ch.isTextBased()
+            ) as TextChannel | undefined;
+
+            if (!channel) {
+                return { success: false, error: `Rules channel not found in guild ${guild.name}` };
             }
 
             const textChannel = channel as TextChannel;
@@ -108,14 +119,14 @@ class RulesManagementService {
             }
 
             // Log message ID for manual config update
-            console.log(`[RulesManagement] 📝 MESSAGE ID FOR CONFIG: ${message.id}`);
+            console.log(`[RulesManagement] 📝 MESSAGE ID FOR CONFIG (${guild.name}): ${message.id}`);
             console.log(`[RulesManagement] Please update guild-config.json and dev-guild-config.json with this message ID`);
 
             return { success: true };
         } catch (error) {
             // Log error but don't throw - this allows bot to continue starting up
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.log(`[RulesManagement] Could not initialize rules message: ${errorMessage}`);
+            console.log(`[RulesManagement] Could not initialize rules message for guild ${guildId}: ${errorMessage}`);
             return {
                 success: false,
                 error: errorMessage
@@ -124,10 +135,35 @@ class RulesManagementService {
     }
 
     /**
-     * Manually update the rules message (admin command)
+     * Initialize or update rules messages in all allowed guilds (called on bot startup)
      */
-    public async updateRulesMessage(bot: Client): Promise<{ success: boolean; error?: string }> {
-        return this.initializeRulesMessage(bot);
+    public async initializeRulesMessage(bot: Client): Promise<{ success: boolean; error?: string }> {
+        const allowedGuildIds = await this.getAllowedGuildIds();
+        const results = await Promise.all(
+            allowedGuildIds.map(guildId => this.initializeRulesMessageForGuild(bot, guildId))
+        );
+
+        const successCount = results.filter(r => r.success).length;
+        const failureCount = results.filter(r => !r.success).length;
+
+        if (successCount > 0) {
+            console.log(`[RulesManagement] Initialized rules in ${successCount} guild(s)`);
+        }
+        if (failureCount > 0) {
+            console.log(`[RulesManagement] Failed to initialize rules in ${failureCount} guild(s) (expected if bot not in all guilds)`);
+        }
+
+        return {
+            success: successCount > 0,
+            error: failureCount === allowedGuildIds.length ? 'Failed to initialize in any guild' : undefined
+        };
+    }
+
+    /**
+     * Manually update the rules message for a specific guild (admin command)
+     */
+    public async updateRulesMessage(bot: Client, guildId: string): Promise<{ success: boolean; error?: string }> {
+        return this.initializeRulesMessageForGuild(bot, guildId);
     }
 }
 

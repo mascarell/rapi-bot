@@ -34,10 +34,11 @@ module.exports = {
 
         const rulesService = getRulesManagementService();
 
-        // Only allow on primary server
-        if (interaction.guildId !== rulesService.getPrimaryGuildId()) {
+        // Check if guild is allowed (from S3 config)
+        const isAllowed = await rulesService.isGuildAllowed(interaction.guildId);
+        if (!isAllowed) {
             await interaction.reply({
-                content: 'This command is only available on the primary server.',
+                content: 'This command is not available on this server.',
                 ephemeral: true,
             });
             return;
@@ -58,7 +59,7 @@ module.exports = {
 
             await interaction.deferReply({ ephemeral: true });
 
-            const result = await rulesService.updateRulesMessage(getDiscordBot);
+            const result = await rulesService.updateRulesMessage(getDiscordBot, interaction.guildId!);
             if (result.success) {
                 await interaction.editReply({
                     content: '✅ Rules message updated successfully in #rules channel!',
