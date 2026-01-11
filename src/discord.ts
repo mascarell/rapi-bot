@@ -49,6 +49,7 @@ import { checkEmbedFixUrls, checkEmbedFixUrlsOnEdit, getEmbedFixService } from '
 import { getEmbedVotesService } from './services/embedFix/embedVotesService';
 import { getChannelMonitorService } from './services/channelMonitorService';
 import { getReactionConfirmationService } from './services/reactionConfirmationService';
+import { getRulesManagementService } from './services/rulesManagementService';
 
 // Destructure only the necessary functions from util
 const {
@@ -1916,6 +1917,15 @@ async function initDiscordBot() {
             // Initialize reaction confirmation service for manual redemption tracking
             const reactionConfirmationService = getReactionConfirmationService();
             reactionConfirmationService.startListening(bot);
+
+            // Initialize rules management service (primary server only)
+            const rulesManagementService = getRulesManagementService();
+            const rulesResult = await rulesManagementService.initializeRulesMessage(bot);
+            if (rulesResult.success) {
+                console.log('[RulesManagement] Rules message initialized successfully');
+            } else {
+                console.error(`[RulesManagement] Failed to initialize rules message: ${rulesResult.error}`);
+            }
 
             enableAutoComplete();
             handleMessages();

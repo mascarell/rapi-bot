@@ -1,21 +1,79 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, ChatInputCommandInteraction, PermissionFlagsBits, Role } from 'discord.js';
+import { getRulesManagementService } from '../services/rulesManagementService';
+import { getDiscordBot } from '../discord';
+
+/**
+ * Check if user has mod/admin permissions
+ */
+async function checkModPermission(interaction: ChatInputCommandInteraction): Promise<boolean> {
+    const guild = interaction.guild;
+    if (!guild) return false;
+
+    const member = await guild.members.fetch(interaction.user.id);
+    return member.roles.cache.some((role: Role) =>
+        role.name.toLowerCase() === 'mods'
+    ) || member.permissions.has(PermissionFlagsBits.Administrator);
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('rules')
-        .setDescription(`Rapi Rules (she'll ban you if you don't behave)`),
+        .setDescription(`Rapi Rules (she'll ban you if you don't behave)`)
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('show')
+                .setDescription('Display server rules')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('update')
+                .setDescription('Update the rules message in #rules channel (Mod only)')
+        ),
     async execute(interaction: CommandInteraction) {
-        interaction.reply({
-            content: `<:literawooo:1056600445558210632> SERVER RULES <:literawooo:1056600445558210632> \n
-➜ Try to follow the rules or you'll get banned by Rapi
-➜ This is a place to chill and enjoy a community of people who share a love for the games we cover, if you can't keep conversations civil, you'll get banned
-➜ Don't be a dick in general, just be chill and nice to other people
-➜ Don't be racist, this includes memes with racial slurs
-➜ Spicy art is fine, NSFW is not allowed (I'm sorry fellow degenerates)
-➜ If you want to argue with someone, go to DMs, this server / our streams are not the place
-➜ If you are a content creator DM any of the mods so you can share your content on the videos channel
-`,
-            ephemeral: false,
-        });
+        if (!interaction.isChatInputCommand()) return;
+
+        const rulesService = getRulesManagementService();
+
+        // Only allow on primary server
+        if (interaction.guildId !== rulesService.getPrimaryGuildId()) {
+            await interaction.reply({
+                content: 'This command is only available on the primary server.',
+                ephemeral: true,
+            });
+            return;
+        }
+
+        const subcommand = interaction.options.getSubcommand();
+
+        if (subcommand === 'update') {
+            // Check permissions
+            const hasPermission = await checkModPermission(interaction);
+            if (!hasPermission) {
+                await interaction.reply({
+                    content: '❌ You need the `mods` role or Administrator permission to use this command.',
+                    ephemeral: true
+                });
+                return;
+            }
+
+            await interaction.deferReply({ ephemeral: true });
+
+            const result = await rulesService.updateRulesMessage(getDiscordBot);
+            if (result.success) {
+                await interaction.editReply({
+                    content: '✅ Rules message updated successfully in #rules channel!',
+                });
+            } else {
+                await interaction.editReply({
+                    content: `❌ Failed to update rules message: ${result.error}`,
+                });
+            }
+        } else {
+            // Default: show rules
+            await interaction.reply({
+                content: rulesService.getRulesContent(),
+                ephemeral: false,
+            });
+        }
     },
 };

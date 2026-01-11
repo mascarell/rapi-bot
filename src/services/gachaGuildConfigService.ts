@@ -28,6 +28,15 @@ export interface GachaGuildConfig {
     allowedGuildIds: string[];
     /** Channel monitoring configurations keyed by game ID */
     channelMonitors?: Record<string, ChannelMonitorConfig>;
+    /** Rules message configuration for primary server */
+    rulesConfig?: {
+        /** Discord guild/server ID where rules message is managed */
+        guildId: string;
+        /** Channel ID for rules channel */
+        channelId: string;
+        /** Message ID of the rules message (null if not yet created) */
+        messageId: string | null;
+    };
     /** ISO timestamp of last update */
     lastUpdated: string;
     /** Schema version for future migrations */
