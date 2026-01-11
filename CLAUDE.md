@@ -101,42 +101,13 @@ AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET
 - Uses same S3 guild config as gacha coupon system (`allowedGuildIds`)
 - Auto-initializes on bot startup for all allowed guilds
 
-### Key Files
-| File | Purpose |
-|------|---------|
-| `src/services/rulesManagementService.ts` | Rules message logic (create/update) |
-| `src/commands/rules.ts` | `/rules` command handlers |
-| `guild-config.json` | S3 config with `rulesConfig.messageId` |
-
 ### Commands
 | Command | Access | Description |
 |---------|--------|-------------|
-| `/rules show` | Everyone | Display rules content |
-| `/rules update` | Mods only | Update #rules channel message |
+| `/rules` | Everyone | Display rules content (ephemeral) |
 
 ### Important Behaviors
 1. **Auto-initialization**: On startup, bot processes all `allowedGuildIds` from S3 config
 2. **Dynamic channel finding**: Searches for channel named `rules` in each guild
 3. **Message persistence**: Finds existing bot message or creates new one
-4. **Guild restriction**: Only works on servers in `allowedGuildIds` array
-5. **Multi-server support**: Can manage rules in multiple guilds simultaneously
-
-### Configuration (S3)
-```typescript
-GachaGuildConfig {
-  allowedGuildIds: string[]        // Guilds where rules system is enabled
-  rulesConfig?: {
-    guildId: string                // Primary guild ID (legacy, not used for multi-guild)
-    channelId: string              // Channel ID (legacy, uses dynamic search now)
-    messageId: string | null       // Stored message ID for updates
-  }
-  schemaVersion: number            // Current: 3
-}
-```
-
-### Adding Rules to New Server
-1. Add server ID to `allowedGuildIds` in S3 config
-2. Create `#rules` channel on server
-3. Bot auto-creates message on next startup
-4. Capture message ID from logs
-5. Update `rulesConfig.messageId` in S3 config (optional, for faster lookups)
+4. **Ephemeral display**: `/rules` command shows content only to the user who invoked it
