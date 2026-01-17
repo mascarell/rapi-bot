@@ -1929,6 +1929,16 @@ async function initDiscordBot() {
                 console.log(`[RulesManagement] Skipped (not in primary server or missing permissions): ${rulesResult.error}`);
             }
 
+            // Initialize giveaway management service
+            const { getGiveawayManagementService } = await import('./services/giveawayManagementService');
+            const giveawayManagementService = getGiveawayManagementService();
+            const expiredCount = await giveawayManagementService.checkAndEndExpiredGiveaways(bot);
+            if (expiredCount > 0) {
+                console.log(`[GiveawayManagement] Found ${expiredCount} expired giveaway(s) on startup`);
+            } else {
+                console.log('[GiveawayManagement] No expired giveaways found');
+            }
+
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
