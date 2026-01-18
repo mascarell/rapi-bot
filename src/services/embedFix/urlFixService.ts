@@ -85,20 +85,26 @@ export class UrlFixService {
         const replyContent = fixedUrls.join('\n');
 
         try {
-            // Suppress the original message's embeds to prevent Discord's auto-embed
-            // This must happen BEFORE we reply to avoid triggering our own processing
-            await message.suppressEmbeds(true).catch(err => {
-                console.error('[UrlFix] Failed to suppress embeds:', err);
-                // Continue anyway - suppression failure shouldn't stop the reply
-            });
-
-            await message.reply({
+            // Reply first, then suppress the original message's embeds
+            // This prevents both the original Discord embed AND our reply from showing embeds
+            const botReply = await message.reply({
                 content: replyContent,
                 allowedMentions: { repliedUser: false } // Don't ping the user
             });
 
-            // Mark as replied to prevent duplicates
+            // Mark as replied to prevent duplicates (do this immediately after reply)
             repliedMessages.add(message.id);
+
+            // Now suppress the original message's embeds
+            // Wait a moment to ensure Discord has processed the original message
+            setTimeout(async () => {
+                try {
+                    await message.suppressEmbeds(true);
+                    console.log(`[UrlFix] Suppressed embeds for message ${message.id}`);
+                } catch (err) {
+                    console.error('[UrlFix] Failed to suppress embeds:', err);
+                }
+            }, 500); // Wait 500ms to let Discord process the original message
 
             console.log(`[UrlFix] Replied to ${message.author.username} with ${fixedUrls.length} fixed URL(s) in #${channelName}`);
         } catch (error) {
