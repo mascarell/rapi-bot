@@ -63,6 +63,13 @@ export class UrlFixService {
     }
 
     /**
+     * Clear all tracked content IDs (for testing)
+     */
+    public clearTrackedContent(): void {
+        processedContentIds.clear();
+    }
+
+    /**
      * Process a message and replace Twitter/X URLs with fixupx.com
      *
      * Flow:
