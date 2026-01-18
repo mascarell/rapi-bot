@@ -85,26 +85,32 @@ export class UrlFixService {
         const replyContent = fixedUrls.join('\n');
 
         try {
-            // Reply first, then suppress the original message's embeds
-            // This prevents both the original Discord embed AND our reply from showing embeds
+            // Helper function to suppress embeds on the original message
+            const suppressOriginalEmbeds = async () => {
+                await message.suppressEmbeds(true).catch(() => {
+                    // Ignore if we can't suppress embeds (missing permissions)
+                });
+            };
+
+            // Suppress embeds immediately if they already exist
+            if (message.embeds.length > 0) {
+                await suppressOriginalEmbeds();
+            }
+
+            // Reply with fixed URLs
             const botReply = await message.reply({
                 content: replyContent,
                 allowedMentions: { repliedUser: false } // Don't ping the user
             });
 
-            // Mark as replied to prevent duplicates (do this immediately after reply)
+            // Mark as replied to prevent duplicates
             repliedMessages.add(message.id);
 
-            // Now suppress the original message's embeds
-            // Wait a moment to ensure Discord has processed the original message
+            // Suppress embeds again after a delay to catch Discord's async embed generation
+            // Discord generates embeds asynchronously, so we need to wait and suppress again
             setTimeout(async () => {
-                try {
-                    await message.suppressEmbeds(true);
-                    console.log(`[UrlFix] Suppressed embeds for message ${message.id}`);
-                } catch (err) {
-                    console.error('[UrlFix] Failed to suppress embeds:', err);
-                }
-            }, 500); // Wait 500ms to let Discord process the original message
+                await suppressOriginalEmbeds();
+            }, 1500);
 
             console.log(`[UrlFix] Replied to ${message.author.username} with ${fixedUrls.length} fixed URL(s) in #${channelName}`);
         } catch (error) {
