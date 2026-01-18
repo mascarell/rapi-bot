@@ -45,7 +45,7 @@ import { getUptimeService } from './services/uptimeService';
 import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
-import { checkEmbedFixUrls } from './services/embedFix/simpleEmbedFixService';
+import { checkEmbedFixUrls } from './services/embedFix/urlFixService';
 import { getChannelMonitorService } from './services/channelMonitorService';
 import { getReactionConfirmationService } from './services/reactionConfirmationService';
 import { getRulesManagementService } from './services/rulesManagementService';

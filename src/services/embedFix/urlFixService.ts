@@ -1,14 +1,15 @@
 /**
- * Simplified Embed Fix Service
+ * URL Fix Service
  *
  * Replaces Twitter/X URLs with fixupx.com to leverage their embed service.
  * No API calls, no complex logic - just URL replacement.
  *
  * This fixes the infinite loop bug by:
- * 1. Early bot message filtering
- * 2. Simple text replies (no embeds that trigger more events)
- * 3. Message ID tracking to prevent duplicates
- * 4. No messageUpdate processing
+ * 1. Early bot message filtering (CRITICAL: first check)
+ * 2. Suppress original message embeds BEFORE replying
+ * 3. Simple text replies (no embeds that trigger more events)
+ * 4. Message ID tracking to prevent duplicates
+ * 5. No messageUpdate processing
  */
 
 import { Message, TextChannel } from 'discord.js';
@@ -19,25 +20,25 @@ const repliedMessages = new Set<string>();
 // Clean old entries every 5 minutes to prevent memory growth
 setInterval(() => {
     if (repliedMessages.size > 1000) {
-        console.log(`[SimpleEmbedFix] Clearing ${repliedMessages.size} tracked messages`);
+        console.log(`[UrlFix] Clearing ${repliedMessages.size} tracked messages`);
         repliedMessages.clear();
     }
 }, 5 * 60 * 1000);
 
 /**
- * Simple Embed Fix Service
+ * URL Fix Service
  * Singleton pattern for consistent behavior
  */
-export class SimpleEmbedFixService {
-    private static instance: SimpleEmbedFixService;
+export class UrlFixService {
+    private static instance: UrlFixService;
 
     private constructor() {}
 
-    public static getInstance(): SimpleEmbedFixService {
-        if (!SimpleEmbedFixService.instance) {
-            SimpleEmbedFixService.instance = new SimpleEmbedFixService();
+    public static getInstance(): UrlFixService {
+        if (!UrlFixService.instance) {
+            UrlFixService.instance = new UrlFixService();
         }
-        return SimpleEmbedFixService.instance;
+        return UrlFixService.instance;
     }
 
     /**
@@ -84,6 +85,13 @@ export class SimpleEmbedFixService {
         const replyContent = fixedUrls.join('\n');
 
         try {
+            // Suppress the original message's embeds to prevent Discord's auto-embed
+            // This must happen BEFORE we reply to avoid triggering our own processing
+            await message.suppressEmbeds(true).catch(err => {
+                console.error('[UrlFix] Failed to suppress embeds:', err);
+                // Continue anyway - suppression failure shouldn't stop the reply
+            });
+
             await message.reply({
                 content: replyContent,
                 allowedMentions: { repliedUser: false } // Don't ping the user
@@ -92,25 +100,25 @@ export class SimpleEmbedFixService {
             // Mark as replied to prevent duplicates
             repliedMessages.add(message.id);
 
-            console.log(`[SimpleEmbedFix] Replied to ${message.author.username} with ${fixedUrls.length} fixed URL(s) in #${channelName}`);
+            console.log(`[UrlFix] Replied to ${message.author.username} with ${fixedUrls.length} fixed URL(s) in #${channelName}`);
         } catch (error) {
-            console.error('[SimpleEmbedFix] Error replying to message:', error);
+            console.error('[UrlFix] Error replying to message:', error);
         }
     }
 }
 
 /**
- * Get the singleton instance of SimpleEmbedFixService
+ * Get the singleton instance of UrlFixService
  */
-export const getSimpleEmbedFixService = (): SimpleEmbedFixService =>
-    SimpleEmbedFixService.getInstance();
+export const getUrlFixService = (): UrlFixService =>
+    UrlFixService.getInstance();
 
 /**
  * Export function for discord.ts messageCreate handler
  * This function signature matches the old embedFixService for easy replacement
  */
 export async function checkEmbedFixUrls(message: Message): Promise<void> {
-    getSimpleEmbedFixService().processMessage(message).catch(err => {
-        console.error('[SimpleEmbedFix] Unexpected error:', err);
+    getUrlFixService().processMessage(message).catch(err => {
+        console.error('[UrlFix] Unexpected error:', err);
     });
 }
