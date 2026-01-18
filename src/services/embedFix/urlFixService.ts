@@ -58,9 +58,9 @@ export class UrlFixService {
      * Flow:
      * 1. Check if message is from a bot → return early
      * 2. Check if message is in #art or #nsfw channel → return early if not
-     * 3. Skip if message contains fixup service URLs (already fixed)
-     * 4. Extract status IDs from Twitter/X URLs
-     * 5. Convert to fixupx.com format: https://fixupx.com/i/status/{statusId}
+     * 3. Extract status IDs from ALL Twitter/X URLs (twitter.com, x.com, AND fixup services)
+     * 4. Deduplicate status IDs (in case same tweet posted multiple times)
+     * 5. Convert to consistent fixupx.com format: https://fixupx.com/i/status/{statusId}
      * 6. Reply with the fixed URL(s)
      * 7. Suppress original message embeds
      */
@@ -99,21 +99,20 @@ export class UrlFixService {
             return;
         }
 
-        // Check if message contains fixup service URLs (skip if already fixed)
-        const hasFixupUrl = FIXUP_DOMAINS.some(domain => message.content.includes(domain));
-        if (hasFixupUrl) {
-            console.log('[UrlFix] Message contains fixup service URL, skipping (already fixed)');
-            return;
-        }
-
-        // Extract Twitter/X URLs and their status IDs
-        // Matches: https://x.com/username/status/123456 or https://twitter.com/username/status/123456
-        // Also matches mobile URLs, www variants, and fixup service URLs
         console.log(`[UrlFix] Message content: ${message.content}`);
 
-        // Regex to extract status IDs from Twitter URLs
-        // Captures: username and status ID from /username/status/statusId
-        const twitterRegex = /https?:\/\/(www\.)?(mobile\.)?(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/gi;
+        // Extract status IDs from all supported Twitter/X URL formats
+        // This includes: twitter.com, x.com, and all fixup service domains
+        const allDomains = ['twitter\\.com', 'x\\.com', ...FIXUP_DOMAINS.map(d => d.replace('.', '\\.'))].join('|');
+
+        // Regex to extract status IDs from any Twitter URL format
+        // Pattern 1: /username/status/statusId (standard Twitter format)
+        // Pattern 2: /i/status/statusId (fixupx.com format)
+        const twitterRegex = new RegExp(
+            `https?:\\/\\/(www\\.)?(mobile\\.)?(${allDomains})\\/(\\w+\\/)?status\\/(\\d+)`,
+            'gi'
+        );
+
         const urlMatches = [...message.content.matchAll(twitterRegex)];
 
         console.log(`[UrlFix] Found ${urlMatches.length} Twitter/X URLs with status IDs`);
@@ -123,11 +122,22 @@ export class UrlFixService {
             return;
         }
 
-        // Convert all URLs to fixupx.com format: https://fixupx.com/i/status/{statusId}
-        const fixedUrls = urlMatches.map(match => {
-            const statusId = match[5]; // Status ID is in capture group 5
-            return `https://fixupx.com/i/status/${statusId}`;
-        });
+        // Extract unique status IDs and convert to fixupx.com format
+        const statusIds = new Set<string>();
+        for (const match of urlMatches) {
+            // Status ID is in the last capture group
+            const statusId = match[match.length - 1];
+            if (statusId) {
+                statusIds.add(statusId);
+            }
+        }
+
+        console.log(`[UrlFix] Extracted ${statusIds.size} unique status IDs`);
+
+        // Convert all to fixupx.com format: https://fixupx.com/i/status/{statusId}
+        const fixedUrls = Array.from(statusIds).map(statusId =>
+            `https://fixupx.com/i/status/${statusId}`
+        );
 
         // Reply with fixed URLs (one per line)
         const replyContent = fixedUrls.join('\n');
