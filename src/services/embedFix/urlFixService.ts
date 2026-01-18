@@ -70,17 +70,85 @@ export class UrlFixService {
     }
 
     /**
-     * Process a message and replace Twitter/X URLs with fixupx.com
+     * Extract Twitter status IDs from message content
+     * Returns array of objects with contentId and fixedUrl
+     */
+    private extractTwitterUrls(content: string): Array<{ contentId: string; fixedUrl: string; platform: string }> {
+        const allDomains = ['twitter\\.com', 'x\\.com', ...FIXUP_DOMAINS.map(d => d.replace('.', '\\.'))].join('|');
+
+        const twitterRegex = new RegExp(
+            `https?:\\/\\/(www\\.)?(mobile\\.)?(${allDomains})\\/(\\w+\\/)?status\\/(\\d+)`,
+            'gi'
+        );
+
+        const urlMatches = [...content.matchAll(twitterRegex)];
+        const results: Array<{ contentId: string; fixedUrl: string; platform: string }> = [];
+        const seenIds = new Set<string>();
+
+        for (const match of urlMatches) {
+            const statusId = match[match.length - 1];
+            if (statusId && !seenIds.has(statusId)) {
+                seenIds.add(statusId);
+                results.push({
+                    contentId: `twitter:${statusId}`,
+                    fixedUrl: `https://fixupx.com/i/status/${statusId}`,
+                    platform: 'Twitter'
+                });
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Extract Pixiv artwork IDs from message content
+     * Returns array of objects with contentId and fixedUrl
+     */
+    private extractPixivUrls(content: string): Array<{ contentId: string; fixedUrl: string; platform: string }> {
+        // Regex patterns for Pixiv URLs:
+        // 1. Standard: https://www.pixiv.net/artworks/123456
+        // 2. With language: https://www.pixiv.net/en/artworks/123456
+        // 3. Legacy: https://www.pixiv.net/member_illust.php?illust_id=123456
+        // 4. Phixiv proxy: https://phixiv.net/artworks/123456
+
+        const pixivRegex = /https?:\/\/(www\.)?(pixiv\.net|phixiv\.net)\/(en\/)?(artworks\/|member_illust\.php\?.*illust_id=)(\d+)/gi;
+
+        const urlMatches = [...content.matchAll(pixivRegex)];
+        const results: Array<{ contentId: string; fixedUrl: string; platform: string }> = [];
+        const seenIds = new Set<string>();
+
+        for (const match of urlMatches) {
+            // Artwork ID is in the last capture group (group 5)
+            const artworkId = match[5];
+            if (artworkId && !seenIds.has(artworkId)) {
+                seenIds.add(artworkId);
+                results.push({
+                    contentId: `pixiv:${artworkId}`,
+                    fixedUrl: `https://${PIXIV_PROXY}/artworks/${artworkId}`,
+                    platform: 'Pixiv'
+                });
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Process a message and replace Twitter/X and Pixiv URLs with proxy URLs
      *
      * Flow:
      * 1. Check if message is from a bot → return early
      * 2. Check if message is in #art or #nsfw channel → return early if not
-     * 3. Extract status IDs from ALL Twitter/X URLs (twitter.com, x.com, AND fixup services)
-     * 4. Check which status IDs are NEW (not already processed)
-     * 5. Skip if all status IDs already processed (prevents duplicate replies for same tweet)
-     * 6. Convert new status IDs to fixupx.com format: https://fixupx.com/i/status/{statusId}
+     * 3. Extract content IDs from ALL supported URLs:
+     *    - Twitter: status IDs from twitter.com, x.com, and proxy services
+     *    - Pixiv: artwork IDs from pixiv.net and phixiv.net
+     * 4. Check which content IDs are NEW (not already processed)
+     * 5. Skip if all content IDs already processed (prevents duplicate replies)
+     * 6. Convert to proxy formats:
+     *    - Twitter: https://fixupx.com/i/status/{statusId}
+     *    - Pixiv: https://phixiv.net/artworks/{artworkId}
      * 7. Reply with the fixed URL(s)
-     * 8. Track status IDs → original message ID mapping
+     * 8. Track content IDs → original message ID mapping
      * 9. Suppress original message embeds
      */
     public async processMessage(message: Message): Promise<void> {
@@ -113,65 +181,46 @@ export class UrlFixService {
         console.log('[UrlFix] Channel check passed, processing message');
         console.log(`[UrlFix] Message content: ${message.content}`);
 
-        // Extract status IDs from all supported Twitter/X URL formats
-        // This includes: twitter.com, x.com, and all fixup service domains
-        const allDomains = ['twitter\\.com', 'x\\.com', ...FIXUP_DOMAINS.map(d => d.replace('.', '\\.'))].join('|');
+        // Extract content IDs from all supported URL formats (Twitter + Pixiv)
+        const twitterUrls = this.extractTwitterUrls(message.content);
+        const pixivUrls = this.extractPixivUrls(message.content);
+        const allUrls = [...twitterUrls, ...pixivUrls];
 
-        // Regex to extract status IDs from any Twitter URL format
-        // Pattern 1: /username/status/statusId (standard Twitter format)
-        // Pattern 2: /i/status/statusId (fixupx.com format)
-        // Matches status ID even with query parameters or trailing content (\\d+ captures just the digits)
-        const twitterRegex = new RegExp(
-            `https?:\\/\\/(www\\.)?(mobile\\.)?(${allDomains})\\/(\\w+\\/)?status\\/(\\d+)`,
-            'gi'
-        );
+        console.log(`[UrlFix] Found ${twitterUrls.length} Twitter/X URLs and ${pixivUrls.length} Pixiv URLs`);
 
-        const urlMatches = [...message.content.matchAll(twitterRegex)];
-
-        console.log(`[UrlFix] Found ${urlMatches.length} Twitter/X URLs with status IDs`);
-
-        if (urlMatches.length === 0) {
-            console.log('[UrlFix] No Twitter/X status URLs found, skipping');
+        if (allUrls.length === 0) {
+            console.log('[UrlFix] No supported URLs found, skipping');
             return;
         }
 
-        // Extract unique status IDs
-        const statusIds = new Set<string>();
-        for (const match of urlMatches) {
-            // Status ID is in the last capture group
-            const statusId = match[match.length - 1];
-            if (statusId) {
-                statusIds.add(statusId);
-            }
-        }
+        // Check which content IDs we haven't processed yet
+        const newUrls: Array<{ contentId: string; fixedUrl: string; platform: string }> = [];
+        const duplicateContentInfo: Array<{ contentId: string; platform: string; originalInfo: OriginalMessageInfo }> = [];
 
-        console.log(`[UrlFix] Extracted ${statusIds.size} unique status IDs`);
-
-        // Check which status IDs we haven't processed yet
-        const newStatusIds: string[] = [];
-        const duplicateStatusInfo: Array<{ statusId: string; originalInfo: OriginalMessageInfo }> = [];
-
-        for (const statusId of statusIds) {
-            const contentId = `twitter:${statusId}`;
-            if (processedContentIds.has(contentId)) {
-                const originalInfo = processedContentIds.get(contentId)!;
-                duplicateStatusInfo.push({ statusId, originalInfo });
-                console.log(`[UrlFix] Twitter status ${statusId} already processed in message ${originalInfo.messageId}`);
+        for (const urlInfo of allUrls) {
+            if (processedContentIds.has(urlInfo.contentId)) {
+                const originalInfo = processedContentIds.get(urlInfo.contentId)!;
+                duplicateContentInfo.push({
+                    contentId: urlInfo.contentId,
+                    platform: urlInfo.platform,
+                    originalInfo
+                });
+                console.log(`[UrlFix] ${urlInfo.platform} content ${urlInfo.contentId} already processed in message ${originalInfo.messageId}`);
             } else {
-                newStatusIds.push(statusId);
+                newUrls.push(urlInfo);
             }
         }
 
-        // If all status IDs are duplicates, reply with duplicate notification
-        if (newStatusIds.length === 0 && duplicateStatusInfo.length > 0) {
-            console.log(`[UrlFix] All status IDs already processed, sending duplicate notification`);
+        // If all content IDs are duplicates, reply with duplicate notification
+        if (newUrls.length === 0 && duplicateContentInfo.length > 0) {
+            console.log(`[UrlFix] All content IDs already processed, sending duplicate notification`);
 
             // Suppress embeds on the duplicate message
             try {
                 await message.suppressEmbeds(true).catch(() => {});
 
                 // Create message links for all duplicates
-                const duplicateLinks = duplicateStatusInfo.map(({ statusId, originalInfo }) => {
+                const duplicateLinks = duplicateContentInfo.map(({ contentId, originalInfo }) => {
                     const messageLink = `https://discord.com/channels/${originalInfo.guildId}/${originalInfo.channelId}/${originalInfo.messageId}`;
                     return `[Original](${messageLink})`;
                 });
@@ -187,25 +236,23 @@ export class UrlFixService {
                     await message.suppressEmbeds(true).catch(() => {});
                 }, 1500);
 
-                console.log(`[UrlFix] Sent duplicate notification for ${duplicateStatusInfo.length} status ID(s)`);
+                console.log(`[UrlFix] Sent duplicate notification for ${duplicateContentInfo.length} content ID(s)`);
             } catch (error) {
                 console.error('[UrlFix] Error sending duplicate notification:', error);
             }
             return;
         }
 
-        // If no URLs found at all, skip
-        if (newStatusIds.length === 0) {
-            console.log(`[UrlFix] No new status IDs to process, skipping`);
+        // If no new URLs found, skip
+        if (newUrls.length === 0) {
+            console.log(`[UrlFix] No new content IDs to process, skipping`);
             return;
         }
 
-        console.log(`[UrlFix] Processing ${newStatusIds.length} new status IDs`);
+        console.log(`[UrlFix] Processing ${newUrls.length} new content ID(s)`);
 
-        // Convert only NEW status IDs to fixupx.com format: https://fixupx.com/i/status/{statusId}
-        const fixedUrls = newStatusIds.map(statusId =>
-            `https://fixupx.com/i/status/${statusId}`
-        );
+        // Get fixed URLs for all new content
+        const fixedUrls = newUrls.map(urlInfo => urlInfo.fixedUrl);
 
         // Reply with fixed URLs (one per line)
         const replyContent = fixedUrls.join('\n');
@@ -229,10 +276,9 @@ export class UrlFixService {
                 allowedMentions: { repliedUser: false } // Don't ping the user
             });
 
-            // Mark all new status IDs as processed, linking to this message
-            for (const statusId of newStatusIds) {
-                const contentId = `twitter:${statusId}`;
-                processedContentIds.set(contentId, {
+            // Mark all new content IDs as processed, linking to this message
+            for (const urlInfo of newUrls) {
+                processedContentIds.set(urlInfo.contentId, {
                     messageId: message.id,
                     channelId: message.channel.id,
                     guildId: message.guild!.id
