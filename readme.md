@@ -10,7 +10,7 @@ The Loot and Waifus Bot is a Discord bot designed to manage daily resets and pro
 - **24/7 Music Playback**: Connects to a voice channel to play music continuously from a specified folder.
 - **Command Responses**: Responds to specific text commands with images, videos, or text messages.
 - **Role and Channel Management**: Interacts with specific roles and channels to provide tailored experiences.
-- **Twitter/X URL Embed Fix**: Automatically replaces Twitter/X URLs with fixupx.com embeds in art channels.
+- **URL Embed Fix (Twitter/X + Pixiv)**: Automatically replaces Twitter/X and Pixiv URLs with better proxy embeds in art channels.
 - **Hourly Rate Limiting**: Users are limited to 3 chat commands per hour, resetting at the top of every hour (UTC).
 - **/age Command**: Shows how long the bot has been running (system uptime).
 - **/spam Command**:
@@ -43,7 +43,7 @@ The Loot and Waifus Bot is a Discord bot designed to manage daily resets and pro
 ## Prerequisites
 
 - A Discord bot account with the necessary permissions.
-- Node.js and npm installed on your machine.
+- Node.js and bun installed on your machine (https://bun.sh/docs/installation).
 - Docker and Docker Compose installed if you plan to run the bot in a container.
 
 ## Environment Variables
@@ -61,26 +61,26 @@ CLIENTID=your_discord_client_id
 
 ### Development Mode
 
-1. **Install npm packages**:
+1. **Install packages**:
    ```bash
-   npm install
+   bun install
    ```
 
 2. **Run the bot in development mode**:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 ### Production Mode
 
 1. **Build the TypeScript project**:
    ```bash
-   npm run build
+   bun run build
    ```
 
 2. **Run the bot**:
    ```bash
-   npm run start
+   bun run start
    ```
 
 ## Running the Bot with Docker
@@ -364,29 +364,39 @@ S3_BUCKET=your-bucket-name
 
 ---
 
-## Twitter/X URL Embed Fix
+## URL Embed Fix (Twitter/X + Pixiv)
 
-The bot automatically improves Twitter/X embeds in `#art` and `#nsfw` channels by replacing URLs with fixupx.com versions.
+The bot automatically improves embeds in `#art` and `#nsfw` channels by replacing URLs with better proxy service versions.
 
 ### How It Works
 
-1. **Automatic Detection**: Monitors messages in art channels for Twitter/X URLs
-2. **URL Normalization**: Converts all Twitter URL formats to a consistent fixupx.com format
-3. **Duplicate Prevention**: Tracks tweets by status ID to avoid reposting the same content
-4. **Embed Suppression**: Removes Discord's default Twitter embeds for cleaner display
+1. **Automatic Detection**: Monitors messages in art channels for Twitter/X and Pixiv URLs
+2. **URL Normalization**: Converts all URL formats to consistent proxy formats
+   - Twitter → `fixupx.com`
+   - Pixiv → `phixiv.net`
+3. **Duplicate Prevention**: Tracks content by ID to avoid reposting the same content
+4. **Embed Suppression**: Removes Discord's default embeds for cleaner display
 
 ### Supported URL Formats
 
-The bot recognizes and converts URLs from:
+**Twitter/X** - The bot recognizes and converts URLs from:
 - **Standard**: `twitter.com`, `x.com`
 - **Mobile**: `mobile.twitter.com`, `mobile.x.com`
 - **Proxy Services**: `vxtwitter.com`, `fxtwitter.com`, `fixupx.com`, `fixvx.com`, `twittpr.com`, and others
 
-All formats are normalized to: `https://fixupx.com/i/status/{statusId}`
+All Twitter formats are normalized to: `https://fixupx.com/i/status/{statusId}`
+
+**Pixiv** - The bot recognizes and converts URLs from:
+- **Standard**: `https://www.pixiv.net/artworks/123456`
+- **With language**: `https://pixiv.net/en/artworks/123456`
+- **Legacy format**: `https://www.pixiv.net/member_illust.php?illust_id=123456`
+- **Proxy**: `https://phixiv.net/artworks/123456`
+
+All Pixiv formats are normalized to: `https://phixiv.net/artworks/{artworkId}`
 
 ### Example
 
-**User posts:**
+**User posts (Twitter):**
 ```
 Check out this art! https://x.com/artist/status/123456789
 ```
@@ -397,14 +407,37 @@ https://fixupx.com/i/status/123456789
 ```
 *(Original Twitter embed is suppressed)*
 
+**User posts (Pixiv):**
+```
+Beautiful artwork! https://www.pixiv.net/artworks/987654321
+```
+
+**Bot replies:**
+```
+https://phixiv.net/artworks/987654321
+```
+
+**User posts (Mixed):**
+```
+Cool art: https://x.com/user/status/111 and https://pixiv.net/artworks/222
+```
+
+**Bot replies:**
+```
+https://fixupx.com/i/status/111
+https://phixiv.net/artworks/222
+```
+
 ### Duplicate Detection
 
-If the same tweet is posted again (using any URL format), the bot will notify users and link to the original post:
+If the same content is posted again (using any URL format), the bot will notify users and link to the original post:
 
 **Second post:**
 ```
 🔄 This was already shared → [Original](discord link)
 ```
+
+This works for both Twitter and Pixiv content independently.
 
 ### Technical Details
 
@@ -412,6 +445,7 @@ If the same tweet is posted again (using any URL format), the bot will notify us
 - **Performance**: < 1 second response time (no API calls)
 - **Memory**: Automatically clears tracking data when > 1000 entries
 - **Safety**: Bot messages are never processed (prevents infinite loops)
+- **Multi-platform**: Handles Twitter and Pixiv URLs in the same message
 
 ---
 
