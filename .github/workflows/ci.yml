@@ -19,11 +19,10 @@ jobs:
       - name: Check Out Repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
-          cache: 'npm'
+          bun-version: latest
 
       - name: Install Build Tools for @discordjs/opus
         run: |
@@ -31,10 +30,10 @@ jobs:
           sudo apt-get install -y python3 make g++ libtool autoconf automake
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Run Tests
-        run: npm run test:run
+        run: bun run test:run
 
       - name: Post Test Summary to PR
         if: github.event_name == 'pull_request'

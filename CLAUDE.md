@@ -1,10 +1,11 @@
 # CLAUDE.md - LLM Context Guide
 
 ## Project Overview
-Discord bot for gacha games: daily reset notifications, music playback, chat commands, **coupon redemption system**, **rules management**, and **Twitter/X URL embed fix**.
+Discord bot for gacha games: daily reset notifications, music playback, chat commands, **coupon redemption system**, **rules management**, and **URL embed fix (Twitter/X + Pixiv)**.
 
 ## Tech Stack
 - TypeScript, Node.js, Discord.js
+- **bun** - Fast package manager and runtime
 - AWS S3 for data persistence (JSON documents)
 - Vitest for testing
 - Docker for deployment
@@ -69,8 +70,8 @@ GachaCouponData {
 
 ## Testing
 ```bash
-npm run test:run        # Run all tests
-npx tsc --noEmit        # Type check
+bun run test:run        # Run all tests
+bunx tsc --noEmit       # Type check
 ```
 
 ## Common Patterns
@@ -114,25 +115,31 @@ AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET
 3. **Message persistence**: Finds existing bot message or creates new one
 4. **Ephemeral display**: `/rules` command shows content only to the user who invoked it
 
-## Twitter/X URL Embed Fix System
+## URL Embed Fix System (Twitter/X + Pixiv)
 
 ### Architecture
-- `urlFixService.ts` - Simplified URL replacement service (~200 lines vs 2000+ in old implementation)
+- `urlFixService.ts` - Simplified URL replacement service (~300 lines vs 2000+ in old implementation)
 - Runs automatically on all messages in `#art` and `#nsfw` channels
-- No API calls, no complex logic - just status ID extraction and URL replacement
+- No API calls, no complex logic - just content ID extraction and URL replacement
+- Supports both Twitter/X and Pixiv platforms
 
 ### How It Works
-1. **Detects Twitter/X URLs** in messages from all domains:
-   - Standard: `twitter.com`, `x.com`
-   - Proxy services: `vxtwitter.com`, `fxtwitter.com`, `fixupx.com`, `fixvx.com`, `twittpr.com`, and others
-2. **Extracts status IDs** from any URL format (e.g., `/user/status/123` or `/i/status/123`)
-3. **Converts to fixupx.com format**: `https://fixupx.com/i/status/{statusId}`
-4. **Replies with fixed URL** and suppresses original message embeds
-5. **Tracks by status ID** to prevent duplicate processing
+1. **Detects URLs** in messages from all supported domains:
+   - **Twitter/X**: `twitter.com`, `x.com`, and proxy services (`vxtwitter.com`, `fxtwitter.com`, `fixupx.com`, etc.)
+   - **Pixiv**: `pixiv.net`, `phixiv.net` (proxy)
+2. **Extracts content IDs**:
+   - Twitter: Status IDs from any URL format (e.g., `/user/status/123` or `/i/status/123`)
+   - Pixiv: Artwork IDs from any URL format (e.g., `/artworks/456` or `?illust_id=456`)
+3. **Converts to proxy formats**:
+   - Twitter: `https://fixupx.com/i/status/{statusId}`
+   - Pixiv: `https://phixiv.net/artworks/{artworkId}`
+4. **Replies with fixed URL(s)** and suppresses original message embeds
+5. **Tracks by content ID** to prevent duplicate processing (format: `twitter:{id}` or `pixiv:{id}`)
 
 ### Deduplication System
-- Tracks `status ID → {messageId, channelId, guildId}` mapping
-- If same tweet posted again (any URL format), bot replies with:
+- Tracks `content ID → {messageId, channelId, guildId}` mapping
+- Separate tracking for Twitter and Pixiv (same number = different content)
+- If same content posted again (any URL format), bot replies with:
   - `🔄 This was already shared → [Original](discord link)`
   - Suppresses embeds on duplicate message
   - Links back to original post
@@ -150,15 +157,30 @@ User: https://twitter.com/artist/status/123456789
 Bot: 🔄 This was already shared → [Original](https://discord.com/channels/...)
 ```
 
+**Pixiv post:**
+```
+User: https://www.pixiv.net/artworks/987654321
+Bot: https://phixiv.net/artworks/987654321
+```
+
+**Mixed platforms in one message:**
+```
+User: Check out https://x.com/user/status/111 and https://pixiv.net/artworks/222
+Bot: https://fixupx.com/i/status/111
+     https://phixiv.net/artworks/222
+```
+
 ### Technical Details
 - **Bot message filtering**: First check to prevent infinite loops
 - **Two-phase embed suppression**: Immediate + 1500ms delayed (catches Discord's async embed generation)
-- **Memory management**: Clears tracked status IDs when > 1000 entries (every 5 minutes)
-- **Status ID deduplication**: Multiple URLs with same status ID = one reply
+- **Memory management**: Clears tracked content IDs when > 1000 entries (every 5 minutes)
+- **Content ID deduplication**: Multiple URLs with same content ID = one reply
 - **Channel filtering**: Only processes `#art` and `#nsfw` channels (case-insensitive)
+- **Multi-platform support**: Handles Twitter and Pixiv URLs in the same message
 
 ### Supported URL Formats
-All formats are normalized to `fixupx.com/i/status/{statusId}`:
+
+**Twitter/X** (normalized to `fixupx.com/i/status/{statusId}`):
 - `https://x.com/user/status/123`
 - `https://twitter.com/user/status/123`
 - `https://mobile.twitter.com/user/status/123`
@@ -168,17 +190,36 @@ All formats are normalized to `fixupx.com/i/status/{statusId}`:
 - `https://fixupx.com/i/status/123`
 - And other proxy service variants
 
+**Pixiv** (normalized to `phixiv.net/artworks/{artworkId}`):
+- `https://www.pixiv.net/artworks/123456`
+- `https://pixiv.net/en/artworks/123456` (with language prefix)
+- `https://www.pixiv.net/member_illust.php?illust_id=123456` (legacy format)
+- `https://phixiv.net/artworks/123456` (proxy)
+
 ### Testing
-Tests located in: `src/services/embedFix/tests/urlFixService.test.ts`
+Tests located in: `src/services/embedFix/tests/urlFixService.test.ts` (36 tests covering both platforms)
 
 Run tests:
 ```bash
-npm run test:run -- urlFixService
+bun run test:run -- urlFixService
 ```
 
+Test coverage includes:
+- Bot message filtering
+- Channel filtering
+- Twitter URL extraction (all formats)
+- Pixiv URL extraction (all formats)
+- Mixed platform URLs
+- Deduplication for both platforms
+- Duplicate notifications
+- Embed suppression
+- Error handling
+- Edge cases
+
 ### Important Notes
-- **No API calls**: Leverages fixupx.com's embed service instead of generating embeds
+- **No API calls**: Leverages fixupx.com and phixiv.net embed services
 - **Fast response**: < 1 second (instant URL replacement)
-- **No infinite loops**: Bot check is FIRST, message ID tracking prevents reprocessing
+- **No infinite loops**: Bot check is FIRST, content ID tracking prevents reprocessing
 - **Graceful error handling**: Failed embed suppression doesn't stop reply
 - **Non-blocking**: Uses setTimeout for delayed suppression (doesn't block bot)
+- **Platform-agnostic**: Twitter ID 123 and Pixiv ID 123 are tracked separately

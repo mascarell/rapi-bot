@@ -56,12 +56,15 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
-# Install dependencies including TypeScript and ts-node
-RUN npm install
-RUN npm install -g typescript ts-node
+# Copy package.json and bun lockfile
+COPY package.json bun.lock ./
+
+# Install dependencies with bun (TypeScript support built-in)
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the application's source code
 COPY . .
@@ -69,5 +72,5 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Command to run the TypeScript application directly
-CMD ["ts-node", "src/index.ts"]
+# Command to run the TypeScript application with bun
+CMD ["bun", "run", "src/index.ts"]
