@@ -394,6 +394,174 @@ describe('UrlFixService', () => {
         });
     });
 
+    describe('Pixiv URL handling', () => {
+        it('should extract and convert standard pixiv.net URLs', async () => {
+            const message = createMockMessage(
+                'https://www.pixiv.net/artworks/123456789',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            expect(message.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: 'https://phixiv.net/artworks/123456789',
+                })
+            );
+        });
+
+        it('should extract and convert pixiv.net URLs with language prefix', async () => {
+            const message = createMockMessage(
+                'https://www.pixiv.net/en/artworks/987654321',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            expect(message.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: 'https://phixiv.net/artworks/987654321',
+                })
+            );
+        });
+
+        it('should extract and convert legacy member_illust.php URLs', async () => {
+            const message = createMockMessage(
+                'https://www.pixiv.net/member_illust.php?illust_id=111222333',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            expect(message.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: 'https://phixiv.net/artworks/111222333',
+                })
+            );
+        });
+
+        it('should extract from phixiv.net proxy URLs', async () => {
+            const message = createMockMessage(
+                'https://phixiv.net/artworks/444555666',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            expect(message.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: 'https://phixiv.net/artworks/444555666',
+                })
+            );
+        });
+
+        it('should deduplicate Pixiv URLs by artwork ID', async () => {
+            const message = createMockMessage(
+                'https://www.pixiv.net/artworks/123 and https://pixiv.net/en/artworks/123',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            const reply = (message.reply as any).mock.calls[0][0];
+            // Should only have one URL in the reply (deduplicated)
+            const urlCount = (reply.content.match(/https:\/\/phixiv\.net/g) || []).length;
+            expect(urlCount).toBe(1);
+        });
+
+        it('should show duplicate notification for reposted Pixiv content', async () => {
+            const message1 = createMockMessage(
+                'https://www.pixiv.net/artworks/999888777',
+                'art',
+                false,
+                'test-guild-id',
+                'test-channel-id',
+                'original-message-id'
+            );
+
+            await service.processMessage(message1 as Message);
+            vi.clearAllMocks();
+
+            // Second post with same artwork ID
+            const message2 = createMockMessage(
+                'https://phixiv.net/artworks/999888777',
+                'art',
+                false,
+                'test-guild-id',
+                'test-channel-id',
+                'duplicate-message-id'
+            );
+
+            await service.processMessage(message2 as Message);
+
+            expect(message2.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('🔄 This was already shared →'),
+                })
+            );
+        });
+    });
+
+    describe('Mixed platform URLs', () => {
+        it('should handle both Twitter and Pixiv URLs in one message', async () => {
+            const message = createMockMessage(
+                'Check these out: https://x.com/user/status/123 and https://www.pixiv.net/artworks/456',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            const reply = (message.reply as any).mock.calls[0][0];
+            expect(reply.content).toContain('https://fixupx.com/i/status/123');
+            expect(reply.content).toContain('https://phixiv.net/artworks/456');
+        });
+
+        it('should handle multiple Pixiv and Twitter URLs', async () => {
+            const message = createMockMessage(
+                'Art: https://pixiv.net/artworks/111 https://x.com/a/status/222 https://pixiv.net/en/artworks/333',
+                'art'
+            );
+
+            await service.processMessage(message as Message);
+
+            const reply = (message.reply as any).mock.calls[0][0];
+            expect(reply.content).toContain('https://phixiv.net/artworks/111');
+            expect(reply.content).toContain('https://fixupx.com/i/status/222');
+            expect(reply.content).toContain('https://phixiv.net/artworks/333');
+        });
+
+        it('should track both Twitter and Pixiv duplicates separately', async () => {
+            const message1 = createMockMessage(
+                'https://x.com/user/status/123 and https://pixiv.net/artworks/456',
+                'art',
+                false,
+                'test-guild-id',
+                'test-channel-id',
+                'msg-1'
+            );
+
+            await service.processMessage(message1 as Message);
+            vi.clearAllMocks();
+
+            // Repost same Twitter but different Pixiv
+            const message2 = createMockMessage(
+                'https://x.com/user/status/123 and https://pixiv.net/artworks/789',
+                'art',
+                false,
+                'test-guild-id',
+                'test-channel-id',
+                'msg-2'
+            );
+
+            await service.processMessage(message2 as Message);
+
+            // Should reply with only the new Pixiv URL (Twitter is duplicate)
+            const reply = (message2.reply as any).mock.calls[0][0];
+            expect(reply.content).not.toContain('123'); // Twitter duplicate not included
+            expect(reply.content).toContain('https://phixiv.net/artworks/789'); // New Pixiv included
+        });
+    });
+
     describe('Error handling', () => {
         it('should handle reply errors gracefully', async () => {
             const message = createMockMessage(
