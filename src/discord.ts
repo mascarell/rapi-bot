@@ -1015,7 +1015,7 @@ function getRandomGoodIdeaPhrase() {
     return phrase;
 }
 
-async function loadCommands() {
+function loadCommands() {
     // Load chat commands
     for (const key in chatCommands) {
         if (Object.prototype.hasOwnProperty.call(chatCommands, key)) {
@@ -1033,12 +1033,13 @@ async function loadCommands() {
     const commandsPath = path.join(__dirname, 'commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
-    const importPromises = commandFiles.map(async (file) => {
+    // Use require() instead of import() for CommonJS modules
+    // This fixes Bun's "Expected CommonJS module to have a function wrapper" error in Docker
+    for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         try {
-            const commandModule = await import(filePath);
-            // Handle both default export and direct module.exports
-            const command = commandModule.default || commandModule;
+            // Use require() for CommonJS modules (works better with Bun in Docker)
+            const command = require(filePath);
             if (isSlashCommand(command)) {
                 bot.commands.set(command.data.name, command);
                 commands.push(command.data.toJSON());
@@ -1054,9 +1055,8 @@ async function loadCommands() {
                 logError('GLOBAL', 'GLOBAL', new Error(String(error)), errorMessage);
             }
         }
-    });
+    }
 
-    await Promise.all(importPromises);
     console.log(`✓ Successfully loaded ${commands.length} slash commands`);
 }
 
@@ -1815,7 +1815,7 @@ function playNextSong(guildId: string) {
 }
 
 async function initDiscordBot() {
-    await loadCommands();
+    loadCommands();
 
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();
