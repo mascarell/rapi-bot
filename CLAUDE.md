@@ -1,7 +1,7 @@
 # CLAUDE.md - LLM Context Guide
 
 ## Project Overview
-Discord bot for gacha games: daily reset notifications, music playback, chat commands, **coupon redemption system**, and **rules management**.
+Discord bot for gacha games: daily reset notifications, music playback, chat commands, **coupon redemption system**, **rules management**, and **Twitter/X URL embed fix**.
 
 ## Tech Stack
 - TypeScript, Node.js, Discord.js
@@ -13,7 +13,9 @@ Discord bot for gacha games: daily reset notifications, music playback, chat com
 ```
 src/
 ├── commands/           # Slash commands (/redeem, /spam, /gacha, /rules, etc.)
-├── services/           # Business logic (gachaRedemptionService, gachaDataService, rulesManagementService)
+├── services/
+│   ├── embedFix/      # Twitter/X URL fix service (urlFixService.ts)
+│   └── ...            # Other services (gachaRedemptionService, gachaDataService, rulesManagementService)
 ├── utils/
 │   ├── data/          # Config files (gachaGamesConfig, gachaConfig)
 │   └── interfaces/    # TypeScript interfaces
@@ -111,3 +113,72 @@ AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET
 2. **Dynamic channel finding**: Searches for channel named `rules` in each guild
 3. **Message persistence**: Finds existing bot message or creates new one
 4. **Ephemeral display**: `/rules` command shows content only to the user who invoked it
+
+## Twitter/X URL Embed Fix System
+
+### Architecture
+- `urlFixService.ts` - Simplified URL replacement service (~200 lines vs 2000+ in old implementation)
+- Runs automatically on all messages in `#art` and `#nsfw` channels
+- No API calls, no complex logic - just status ID extraction and URL replacement
+
+### How It Works
+1. **Detects Twitter/X URLs** in messages from all domains:
+   - Standard: `twitter.com`, `x.com`
+   - Proxy services: `vxtwitter.com`, `fxtwitter.com`, `fixupx.com`, `fixvx.com`, `twittpr.com`, and others
+2. **Extracts status IDs** from any URL format (e.g., `/user/status/123` or `/i/status/123`)
+3. **Converts to fixupx.com format**: `https://fixupx.com/i/status/{statusId}`
+4. **Replies with fixed URL** and suppresses original message embeds
+5. **Tracks by status ID** to prevent duplicate processing
+
+### Deduplication System
+- Tracks `status ID → {messageId, channelId, guildId}` mapping
+- If same tweet posted again (any URL format), bot replies with:
+  - `🔄 This was already shared → [Original](discord link)`
+  - Suppresses embeds on duplicate message
+  - Links back to original post
+
+### Example Flow
+**First post (new tweet):**
+```
+User: https://x.com/artist/status/123456789
+Bot: https://fixupx.com/i/status/123456789
+```
+
+**Second post (duplicate tweet):**
+```
+User: https://twitter.com/artist/status/123456789
+Bot: 🔄 This was already shared → [Original](https://discord.com/channels/...)
+```
+
+### Technical Details
+- **Bot message filtering**: First check to prevent infinite loops
+- **Two-phase embed suppression**: Immediate + 1500ms delayed (catches Discord's async embed generation)
+- **Memory management**: Clears tracked status IDs when > 1000 entries (every 5 minutes)
+- **Status ID deduplication**: Multiple URLs with same status ID = one reply
+- **Channel filtering**: Only processes `#art` and `#nsfw` channels (case-insensitive)
+
+### Supported URL Formats
+All formats are normalized to `fixupx.com/i/status/{statusId}`:
+- `https://x.com/user/status/123`
+- `https://twitter.com/user/status/123`
+- `https://mobile.twitter.com/user/status/123`
+- `https://www.x.com/user/status/123`
+- `https://vxtwitter.com/user/status/123`
+- `https://fxtwitter.com/user/status/123`
+- `https://fixupx.com/i/status/123`
+- And other proxy service variants
+
+### Testing
+Tests located in: `src/services/embedFix/tests/urlFixService.test.ts`
+
+Run tests:
+```bash
+npm run test:run -- urlFixService
+```
+
+### Important Notes
+- **No API calls**: Leverages fixupx.com's embed service instead of generating embeds
+- **Fast response**: < 1 second (instant URL replacement)
+- **No infinite loops**: Bot check is FIRST, message ID tracking prevents reprocessing
+- **Graceful error handling**: Failed embed suppression doesn't stop reply
+- **Non-blocking**: Uses setTimeout for delayed suppression (doesn't block bot)

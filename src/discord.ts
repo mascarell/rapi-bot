@@ -45,8 +45,7 @@ import { getUptimeService } from './services/uptimeService';
 import { DailyResetService } from './services/dailyResetService';
 import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
 import { GachaCouponScheduler } from './services/gachaCouponScheduler';
-import { checkEmbedFixUrls, checkEmbedFixUrlsOnEdit, getEmbedFixService } from './services/embedFix/embedFixService';
-import { getEmbedVotesService } from './services/embedFix/embedVotesService';
+import { checkEmbedFixUrls } from './services/embedFix/urlFixService';
 import { getChannelMonitorService } from './services/channelMonitorService';
 import { getReactionConfirmationService } from './services/reactionConfirmationService';
 import { getRulesManagementService } from './services/rulesManagementService';
@@ -1396,8 +1395,7 @@ function handleMessages() {
             console.log(`Message updated in guild: ${newMessage.guild.name}, Content: ${newMessage.content}`);
             await checkSensitiveTerms(newMessage as Message);
 
-            // Check for embed fix URLs on edit (handles typo corrections, etc.)
-            await checkEmbedFixUrlsOnEdit(oldMessage as Message, newMessage as Message);
+            // Embed fix no longer processes edits - simple URL replacement only on initial message
         } catch (error) {
             console.error("Error handling message update:", error);
         }
@@ -1683,87 +1681,19 @@ function enableAutoComplete() {
     });
 }
 
+// REMOVED: Old embed fix button and reaction handlers
+// The simplified embed fix service doesn't use buttons or reactions
+// Just simple URL replacement with text replies
+
+/*
 function handleEmbedFixButtons() {
-    bot.on(Events.InteractionCreate, async (interaction) => {
-        if (!interaction.isButton()) return;
-
-        // Handle vote button
-        if (interaction.customId.startsWith('embed_vote:')) {
-            try {
-                const artworkId = interaction.customId.replace('embed_vote:', '');
-                const result = await getEmbedVotesService().toggleVote(
-                    artworkId,
-                    interaction.guildId!,
-                    interaction.user.id
-                );
-
-                // Update button label with new vote count
-                const components = interaction.message.components;
-                if (components.length > 0) {
-                    const originalRow = components[0];
-                    if (originalRow.type === ComponentType.ActionRow && originalRow.components.length >= 2) {
-                        const firstComponent = originalRow.components[0];
-                        const secondComponent = originalRow.components[1];
-                        if (firstComponent.type === ComponentType.Button && secondComponent.type === ComponentType.Button) {
-                            const voteButton = ButtonBuilder.from(firstComponent).setLabel(result.newCount.toString());
-                            const dmButton = ButtonBuilder.from(secondComponent);
-                            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(voteButton, dmButton);
-                            await interaction.update({ components: [row] });
-                        }
-                    }
-                }
-            } catch (error) {
-                if (error instanceof Error) {
-                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix vote button');
-                } else {
-                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix vote button');
-                }
-            }
-            return;
-        }
-
-        // Handle DM button
-        if (interaction.customId.startsWith('embed_save:')) {
-            try {
-                await getEmbedFixService().handleBookmarkInteraction(interaction);
-            } catch (error) {
-                if (error instanceof Error) {
-                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', error, 'EmbedFix DM button');
-                } else {
-                    logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix DM button');
-                }
-            }
-        }
-    });
+    // ... old complex button handling code removed ...
 }
 
 function handleEmbedFixReactions() {
-    // Handle envelope emoji reaction for DM functionality
-    bot.on(Events.MessageReactionAdd, async (reaction, user) => {
-        // Ignore bot's own reactions
-        if (user.bot) return;
-
-        // Only process envelope emoji
-        if (reaction.emoji.name !== '✉️') return;
-
-        // Check if this is on a bot message (our embed replies)
-        const message = reaction.message;
-        if (!message.author?.bot) return;
-
-        // Check if the bot is the author (our messages only)
-        if (message.author.id !== bot.user?.id) return;
-
-        try {
-            await getEmbedFixService().handleEnvelopeReaction(reaction, user);
-        } catch (error) {
-            if (error instanceof Error) {
-                logError(message.guildId || 'UNKNOWN', message.guild?.name || 'UNKNOWN', error, 'EmbedFix envelope reaction');
-            } else {
-                logError(message.guildId || 'UNKNOWN', message.guild?.name || 'UNKNOWN', new Error(String(error)), 'EmbedFix envelope reaction');
-            }
-        }
-    });
+    // ... old complex reaction handling code removed ...
 }
+*/
 
 async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
     try {
@@ -1885,8 +1815,8 @@ async function initDiscordBot() {
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();
 
-    // Initialize embed fix service
-    getEmbedFixService().initialize();
+    // Simple embed fix service doesn't need initialization
+    // It's stateless except for the repliedMessages Set
 
     bot.once(Events.ClientReady, async () => {
         try {
@@ -1932,8 +1862,8 @@ async function initDiscordBot() {
             enableAutoComplete();
             handleMessages();
             handleSlashCommands();
-            handleEmbedFixButtons();  // Keep for backwards compatibility with existing button posts
-            handleEmbedFixReactions(); // New: handle emoji reactions for DM
+            // Removed: handleEmbedFixButtons() and handleEmbedFixReactions()
+            // Simple embed fix doesn't use buttons or reactions
             startStreamStatusCheck(bot);
 
             const rest = new REST().setToken(DISCORD_TOKEN);

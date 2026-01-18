@@ -10,6 +10,7 @@ The Loot and Waifus Bot is a Discord bot designed to manage daily resets and pro
 - **24/7 Music Playback**: Connects to a voice channel to play music continuously from a specified folder.
 - **Command Responses**: Responds to specific text commands with images, videos, or text messages.
 - **Role and Channel Management**: Interacts with specific roles and channels to provide tailored experiences.
+- **Twitter/X URL Embed Fix**: Automatically replaces Twitter/X URLs with fixupx.com embeds in art channels.
 - **Hourly Rate Limiting**: Users are limited to 3 chat commands per hour, resetting at the top of every hour (UTC).
 - **/age Command**: Shows how long the bot has been running (system uptime).
 - **/spam Command**:
@@ -360,6 +361,57 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret
 AWS_REGION=us-east-1
 S3_BUCKET=your-bucket-name
 ```
+
+---
+
+## Twitter/X URL Embed Fix
+
+The bot automatically improves Twitter/X embeds in `#art` and `#nsfw` channels by replacing URLs with fixupx.com versions.
+
+### How It Works
+
+1. **Automatic Detection**: Monitors messages in art channels for Twitter/X URLs
+2. **URL Normalization**: Converts all Twitter URL formats to a consistent fixupx.com format
+3. **Duplicate Prevention**: Tracks tweets by status ID to avoid reposting the same content
+4. **Embed Suppression**: Removes Discord's default Twitter embeds for cleaner display
+
+### Supported URL Formats
+
+The bot recognizes and converts URLs from:
+- **Standard**: `twitter.com`, `x.com`
+- **Mobile**: `mobile.twitter.com`, `mobile.x.com`
+- **Proxy Services**: `vxtwitter.com`, `fxtwitter.com`, `fixupx.com`, `fixvx.com`, `twittpr.com`, and others
+
+All formats are normalized to: `https://fixupx.com/i/status/{statusId}`
+
+### Example
+
+**User posts:**
+```
+Check out this art! https://x.com/artist/status/123456789
+```
+
+**Bot replies:**
+```
+https://fixupx.com/i/status/123456789
+```
+*(Original Twitter embed is suppressed)*
+
+### Duplicate Detection
+
+If the same tweet is posted again (using any URL format), the bot will notify users and link to the original post:
+
+**Second post:**
+```
+🔄 This was already shared → [Original](discord link)
+```
+
+### Technical Details
+
+- **Channels**: Only processes `#art` and `#nsfw` channels (case-insensitive)
+- **Performance**: < 1 second response time (no API calls)
+- **Memory**: Automatically clears tracking data when > 1000 entries
+- **Safety**: Bot messages are never processed (prevents infinite loops)
 
 ---
 
