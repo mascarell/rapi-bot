@@ -1,5 +1,5 @@
 import { Client, Message, MessageReaction, User, PartialMessageReaction, PartialUser, EmbedBuilder, Embed } from 'discord.js';
-import { getGachaDataService } from './gachaDataService';
+import { getGachaDataService } from './gachaDataService.js';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { getGameConfig, GACHA_GAMES } from '../utils/data/gachaGamesConfig';
 

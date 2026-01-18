@@ -1,5 +1,5 @@
 import { Client, TextChannel, Message } from 'discord.js';
-import { getGachaGuildConfigService } from './gachaGuildConfigService';
+import { getGachaGuildConfigService } from './gachaGuildConfigService.js';
 
 // Constants
 const RULES_CHANNEL_NAME = 'rules'; // Channel name to search for

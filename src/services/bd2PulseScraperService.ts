@@ -7,7 +7,7 @@
  */
 
 import puppeteer from 'puppeteer';
-import { getGachaDataService } from './gachaDataService';
+import { getGachaDataService } from './gachaDataService.js';
 import { GachaCoupon } from '../utils/interfaces/GachaCoupon.interface';
 
 const BD2_PULSE_API_URL = 'https://api.thebd2pulse.com/redeem';

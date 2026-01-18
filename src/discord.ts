@@ -37,19 +37,19 @@ import * as util from "./utils/util";
 import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
 import { getCCPMessage } from "./utils/constants/messages";
 import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
-import { Command, MessageCommand } from './utils/interfaces/Command.interface';
+import { Command, MessageCommand } from './utils/interfaces/Command.interface.js';
 import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
-import { startStreamStatusCheck } from './utils/twitch';
-import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
-import { getUptimeService } from './services/uptimeService';
-import { DailyResetService } from './services/dailyResetService';
-import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
-import { GachaCouponScheduler } from './services/gachaCouponScheduler';
-import { checkEmbedFixUrls } from './services/embedFix/urlFixService';
-import { getChannelMonitorService } from './services/channelMonitorService';
-import { getReactionConfirmationService } from './services/reactionConfirmationService';
-import { getRulesManagementService } from './services/rulesManagementService';
+import { startStreamStatusCheck } from './utils/twitch.js';
+import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter.js';
+import { getUptimeService } from './services/uptimeService.js';
+import { DailyResetService } from './services/dailyResetService.js';
+import { dailyResetServiceConfig } from './utils/data/gamesResetConfig.js';
+import { GachaCouponScheduler } from './services/gachaCouponScheduler.js';
+import { checkEmbedFixUrls } from './services/embedFix/urlFixService.js';
+import { getChannelMonitorService } from './services/channelMonitorService.js';
+import { getReactionConfirmationService } from './services/reactionConfirmationService.js';
+import { getRulesManagementService } from './services/rulesManagementService.js';
 
 // Destructure only the necessary functions from util
 const {

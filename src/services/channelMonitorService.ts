@@ -1,7 +1,7 @@
 import { Client, Message, TextChannel } from 'discord.js';
-import { getGachaGuildConfigService, ChannelMonitorConfig } from './gachaGuildConfigService';
-import { getGachaDataService } from './gachaDataService';
-import { getGachaRedemptionService } from './gachaRedemptionService';
+import { getGachaGuildConfigService, ChannelMonitorConfig } from './gachaGuildConfigService.js';
+import { getGachaDataService } from './gachaDataService.js';
+import { getGachaRedemptionService } from './gachaRedemptionService.js';
 import { GachaGameId, GachaCoupon } from '../utils/interfaces/GachaCoupon.interface';
 import { GACHA_GAMES, getGameConfig } from '../utils/data/gachaGamesConfig';
 

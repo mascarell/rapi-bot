@@ -1,8 +1,8 @@
 import { Client, EmbedBuilder, User, Message } from 'discord.js';
 import pLimit from 'p-limit';
-import { getGachaDataService } from './gachaDataService';
-import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from './reactionConfirmationService';
-import { getChannelMonitorService } from './channelMonitorService';
+import { getGachaDataService } from './gachaDataService.js';
+import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from './reactionConfirmationService.js';
+import { getChannelMonitorService } from './channelMonitorService.js';
 import {
     RedemptionResult,
     GachaCoupon,

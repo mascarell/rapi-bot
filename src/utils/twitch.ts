@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ActivityType, PresenceUpdateStatus } from 'discord.js';
-import { setIsStreaming } from './util';
+import { setIsStreaming } from './util.js';
 
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;

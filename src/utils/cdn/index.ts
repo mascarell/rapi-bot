@@ -1,2 +1,2 @@
-export * from './config';
-export * from './mediaManager'; 
+export * from './config.js';
+export * from './mediaManager.js'; 
