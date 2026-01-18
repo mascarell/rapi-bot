@@ -25,20 +25,24 @@ const FIXUP_DOMAINS = [
     'cunnyx.com'
 ];
 
-// Track status IDs we've already processed (prevent duplicate replies for same tweet)
-// Maps status ID to original message info (for linking back)
+// Pixiv proxy domain
+const PIXIV_PROXY = 'phixiv.net';
+
+// Track content IDs we've already processed (prevent duplicate replies)
+// Format: "twitter:{statusId}" or "pixiv:{artworkId}"
+// Maps content ID to original message info (for linking back)
 interface OriginalMessageInfo {
     messageId: string;
     channelId: string;
     guildId: string;
 }
-const processedStatusIds = new Map<string, OriginalMessageInfo>();
+const processedContentIds = new Map<string, OriginalMessageInfo>();
 
 // Clean old entries every 5 minutes to prevent memory growth
 setInterval(() => {
-    if (processedStatusIds.size > 1000) {
-        console.log(`[UrlFix] Clearing ${processedStatusIds.size} tracked status IDs`);
-        processedStatusIds.clear();
+    if (processedContentIds.size > 1000) {
+        console.log(`[UrlFix] Clearing ${processedContentIds.size} tracked content IDs`);
+        processedContentIds.clear();
     }
 }, 5 * 60 * 1000);
 
@@ -109,6 +113,7 @@ export class UrlFixService {
         // Regex to extract status IDs from any Twitter URL format
         // Pattern 1: /username/status/statusId (standard Twitter format)
         // Pattern 2: /i/status/statusId (fixupx.com format)
+        // Matches status ID even with query parameters or trailing content (\\d+ captures just the digits)
         const twitterRegex = new RegExp(
             `https?:\\/\\/(www\\.)?(mobile\\.)?(${allDomains})\\/(\\w+\\/)?status\\/(\\d+)`,
             'gi'
@@ -140,10 +145,11 @@ export class UrlFixService {
         const duplicateStatusInfo: Array<{ statusId: string; originalInfo: OriginalMessageInfo }> = [];
 
         for (const statusId of statusIds) {
-            if (processedStatusIds.has(statusId)) {
-                const originalInfo = processedStatusIds.get(statusId)!;
+            const contentId = `twitter:${statusId}`;
+            if (processedContentIds.has(contentId)) {
+                const originalInfo = processedContentIds.get(contentId)!;
                 duplicateStatusInfo.push({ statusId, originalInfo });
-                console.log(`[UrlFix] Status ID ${statusId} already processed in message ${originalInfo.messageId}`);
+                console.log(`[UrlFix] Twitter status ${statusId} already processed in message ${originalInfo.messageId}`);
             } else {
                 newStatusIds.push(statusId);
             }
@@ -218,7 +224,8 @@ export class UrlFixService {
 
             // Mark all new status IDs as processed, linking to this message
             for (const statusId of newStatusIds) {
-                processedStatusIds.set(statusId, {
+                const contentId = `twitter:${statusId}`;
+                processedContentIds.set(contentId, {
                     messageId: message.id,
                     channelId: message.channel.id,
                     guildId: message.guild!.id
