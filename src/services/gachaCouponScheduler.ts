@@ -1,10 +1,10 @@
 import { Client } from 'discord.js';
 import schedule from 'node-schedule';
-import { getGachaRedemptionService } from './gachaRedemptionService';
-import { getGachaDataService } from './gachaDataService';
+import { getGachaRedemptionService } from './gachaRedemptionService.js';
+import { getGachaDataService } from './gachaDataService.js';
 import { getSupportedGameIds, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
-import { syncBD2PulseCodes, ScrapeResult } from './bd2PulseScraperService';
+import { syncBD2PulseCodes, ScrapeResult } from './bd2PulseScraperService.js';
 
 /**
  * Configuration for dev mode intervals (in minutes)

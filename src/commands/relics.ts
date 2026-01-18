@@ -2,7 +2,7 @@ import { SlashCommandBuilder, CommandInteraction ,
     MessageFlags
 } from 'discord.js';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('relics')
         .setDescription('Get lost relics guide in NIKKE to locate all lost relics'),

@@ -21,14 +21,14 @@ import {
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
 import { EmbedData, EmbedPlatform, MatchedUrl } from '../../utils/interfaces/EmbedFix.interface';
 import { logError } from '../../utils/util';
-import { circuitBreaker } from './circuitBreaker';
-import { embedCache } from './embedCache';
-import { EmbedVotesService, getEmbedVotesService } from './embedVotesService';
-import { instagramHandler } from './handlers/instagramHandler';
-import { pixivHandler } from './handlers/pixivHandler';
-import { twitterHandler } from './handlers/twitterHandler';
-import { embedFixRateLimiter } from './rateLimiter';
-import { urlMatcher } from './urlMatcher';
+import { circuitBreaker } from './circuitBreaker.js';
+import { embedCache } from './embedCache.js';
+import { EmbedVotesService, getEmbedVotesService } from './embedVotesService.js';
+import { instagramHandler } from './handlers/instagramHandler.js';
+import { pixivHandler } from './handlers/pixivHandler.js';
+import { twitterHandler } from './handlers/twitterHandler.js';
+import { embedFixRateLimiter } from './rateLimiter.js';
+import { urlMatcher } from './urlMatcher.js';
 
 /**
  * Download a video file, checking size constraints

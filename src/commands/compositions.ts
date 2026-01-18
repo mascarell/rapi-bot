@@ -2,7 +2,7 @@ import { SlashCommandBuilder, CommandInteraction ,
     MessageFlags
 } from 'discord.js';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('compositions')
         .setDescription('Get help for NIKKE team compositions'),

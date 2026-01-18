@@ -37,19 +37,19 @@ import * as util from "./utils/util";
 import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface";
 import { getCCPMessage } from "./utils/constants/messages";
 import { SensitiveTerm } from "./utils/interfaces/SensitiveTerm.interface";
-import { Command, MessageCommand } from './utils/interfaces/Command.interface';
+import { Command, MessageCommand } from './utils/interfaces/Command.interface.js';
 import { CustomClient } from "./utils/interfaces/CustomClient.interface";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager";
-import { startStreamStatusCheck } from './utils/twitch';
-import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter';
-import { getUptimeService } from './services/uptimeService';
-import { DailyResetService } from './services/dailyResetService';
-import { dailyResetServiceConfig } from './utils/data/gamesResetConfig';
-import { GachaCouponScheduler } from './services/gachaCouponScheduler';
-import { checkEmbedFixUrls } from './services/embedFix/urlFixService';
-import { getChannelMonitorService } from './services/channelMonitorService';
-import { getReactionConfirmationService } from './services/reactionConfirmationService';
-import { getRulesManagementService } from './services/rulesManagementService';
+import { startStreamStatusCheck } from './utils/twitch.js';
+import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter.js';
+import { getUptimeService } from './services/uptimeService.js';
+import { DailyResetService } from './services/dailyResetService.js';
+import { dailyResetServiceConfig } from './utils/data/gamesResetConfig.js';
+import { GachaCouponScheduler } from './services/gachaCouponScheduler.js';
+import { checkEmbedFixUrls } from './services/embedFix/urlFixService.js';
+import { getChannelMonitorService } from './services/channelMonitorService.js';
+import { getReactionConfirmationService } from './services/reactionConfirmationService.js';
+import { getRulesManagementService } from './services/rulesManagementService.js';
 
 // Destructure only the necessary functions from util
 const {
@@ -1015,7 +1015,7 @@ function getRandomGoodIdeaPhrase() {
     return phrase;
 }
 
-function loadCommands() {
+async function loadCommands() {
     // Load chat commands
     for (const key in chatCommands) {
         if (Object.prototype.hasOwnProperty.call(chatCommands, key)) {
@@ -1033,13 +1033,14 @@ function loadCommands() {
     const commandsPath = path.join(__dirname, 'commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
-    // Use require() instead of import() for CommonJS modules
-    // This fixes Bun's "Expected CommonJS module to have a function wrapper" error in Docker
-    for (const file of commandFiles) {
+    // Use dynamic import() for ESM modules
+    // Works properly with export default syntax
+    const importPromises = commandFiles.map(async (file) => {
         const filePath = path.join(commandsPath, file);
         try {
-            // Use require() for CommonJS modules (works better with Bun in Docker)
-            const command = require(filePath);
+            // Dynamic import() for ESM (export default)
+            const commandModule = await import(filePath);
+            const command = commandModule.default;
             if (isSlashCommand(command)) {
                 bot.commands.set(command.data.name, command);
                 commands.push(command.data.toJSON());
@@ -1055,8 +1056,9 @@ function loadCommands() {
                 logError('GLOBAL', 'GLOBAL', new Error(String(error)), errorMessage);
             }
         }
-    }
+    });
 
+    await Promise.all(importPromises);
     console.log(`✓ Successfully loaded ${commands.length} slash commands`);
 }
 
@@ -1815,7 +1817,7 @@ function playNextSong(guildId: string) {
 }
 
 async function initDiscordBot() {
-    loadCommands();
+    await loadCommands();
 
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();

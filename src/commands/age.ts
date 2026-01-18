@@ -8,7 +8,7 @@ import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter';
  * Command export for Discord.js
  * Shows bot uptime and system information
  */
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('age')
         .setDescription('Show how long the bot has been running'),

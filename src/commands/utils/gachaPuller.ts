@@ -2,7 +2,7 @@ import { ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { s3Client } from '../../utils/cdn';
 import { CONSTANTS } from './gachaConstants';
 import { GachaGameConfig, PullResult } from './gachaTypes';
-import { NikkeUtil } from './nikkeUtil';
+import { NikkeUtil } from './nikkeUtil.js';
 
 export class GachaPuller {
     static async pull(pullType: string, gameConfig: GachaGameConfig): Promise<PullResult[]> {

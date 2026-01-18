@@ -80,7 +80,7 @@ const rapiBallResponses = [
     `That's what we in the business call 'suicide with extra steps'.`,
 ];
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('rapiball')
         .setDescription('Ask Rapi a question and receive her tactical assessment')

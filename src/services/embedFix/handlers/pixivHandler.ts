@@ -5,7 +5,7 @@
 
 import { EMBED_FIX_CONFIG } from '../../../utils/data/embedFixConfig';
 import { EmbedData, EmbedPlatform } from '../../../utils/interfaces/EmbedFix.interface';
-import { BaseHandler } from './baseHandler';
+import { BaseHandler } from './baseHandler.js';
 
 export class PixivHandler extends BaseHandler {
     platform: EmbedPlatform = 'pixiv';

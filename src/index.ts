@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
-import { initDiscordBot } from './discord';
-import router from './router';
+import { initDiscordBot } from './discord.js';
+import router from './router.js';
 
 const app = express();
 const port = process.env.WAIFUPORT || 3000;

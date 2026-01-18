@@ -31,7 +31,7 @@ const saveUserData = (data: UserData) => {
 
 userData = loadUserData();
 
-module.exports = {
+export default {
     lastUsage: userData,
     data: new SlashCommandBuilder()
         .setName('lucky')

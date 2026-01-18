@@ -3,7 +3,7 @@ import { Guild, TextChannel, ChannelType, VoiceBasedChannel } from 'discord.js';
 import { bosses, bossesLinks, towerRotation, rapiMessages, readNikkeMessages } from ".";
 import { promises as fs } from "fs";
 import path from "path";
-import { Command, SlashCommand, MessageCommand } from './interfaces/Command.interface';
+import { Command, SlashCommand, MessageCommand } from './interfaces/Command.interface.js';
 
 export { gamesData };
 

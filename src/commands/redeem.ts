@@ -1236,7 +1236,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
 
 // ==================== Command Export ====================
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('redeem')
         .setDescription('Gacha game coupon redemption system')
