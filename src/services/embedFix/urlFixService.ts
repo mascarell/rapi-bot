@@ -14,6 +14,17 @@
 
 import { Message, TextChannel } from 'discord.js';
 
+// Fixup service domains that we should skip (already fixed)
+const FIXUP_DOMAINS = [
+    'vxtwitter.com',
+    'fxtwitter.com',
+    'fixupx.com',
+    'fixvx.com',
+    'twittpr.com',
+    'girlcockx.com',
+    'cunnyx.com'
+];
+
 // Track messages we've already replied to (prevent duplicates)
 const repliedMessages = new Set<string>();
 
@@ -86,10 +97,18 @@ export class UrlFixService {
             return;
         }
 
+        // Check if message contains fixup service URLs (skip if already fixed)
+        const hasFixupUrl = FIXUP_DOMAINS.some(domain => message.content.includes(domain));
+        if (hasFixupUrl) {
+            console.log('[UrlFix] Message contains fixup service URL, skipping (already fixed)');
+            return;
+        }
+
         // Extract Twitter/X URLs using regex
         // Matches: https://x.com/user/status/123 or https://twitter.com/user/status/123
+        // Also matches mobile URLs and www variants
         console.log(`[UrlFix] Message content: ${message.content}`);
-        const twitterRegex = /https?:\/\/(x\.com|twitter\.com)\/[^\s]+/g;
+        const twitterRegex = /https?:\/\/(www\.)?(mobile\.)?(twitter\.com|x\.com)\/[^\s]+/gi;
         const matches = message.content.match(twitterRegex);
         console.log(`[UrlFix] Found ${matches?.length || 0} Twitter/X URLs`);
 
@@ -99,8 +118,9 @@ export class UrlFixService {
         }
 
         // Replace domains with fixupx.com
+        // This regex handles www. and mobile. prefixes
         const fixedUrls = matches.map(url =>
-            url.replace(/(x\.com|twitter\.com)/, 'fixupx.com')
+            url.replace(/(www\.)?(mobile\.)?(twitter\.com|x\.com)/, 'fixupx.com')
         );
 
         // Reply with fixed URLs (one per line)
