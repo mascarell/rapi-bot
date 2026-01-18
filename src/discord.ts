@@ -13,7 +13,8 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ComponentType,
-    Partials
+    Partials,
+    MessageFlags
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
@@ -1644,7 +1645,7 @@ function handleSlashCommands() {
             }
             const errorMessage = "Sorry Commander, there was an error while executing this command!";
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: errorMessage, ephemeral: true })
+                await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral })
                     .catch(replyError => {
                         if (replyError instanceof Error) {
                             logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', replyError, 'Sending error followUp');
@@ -1653,7 +1654,7 @@ function handleSlashCommands() {
                         }
                     });
             } else {
-                await interaction.reply({ content: errorMessage, ephemeral: true })
+                await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral })
                     .catch(replyError => {
                         if (replyError instanceof Error) {
                             logError(interaction.guildId || 'UNKNOWN', interaction.guild?.name || 'UNKNOWN', replyError, 'Sending error reply');

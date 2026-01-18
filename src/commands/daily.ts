@@ -1,5 +1,7 @@
 // Dependencies
-import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction ,
+    MessageFlags
+} from 'discord.js';
 import moment from 'moment-timezone';
 import gamesData from '../utils/data/gamesData';
 
@@ -26,7 +28,7 @@ module.exports = {
         if (!gameData) {
             await interaction.reply({
                 content: `Commander, I am unable to locate your game in your room. Maybe Anis was in your room again...`,
-                ephemeral: false,
+                
             });
             return;
         }
@@ -44,7 +46,7 @@ module.exports = {
 
         await interaction.reply({
             content: `Commander, the next reset for **${game}** (${server} Server) is ${resetTimestamp}.`,
-            ephemeral: false,
+            
         });
     },
     async autocomplete(interaction: AutocompleteInteraction) {

@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder ,
+    MessageFlags
+} from 'discord.js';
 import { getUptimeService } from '../services/uptimeService';
 import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter';
 
@@ -40,14 +42,14 @@ module.exports = {
 
             await interaction.reply({
                 embeds: [embed],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             
         } catch (error) {
             console.error('Error in age command:', error);
             await interaction.reply({
                 content: 'Commander, there was an error getting the uptime information.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     },

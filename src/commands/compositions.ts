@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction ,
+    MessageFlags
+} from 'discord.js';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,7 +10,7 @@ module.exports = {
         const replyContent = 'Commander, if you need help planning for battle, use this ➜ https://lootandwaifus.com/nikke-team-builder/';
         await interaction.reply({ 
             content: replyContent, 
-            ephemeral: true 
+            flags: MessageFlags.Ephemeral 
         });
     }
 };

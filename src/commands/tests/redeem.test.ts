@@ -9,6 +9,8 @@ import {
     Role,
     PermissionsBitField,
     Client
+,
+    MessageFlags
 } from 'discord.js';
 
 // Set environment variable before any imports
@@ -284,7 +286,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('need the "mods" role'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -322,7 +324,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: '❌ The gacha coupon system is not available on this server.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
             expect(mockDataService.subscribe).not.toHaveBeenCalled();
@@ -338,7 +340,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: '❌ The gacha coupon system is not available on this server.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -395,7 +397,7 @@ describe('Redeem Command', () => {
                 'user123', 'bd2', 'TestPlayer', 'auto-redeem'
             );
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
             );
         });
 
@@ -413,7 +415,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('24 characters or less'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -432,7 +434,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('only contain letters, numbers, underscores, and hyphens'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -451,7 +453,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('is required for'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -486,7 +488,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('already subscribed'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -507,7 +509,7 @@ describe('Redeem Command', () => {
 
             expect(mockDataService.unsubscribe).toHaveBeenCalledWith('user123', 'bd2');
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
             );
         });
 
@@ -524,7 +526,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('not subscribed'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -545,7 +547,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('no active subscriptions'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -577,7 +579,7 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
             );
         });
 
@@ -601,7 +603,7 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
             );
         });
     });
@@ -624,7 +626,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('No active coupon codes'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -643,7 +645,7 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
             );
         });
     });
@@ -696,7 +698,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('Invalid date format'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -734,7 +736,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('already exists'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -761,7 +763,7 @@ describe('Redeem Command', () => {
 
             expect(mockDataService.removeCoupon).toHaveBeenCalledWith('bd2', 'EXISTING');
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), ephemeral: true })
+                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
             );
         });
 
@@ -779,7 +781,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('not found'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -814,7 +816,7 @@ describe('Redeem Command', () => {
 
             expect(mockDataService.getAllCoupons).toHaveBeenCalledWith('bd2');
             expect(mockDataService.getGameStats).toHaveBeenCalledWith('bd2');
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({ embeds: expect.any(Array) })
             );
@@ -839,7 +841,7 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
             expect(mockRedemptionService.processGameAutoRedemptions).toHaveBeenCalled();
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({ embeds: expect.any(Array) })
@@ -857,7 +859,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('not supported'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
             expect(mockRedemptionService.processGameAutoRedemptions).not.toHaveBeenCalled();
@@ -883,7 +885,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('not subscribed'),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -908,7 +910,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     embeds: expect.any(Array),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -941,7 +943,7 @@ describe('Redeem Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     embeds: expect.any(Array),
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });

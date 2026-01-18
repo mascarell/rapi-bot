@@ -1,4 +1,6 @@
-import { CommandInteraction, TextChannel, ChannelType } from 'discord.js';
+import { CommandInteraction, TextChannel, ChannelType ,
+    MessageFlags
+} from 'discord.js';
 
 /**
  * Checks if the interaction is in the specified channel
@@ -27,7 +29,7 @@ export async function enforceChannelRestriction(
     if (!isInChannel(interaction, requiredChannel)) {
         await interaction.reply({
             content: `Commander, this command is restricted to the **#${requiredChannel}** channel. Navigate there if you wish to proceed.`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
         return true; // Restriction was applied
     }
