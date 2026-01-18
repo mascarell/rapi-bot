@@ -25,14 +25,15 @@ const FIXUP_DOMAINS = [
     'cunnyx.com'
 ];
 
-// Track messages we've already replied to (prevent duplicates)
-const repliedMessages = new Set<string>();
+// Track status IDs we've already processed (prevent duplicate replies for same tweet)
+// Maps status ID to the original message ID that posted it
+const processedStatusIds = new Map<string, string>();
 
 // Clean old entries every 5 minutes to prevent memory growth
 setInterval(() => {
-    if (repliedMessages.size > 1000) {
-        console.log(`[UrlFix] Clearing ${repliedMessages.size} tracked messages`);
-        repliedMessages.clear();
+    if (processedStatusIds.size > 1000) {
+        console.log(`[UrlFix] Clearing ${processedStatusIds.size} tracked status IDs`);
+        processedStatusIds.clear();
     }
 }, 5 * 60 * 1000);
 
@@ -59,10 +60,12 @@ export class UrlFixService {
      * 1. Check if message is from a bot → return early
      * 2. Check if message is in #art or #nsfw channel → return early if not
      * 3. Extract status IDs from ALL Twitter/X URLs (twitter.com, x.com, AND fixup services)
-     * 4. Deduplicate status IDs (in case same tweet posted multiple times)
-     * 5. Convert to consistent fixupx.com format: https://fixupx.com/i/status/{statusId}
-     * 6. Reply with the fixed URL(s)
-     * 7. Suppress original message embeds
+     * 4. Check which status IDs are NEW (not already processed)
+     * 5. Skip if all status IDs already processed (prevents duplicate replies for same tweet)
+     * 6. Convert new status IDs to fixupx.com format: https://fixupx.com/i/status/{statusId}
+     * 7. Reply with the fixed URL(s)
+     * 8. Track status IDs → original message ID mapping
+     * 9. Suppress original message embeds
      */
     public async processMessage(message: Message): Promise<void> {
         console.log(`[UrlFix] processMessage called for message from ${message.author.username} in ${message.guild?.name}`);
@@ -92,13 +95,6 @@ export class UrlFixService {
         }
 
         console.log('[UrlFix] Channel check passed, processing message');
-
-        // Check if we already replied to this message (deduplication)
-        if (repliedMessages.has(message.id)) {
-            console.log(`[UrlFix] Skipping duplicate message ${message.id}`);
-            return;
-        }
-
         console.log(`[UrlFix] Message content: ${message.content}`);
 
         // Extract status IDs from all supported Twitter/X URL formats
@@ -122,7 +118,7 @@ export class UrlFixService {
             return;
         }
 
-        // Extract unique status IDs and convert to fixupx.com format
+        // Extract unique status IDs
         const statusIds = new Set<string>();
         for (const match of urlMatches) {
             // Status ID is in the last capture group
@@ -134,8 +130,29 @@ export class UrlFixService {
 
         console.log(`[UrlFix] Extracted ${statusIds.size} unique status IDs`);
 
-        // Convert all to fixupx.com format: https://fixupx.com/i/status/{statusId}
-        const fixedUrls = Array.from(statusIds).map(statusId =>
+        // Check which status IDs we haven't processed yet
+        const newStatusIds: string[] = [];
+        const duplicateStatusIds: string[] = [];
+
+        for (const statusId of statusIds) {
+            if (processedStatusIds.has(statusId)) {
+                const originalMessageId = processedStatusIds.get(statusId);
+                duplicateStatusIds.push(statusId);
+                console.log(`[UrlFix] Status ID ${statusId} already processed in message ${originalMessageId}`);
+            } else {
+                newStatusIds.push(statusId);
+            }
+        }
+
+        if (newStatusIds.length === 0) {
+            console.log(`[UrlFix] All status IDs already processed, skipping`);
+            return;
+        }
+
+        console.log(`[UrlFix] Processing ${newStatusIds.length} new status IDs`);
+
+        // Convert only NEW status IDs to fixupx.com format: https://fixupx.com/i/status/{statusId}
+        const fixedUrls = newStatusIds.map(statusId =>
             `https://fixupx.com/i/status/${statusId}`
         );
 
@@ -161,8 +178,10 @@ export class UrlFixService {
                 allowedMentions: { repliedUser: false } // Don't ping the user
             });
 
-            // Mark as replied to prevent duplicates
-            repliedMessages.add(message.id);
+            // Mark all new status IDs as processed, linking to this message
+            for (const statusId of newStatusIds) {
+                processedStatusIds.set(statusId, message.id);
+            }
 
             // Suppress embeds again after a delay to catch Discord's async embed generation
             // Discord generates embeds asynchronously, so we need to wait and suppress again
