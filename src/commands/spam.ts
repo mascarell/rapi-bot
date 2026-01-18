@@ -3,7 +3,8 @@ import {
     EmbedBuilder,
     ChatInputCommandInteraction,
     PermissionFlagsBits,
-    Role
+    Role,
+    MessageFlags
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface';
 import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter';
@@ -48,7 +49,7 @@ module.exports = {
         if (!guild) {
             await interaction.reply({ 
                 content: 'This command can only be used in a server.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
             return;
         }
@@ -67,14 +68,14 @@ module.exports = {
                 default:
                     await interaction.reply({ 
                         content: 'Unknown subcommand.', 
-                        ephemeral: true 
+                        flags: MessageFlags.Ephemeral 
                     });
             }
         } catch (error) {
             console.error('Error in spam command:', error);
             await interaction.reply({ 
                 content: 'An error occurred while processing your request.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     },
@@ -137,7 +138,7 @@ module.exports = {
                 text: 'Stay safe on the surface, Commander!', 
                 iconURL: interaction.client.user?.displayAvatarURL() 
             });
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     /**
@@ -156,7 +157,7 @@ module.exports = {
         if (!hasAdminRole && !member.permissions.has(PermissionFlagsBits.Administrator)) {
             await interaction.reply({ 
                 content: 'Commander, you need administrator permissions or the "mods" role to view statistics.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
             return;
         }
@@ -230,7 +231,7 @@ module.exports = {
             });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     /**
@@ -249,7 +250,7 @@ module.exports = {
         if (!hasAdminRole && !member.permissions.has(PermissionFlagsBits.Administrator)) {
             await interaction.reply({ 
                 content: 'Commander, you need administrator permissions or the "mods" role to reset rate limits.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
             return;
         }
@@ -258,7 +259,7 @@ module.exports = {
         if (!targetUser) {
             await interaction.reply({ 
                 content: 'Please specify a valid user to reset.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
             return;
         }
@@ -282,7 +283,7 @@ module.exports = {
                 iconURL: interaction.client.user?.displayAvatarURL() 
             });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 
     /**

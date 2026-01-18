@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction ,
+    MessageFlags
+} from 'discord.js';
 import { getRulesManagementService } from '../services/rulesManagementService';
 
 module.exports = {
@@ -13,7 +15,7 @@ module.exports = {
         if (!isAllowed) {
             await interaction.reply({
                 content: 'This command is not available on this server.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -21,7 +23,7 @@ module.exports = {
         // Display rules ephemerally (only visible to command user)
         await interaction.reply({
             content: rulesService.getRulesContent(),
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     },
 };

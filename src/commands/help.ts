@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction ,
+    MessageFlags
+} from 'discord.js';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -51,7 +53,7 @@ module.exports = {
 ➜ **get dat nikke** : Send Rapi to fight your rival.
 
 `,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 };

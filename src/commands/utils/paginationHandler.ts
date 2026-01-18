@@ -1,4 +1,6 @@
-import { CommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { CommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle ,
+    MessageFlags
+} from 'discord.js';
 import { CONSTANTS } from './gachaConstants';
 
 export async function handlePagination(interaction: CommandInteraction, embeds: EmbedBuilder[]) {
@@ -34,7 +36,7 @@ export async function handlePagination(interaction: CommandInteraction, embeds: 
         if (i.user.id !== interaction.user.id) {
             await i.reply({ 
                 content: "These aren't your pull results, Commander!", 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
             return;
         }

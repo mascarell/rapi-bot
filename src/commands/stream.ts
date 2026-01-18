@@ -2,6 +2,7 @@ import {
     SlashCommandBuilder,
     ChatInputCommandInteraction,
     TextChannel,
+    MessageFlags
 } from 'discord.js';
 import { checkStreamStatus } from '../utils/twitch';
 
@@ -31,12 +32,12 @@ module.exports = {
                 } else {
                     console.error(`Channel with ID ${channelId} not found.`);
                 }
-                await interaction.reply({ content: 'Stream announcement sent!', ephemeral: true });
+                await interaction.reply({ content: 'Stream announcement sent!', flags: MessageFlags.Ephemeral });
             } else {
-                await interaction.reply({ content: 'Stream is not currently live.', ephemeral: true });
+                await interaction.reply({ content: 'Stream is not currently live.', flags: MessageFlags.Ephemeral });
             }
         } else {
-            await interaction.reply({ content: `Commander, you can watch the stream here: ${url} ${twitchLink}`, ephemeral: true });
+            await interaction.reply({ content: `Commander, you can watch the stream here: ${url} ${twitchLink}`, flags: MessageFlags.Ephemeral });
         }
     },
 };

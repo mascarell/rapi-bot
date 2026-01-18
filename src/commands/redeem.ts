@@ -7,7 +7,8 @@ import {
     Role,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle
+    ButtonStyle,
+    MessageFlags
 } from 'discord.js';
 import { getGachaDataService } from '../services/gachaDataService';
 import { getGachaRedemptionService } from '../services/gachaRedemptionService';
@@ -117,7 +118,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
     if (gameConfig.requiresUserId && !gameUserId) {
         await interaction.reply({
             content: `❌ ${gameConfig.userIdFieldName} is required for ${gameConfig.name}. Please provide your in-game ${gameConfig.userIdFieldName}.`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
         return;
     }
@@ -128,7 +129,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
         if (!validation.valid) {
             await interaction.reply({
                 content: `❌ ${validation.error}`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -184,9 +185,9 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
 
         embed.addFields({ name: 'What happens now?', value: modeDescription });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -206,15 +207,15 @@ async function handleUnsubscribe(interaction: ChatInputCommandInteraction): Prom
                 .setTimestamp()
                 .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
             await interaction.reply({
                 content: `❌ You are not subscribed to ${gameConfig.name}.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -228,7 +229,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
         if (!userSubs || Object.keys(userSubs.games).length === 0) {
             await interaction.reply({
                 content: '❌ You have no active subscriptions. Use `/redeem subscribe` to get started!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -241,7 +242,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
             if (!gameSub) {
                 await interaction.reply({
                     content: `❌ You are not subscribed to ${getGameConfig(gameId).name}.`,
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
                 return;
             }
@@ -268,7 +269,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
                 embed.addFields({ name: '📌 Unredeemed Codes', value: codeList });
             }
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
             // Show all subscriptions
             const embed = new EmbedBuilder()
@@ -288,10 +289,10 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
                 });
             }
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -306,7 +307,7 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
         if (activeCoupons.length === 0) {
             await interaction.reply({
                 content: `📭 No active coupon codes for ${gameConfig.name} right now.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -337,9 +338,9 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
             embed.addFields({ name: '...', value: `And ${activeCoupons.length - 10} more codes` });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -386,14 +387,14 @@ async function handleModAdd(interaction: ChatInputCommandInteraction): Promise<v
             embed.addFields({ name: 'Source', value: source, inline: true });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         // Notify subscribers
         const redemptionService = getGachaRedemptionService();
         await redemptionService.notifyNewCode(interaction.client, coupon);
 
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -414,12 +415,12 @@ async function handleModRemove(interaction: ChatInputCommandInteraction): Promis
                 .setTimestamp()
                 .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
-            await interaction.reply({ content: `❌ Code \`${code}\` not found for ${gameConfig.name}.`, ephemeral: true });
+            await interaction.reply({ content: `❌ Code \`${code}\` not found for ${gameConfig.name}.`, flags: MessageFlags.Ephemeral });
         }
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -428,7 +429,7 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
     const filter = interaction.options.getString('filter') || 'all';
     const gameConfig = getGameConfig(gameId);
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
         const dataService = getGachaDataService();
@@ -534,7 +535,7 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
                 if (i.user.id !== interaction.user.id) {
                     await i.reply({
                         content: 'You cannot use these buttons.',
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                     return;
                 }
@@ -576,12 +577,12 @@ async function handleModTrigger(interaction: ChatInputCommandInteraction): Promi
     if (!gameConfig.supportsAutoRedeem) {
         await interaction.reply({
             content: `❌ Auto-redemption is not supported for ${gameConfig.name}.`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
         return;
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
         const redemptionService = getGachaRedemptionService();
@@ -624,15 +625,15 @@ async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise
                 .setTimestamp()
                 .setFooter({ text: 'Admin Action', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
             await interaction.reply({
                 content: `❌ <@${targetUser.id}> is not subscribed to ${gameConfig.name}.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -647,7 +648,7 @@ async function handleModUpdate(interaction: ChatInputCommandInteraction): Promis
     if (!validation.valid) {
         await interaction.reply({
             content: `❌ ${validation.error}`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
         return;
     }
@@ -664,9 +665,9 @@ async function handleModUpdate(interaction: ChatInputCommandInteraction): Promis
             .setTimestamp()
             .setFooter({ text: 'Admin Action', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -680,7 +681,7 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
         if (!userSubs || Object.keys(userSubs.games).length === 0) {
             await interaction.reply({
                 content: `❌ <@${targetUser.id}> has no active subscriptions.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -702,9 +703,9 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
             });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -725,9 +726,9 @@ async function handleModReset(interaction: ChatInputCommandInteraction): Promise
             .setTimestamp()
             .setFooter({ text: 'Admin Action', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -743,7 +744,7 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
         if (!subscription) {
             await interaction.reply({
                 content: `❌ You are not subscribed to ${gameConfig.name}. Use \`/redeem subscribe\` first.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -752,7 +753,7 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
         if (subscription.mode === newMode) {
             await interaction.reply({
                 content: `❌ You are already in ${newMode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only'} mode for ${gameConfig.name}.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -783,9 +784,9 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
             });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -805,7 +806,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
         if (!subscription) {
             await interaction.reply({
                 content: `❌ You are not subscribed to ${gameConfig.name}. Use \`/redeem subscribe\` first.`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -833,7 +834,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
                 .setTimestamp()
                 .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -866,9 +867,9 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
             .setTimestamp()
             .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -902,7 +903,7 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
                 embed.addFields({ name: '🏆 Top Codes', value: topCodesList });
             }
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
             // Show system-wide stats
             const analytics = await dataService.getSystemAnalytics();
@@ -928,15 +929,15 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
                 embed.addFields({ name: '🎮 By Game', value: gameBreakdown });
             }
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
     } catch (error: any) {
-        await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${error.message}`, flags: MessageFlags.Ephemeral });
     }
 }
 
 async function handleModScrape(interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
         const result = await syncBD2PulseCodes();
@@ -1033,7 +1034,7 @@ async function handleModSubscribers(interaction: ChatInputCommandInteraction): P
     const modeFilter = interaction.options.getString('mode') || 'all';
     const gameConfig = getGameConfig(gameId);
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
         const dataService = getGachaDataService();
@@ -1112,7 +1113,7 @@ async function handleModSubscribers(interaction: ChatInputCommandInteraction): P
                 if (i.user.id !== interaction.user.id) {
                     await i.reply({
                         content: 'You cannot use these buttons.',
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                     return;
                 }
@@ -1230,7 +1231,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
         });
     }
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 // ==================== Command Export ====================
@@ -1505,7 +1506,7 @@ module.exports = {
         if (!isAllowed) {
             await interaction.reply({
                 content: '❌ The gacha coupon system is not available on this server.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -1519,7 +1520,7 @@ module.exports = {
             if (!hasPermission) {
                 await interaction.reply({
                     content: '❌ You need the "mods" role or administrator permission for this command.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
                 return;
             }

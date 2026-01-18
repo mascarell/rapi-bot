@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction ,
+    MessageFlags
+} from 'discord.js';
 import { enforceChannelRestriction } from '../utils/channelRestrictions';
 
 const rapiBallResponses = [
@@ -102,7 +104,7 @@ module.exports = {
         
         await interaction.reply({
             content: responseContent,
-            ephemeral: false,
+            
         });
     },
 };

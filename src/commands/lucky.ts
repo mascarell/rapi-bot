@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction ,
+    MessageFlags
+} from 'discord.js';
 import fs from 'fs';
 
 interface UserData {
@@ -49,7 +51,7 @@ module.exports = {
                 const remainingMinutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
                 return interaction.reply({
                     content: `Sorry, Commander. You can use this command again in ${remainingTimeInHours} hours and ${remainingMinutes} minutes.`,
-                    ephemeral: false,
+                    
                 });
             }
         }
@@ -142,7 +144,7 @@ module.exports = {
                 replyContent = phrases.default[Math.floor(Math.random() * phrases.default.length)];
         }
 
-        const message = await interaction.reply({ content: replyContent, ephemeral: false, fetchReply: true });
+        const message = await interaction.reply({ content: replyContent, fetchReply: true });
 
         for (const reaction of reactions) {
             const emoji = interaction.guild?.emojis.cache.find(e => e.name === reaction);
