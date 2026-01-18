@@ -78,18 +78,25 @@ export class UrlFixService {
             return;
         }
 
+        console.log('[UrlFix] Channel check passed, processing message');
+
         // Check if we already replied to this message (deduplication)
         if (repliedMessages.has(message.id)) {
-            console.log(`[SimpleEmbedFix] Skipping duplicate message ${message.id}`);
+            console.log(`[UrlFix] Skipping duplicate message ${message.id}`);
             return;
         }
 
         // Extract Twitter/X URLs using regex
         // Matches: https://x.com/user/status/123 or https://twitter.com/user/status/123
+        console.log(`[UrlFix] Message content: ${message.content}`);
         const twitterRegex = /https?:\/\/(x\.com|twitter\.com)\/[^\s]+/g;
         const matches = message.content.match(twitterRegex);
+        console.log(`[UrlFix] Found ${matches?.length || 0} Twitter/X URLs`);
 
-        if (!matches || matches.length === 0) return;
+        if (!matches || matches.length === 0) {
+            console.log('[UrlFix] No Twitter/X URLs found, skipping');
+            return;
+        }
 
         // Replace domains with fixupx.com
         const fixedUrls = matches.map(url =>
