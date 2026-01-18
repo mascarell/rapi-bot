@@ -26,8 +26,13 @@ const FIXUP_DOMAINS = [
 ];
 
 // Track status IDs we've already processed (prevent duplicate replies for same tweet)
-// Maps status ID to the original message ID that posted it
-const processedStatusIds = new Map<string, string>();
+// Maps status ID to original message info (for linking back)
+interface OriginalMessageInfo {
+    messageId: string;
+    channelId: string;
+    guildId: string;
+}
+const processedStatusIds = new Map<string, OriginalMessageInfo>();
 
 // Clean old entries every 5 minutes to prevent memory growth
 setInterval(() => {
@@ -132,20 +137,53 @@ export class UrlFixService {
 
         // Check which status IDs we haven't processed yet
         const newStatusIds: string[] = [];
-        const duplicateStatusIds: string[] = [];
+        const duplicateStatusInfo: Array<{ statusId: string; originalInfo: OriginalMessageInfo }> = [];
 
         for (const statusId of statusIds) {
             if (processedStatusIds.has(statusId)) {
-                const originalMessageId = processedStatusIds.get(statusId);
-                duplicateStatusIds.push(statusId);
-                console.log(`[UrlFix] Status ID ${statusId} already processed in message ${originalMessageId}`);
+                const originalInfo = processedStatusIds.get(statusId)!;
+                duplicateStatusInfo.push({ statusId, originalInfo });
+                console.log(`[UrlFix] Status ID ${statusId} already processed in message ${originalInfo.messageId}`);
             } else {
                 newStatusIds.push(statusId);
             }
         }
 
+        // If all status IDs are duplicates, reply with duplicate notification
+        if (newStatusIds.length === 0 && duplicateStatusInfo.length > 0) {
+            console.log(`[UrlFix] All status IDs already processed, sending duplicate notification`);
+
+            // Suppress embeds on the duplicate message
+            try {
+                await message.suppressEmbeds(true).catch(() => {});
+
+                // Create message links for all duplicates
+                const duplicateLinks = duplicateStatusInfo.map(({ statusId, originalInfo }) => {
+                    const messageLink = `https://discord.com/channels/${originalInfo.guildId}/${originalInfo.channelId}/${originalInfo.messageId}`;
+                    return `[Original](${messageLink})`;
+                });
+
+                // Reply with duplicate notification
+                await message.reply({
+                    content: `🔄 This was already shared → ${duplicateLinks.join(', ')}`,
+                    allowedMentions: { repliedUser: false }
+                });
+
+                // Suppress again after delay
+                setTimeout(async () => {
+                    await message.suppressEmbeds(true).catch(() => {});
+                }, 1500);
+
+                console.log(`[UrlFix] Sent duplicate notification for ${duplicateStatusInfo.length} status ID(s)`);
+            } catch (error) {
+                console.error('[UrlFix] Error sending duplicate notification:', error);
+            }
+            return;
+        }
+
+        // If no URLs found at all, skip
         if (newStatusIds.length === 0) {
-            console.log(`[UrlFix] All status IDs already processed, skipping`);
+            console.log(`[UrlFix] No new status IDs to process, skipping`);
             return;
         }
 
@@ -180,7 +218,11 @@ export class UrlFixService {
 
             // Mark all new status IDs as processed, linking to this message
             for (const statusId of newStatusIds) {
-                processedStatusIds.set(statusId, message.id);
+                processedStatusIds.set(statusId, {
+                    messageId: message.id,
+                    channelId: message.channel.id,
+                    guildId: message.guild!.id
+                });
             }
 
             // Suppress embeds again after a delay to catch Discord's async embed generation
