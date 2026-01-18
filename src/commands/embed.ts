@@ -10,7 +10,7 @@ import {
 import { getEmbedFixService } from '../services/embedFix/embedFixService';
 import { getEmbedVotesService } from '../services/embedFix/embedVotesService';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('embed')
         .setDescription('Generate a fixed embed for a social media URL')

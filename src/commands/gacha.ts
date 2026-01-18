@@ -19,7 +19,7 @@ RateLimiter.init();
  * Command export for Discord.js
  * Handles gacha pull functionality for gacha games
  */
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('gacha')
         .setDescription('Performs a gacha pull for your favorite gacha game!')

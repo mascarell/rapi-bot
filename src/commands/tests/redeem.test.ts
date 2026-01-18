@@ -87,8 +87,9 @@ import { getGachaRedemptionService } from '../../services/gachaRedemptionService
 import { getGachaGuildConfigService } from '../../services/gachaGuildConfigService';
 import { getGameConfig, isValidGameId } from '../../utils/data/gachaGamesConfig';
 
-// Import the command - need to use dynamic import for CommonJS module
-const redeemCommand = await import('../redeem');
+// Import the command - use dynamic import for ESM module
+const redeemCommandModule = await import('../redeem');
+const redeemCommand = redeemCommandModule.default;
 
 describe('Redeem Command', () => {
     let mockInteraction: Partial<ChatInputCommandInteraction>;

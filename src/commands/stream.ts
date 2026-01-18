@@ -6,7 +6,7 @@ import {
 } from 'discord.js';
 import { checkStreamStatus } from '../utils/twitch';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('stream')
         .setDescription("Announce the current stream or check stream status.")

@@ -3,7 +3,7 @@ import { SlashCommandBuilder, CommandInteraction ,
 } from 'discord.js';
 import { getRulesManagementService } from '../services/rulesManagementService';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('rules')
         .setDescription(`Rapi Rules (she'll ban you if you don't behave)`),

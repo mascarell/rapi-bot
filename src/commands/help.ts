@@ -2,7 +2,7 @@ import { SlashCommandBuilder, CommandInteraction ,
     MessageFlags
 } from 'discord.js';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('List of custom commands available for all Commanders'),

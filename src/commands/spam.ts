@@ -16,7 +16,7 @@ const RAPI_BOT_THUMBNAIL_URL = process.env.CDN_DOMAIN_URL + '/assets/rapi-bot-th
  * Command export for Discord.js
  * Handles rate limit checking and admin management
  */
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('spam')
         .setDescription('Manage and monitor chat command spam protection')

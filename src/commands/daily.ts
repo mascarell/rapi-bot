@@ -5,7 +5,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteracti
 import moment from 'moment-timezone';
 import gamesData from '../utils/data/gamesData';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('daily')
         .setDescription('Get upcoming reset timer for a game')
