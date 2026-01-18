@@ -1014,7 +1014,7 @@ function getRandomGoodIdeaPhrase() {
     return phrase;
 }
 
-function loadCommands() {
+async function loadCommands() {
     // Load chat commands
     for (const key in chatCommands) {
         if (Object.prototype.hasOwnProperty.call(chatCommands, key)) {
@@ -1030,11 +1030,12 @@ function loadCommands() {
 
     // Load slash commands from files
     const commandsPath = path.join(__dirname, 'commands');
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
-    for (const file of commandFiles) {
+    const importPromises = commandFiles.map(async (file) => {
         const filePath = path.join(commandsPath, file);
-        import(filePath).then(commandModule => {
+        try {
+            const commandModule = await import(filePath);
             // Handle both default export and direct module.exports
             const command = commandModule.default || commandModule;
             if (isSlashCommand(command)) {
@@ -1044,15 +1045,18 @@ function loadCommands() {
             } else {
                 console.warn(`Skipping invalid command in file ${file}: Command does not match SlashCommand interface`);
             }
-        }).catch(error => {
+        } catch (error) {
             const errorMessage = `Failed to load command from file ${file}`;
             if (error instanceof Error) {
                 logError('GLOBAL', 'GLOBAL', error, errorMessage);
             } else {
                 logError('GLOBAL', 'GLOBAL', new Error(String(error)), errorMessage);
             }
-        });
-    }
+        }
+    });
+
+    await Promise.all(importPromises);
+    console.log(`✓ Successfully loaded ${commands.length} slash commands`);
 }
 
 function updateBotActivity(activities: any[]) {
@@ -1810,7 +1814,7 @@ function playNextSong(guildId: string) {
 }
 
 async function initDiscordBot() {
-    loadCommands();
+    await loadCommands();
 
     // Initialize chat command rate limiter
     ChatCommandRateLimiter.init();
@@ -1870,7 +1874,7 @@ async function initDiscordBot() {
             console.log(`Client ID: ${CLIENT_ID}`);
             console.log('Started refreshing application (/) commands.');
             await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-            console.log('Successfully reloaded application (/) commands.');
+            console.log(`Successfully reloaded ${commands.length} application (/) commands.`);
 
             for (const guild of bot.guilds.cache.values()) {
                 const voiceChannel = getVoiceChannel(guild, '1229441264718577734');
