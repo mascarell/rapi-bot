@@ -1,6 +1,7 @@
 {
   "name": "loot-and-waifus-bot",
   "version": "1.0.0",
+  "type": "module",
   "description": "A Discord bot for managing daily resets and other utilities for gacha games.",
   "main": "dist/index.js",
   "scripts": {
@@ -9,8 +10,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "build": "tsc",
-    "start": "ts-node src/index.ts",
-    "dev": "nodemon --exec npx ts-node src/index.ts",
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
     "watch": "tsc -w"
   },
   "author": "Loot and Waifus",
