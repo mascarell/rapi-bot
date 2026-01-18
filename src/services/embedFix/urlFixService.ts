@@ -52,16 +52,31 @@ export class UrlFixService {
      * 5. Reply with the modified URL(s)
      */
     public async processMessage(message: Message): Promise<void> {
+        console.log(`[UrlFix] processMessage called for message from ${message.author.username} in ${message.guild?.name}`);
+
         // CRITICAL: Bot check must be FIRST to prevent infinite loops
-        if (message.author.bot) return;
+        if (message.author.bot) {
+            console.log('[UrlFix] Skipping bot message');
+            return;
+        }
 
         // Fast path checks (order matters for performance)
-        if (!message.guild) return;
-        if (!message.content.includes('http')) return;
+        if (!message.guild) {
+            console.log('[UrlFix] Skipping non-guild message');
+            return;
+        }
+        if (!message.content.includes('http')) {
+            console.log('[UrlFix] No URLs detected in message');
+            return;
+        }
 
         // Only process in art-focused channels
         const channelName = (message.channel as TextChannel).name?.toLowerCase() ?? '';
-        if (!['art', 'nsfw'].includes(channelName)) return;
+        console.log(`[UrlFix] Channel name: #${channelName}`);
+        if (!['art', 'nsfw'].includes(channelName)) {
+            console.log(`[UrlFix] Skipping channel #${channelName} (not art or nsfw)`);
+            return;
+        }
 
         // Check if we already replied to this message (deduplication)
         if (repliedMessages.has(message.id)) {
