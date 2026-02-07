@@ -4,6 +4,7 @@ import { getGachaDataService } from './gachaDataService.js';
 import { getGachaRedemptionService } from './gachaRedemptionService.js';
 import { GachaGameId, GachaCoupon } from '../utils/interfaces/GachaCoupon.interface';
 import { GACHA_GAMES, getGameConfig } from '../utils/data/gachaGamesConfig';
+import { gachaLogger } from '../utils/logger.js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -56,7 +57,7 @@ class ChannelMonitorService {
         for (const [gameId, config] of Object.entries(channelMonitors)) {
             // Verify the game exists and has parsePatterns
             if (!this.isValidGameId(gameId) || !GACHA_GAMES[gameId as GachaGameId].parsePatterns) {
-                console.warn(`[ChannelMonitor] Skipping ${gameId}: no parsePatterns defined`);
+                gachaLogger.warn`Skipping ${gameId}: no parsePatterns defined`;
                 continue;
             }
 
@@ -68,11 +69,9 @@ class ChannelMonitorService {
                 config,
             });
 
-            console.log(`[ChannelMonitor] Monitoring channel ${channelId} for ${gameId} (${isDevelopment ? 'dev' : 'prod'})`);
         }
 
         this.initialized = true;
-        console.log(`[ChannelMonitor] Initialized with ${this.monitoredChannels.size} channels`);
     }
 
     /**
@@ -103,7 +102,7 @@ class ChannelMonitorService {
     public parseAnnouncementMessage(gameId: GachaGameId, content: string): ParsedCoupon | null {
         const gameConfig = GACHA_GAMES[gameId];
         if (!gameConfig.parsePatterns) {
-            console.warn(`[ChannelMonitor] No parse patterns for game: ${gameId}`);
+            gachaLogger.warn`No parse patterns for game: ${gameId}`;
             return null;
         }
 
@@ -187,7 +186,7 @@ class ChannelMonitorService {
 
             return date.toISOString();
         } catch (error) {
-            console.error('[ChannelMonitor] Failed to parse expiration date:', dateString, error);
+            gachaLogger.error`Failed to parse expiration date: ${dateString} ${error}`;
             return null;
         }
     }
@@ -222,16 +221,12 @@ class ChannelMonitorService {
         if (!gameId) return;
 
         const content = message.content;
-        console.log(`[ChannelMonitor] Processing message in ${gameId} channel: ${content.substring(0, 100)}...`);
 
         // Parse the announcement
         const parsed = this.parseAnnouncementMessage(gameId, content);
         if (!parsed) {
-            console.log(`[ChannelMonitor] No coupon found in message`);
             return;
         }
-
-        console.log(`[ChannelMonitor] Found coupon: ${parsed.code}, Rewards: ${parsed.rewards}, Expires: ${parsed.expirationDate}`);
 
         // Check if coupon already exists
         const dataService = getGachaDataService();
@@ -241,7 +236,6 @@ class ChannelMonitorService {
         );
 
         if (exists) {
-            console.log(`[ChannelMonitor] Coupon ${parsed.code} already exists, skipping`);
             return;
         }
 
@@ -260,14 +254,12 @@ class ChannelMonitorService {
         // Add the coupon
         try {
             await dataService.addCoupon(coupon);
-            console.log(`[ChannelMonitor] Added new coupon: ${coupon.code}`);
 
             // Notify subscribers
             const redemptionService = getGachaRedemptionService();
             await redemptionService.notifyNewCode(bot, coupon);
-            console.log(`[ChannelMonitor] Notifications sent for: ${coupon.code}`);
         } catch (error) {
-            console.error(`[ChannelMonitor] Error adding coupon:`, error);
+            gachaLogger.error`Error adding coupon: ${error}`;
         }
     }
 
@@ -286,11 +278,10 @@ class ChannelMonitorService {
             try {
                 await this.handleMonitoredMessage(bot, message);
             } catch (error) {
-                console.error(`[ChannelMonitor] Error handling message:`, error);
+                gachaLogger.error`Error handling message: ${error}`;
             }
         });
 
-        console.log(`[ChannelMonitor] Message monitoring started`);
     }
 
     /**

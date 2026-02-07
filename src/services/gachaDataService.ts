@@ -11,6 +11,7 @@ import {
 } from "../utils/interfaces/GachaCoupon.interface";
 import { getGameConfig } from "../utils/data/gachaGamesConfig";
 import { GACHA_CONFIG } from "../utils/data/gachaConfig";
+import { gachaLogger } from '../utils/logger.js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const DATA_KEY = isDevelopment
@@ -65,12 +66,12 @@ export class GachaDataService {
             return this.cache;
         } catch (error: any) {
             if (error.name === 'NoSuchKey' || error.Code === 'NoSuchKey') {
-                console.log(`Gacha coupon data file not found at ${DATA_KEY}, creating default...`);
+                gachaLogger.warn`Gacha coupon data file not found at ${DATA_KEY}, creating default...`;
                 const defaultData = this.getDefaultData();
                 await this.saveData(defaultData);
                 return defaultData;
             }
-            console.error('Error fetching gacha coupon data:', error);
+            gachaLogger.error`Error fetching gacha coupon data: ${error}`;
             throw error;
         }
     }
@@ -95,7 +96,6 @@ export class GachaDataService {
         this.cache = data;
         this.cacheExpiry = Date.now() + this.CACHE_TTL;
         this.buildActiveCouponsIndex(data);
-        console.log(`Gacha coupon data saved to S3 (${DATA_KEY})`);
     }
 
     /**
@@ -127,11 +127,10 @@ export class GachaDataService {
                 }
             }));
 
-            console.log(`Gacha data backup created: ${backupKey}`);
         } catch (error: any) {
             // Don't fail save if backup fails (file might not exist yet on first save)
             if (error.name !== 'NoSuchKey' && error.Code !== 'NoSuchKey') {
-                console.error('Gacha data backup failed:', error.message);
+                gachaLogger.warn`Gacha data backup failed: ${error.message}`;
             }
         }
     }
@@ -308,7 +307,6 @@ export class GachaDataService {
 
         if (cleaned > 0) {
             await this.saveData(data);
-            console.log(`[Cleanup] Marked ${cleaned} expired coupons as inactive (after 24h grace period)`);
         }
 
         return { cleaned, byGame };
@@ -1039,7 +1037,6 @@ export class GachaDataService {
         const removed = originalLength - data.redemptionHistory.length;
         if (removed > 0) {
             await this.saveData(data);
-            console.log(`[Cleanup] Removed ${removed} redemption history entries older than ${olderThanDays} days`);
         }
 
         return removed;

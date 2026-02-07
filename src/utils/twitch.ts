@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { ActivityType, PresenceUpdateStatus } from 'discord.js';
 import { setIsStreaming } from './util.js';
+import { logger } from './logger.js';
 
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
@@ -33,7 +34,7 @@ async function getAccessToken(): Promise<string> {
         tokenExpiry = Date.now() + (response.data.expires_in * 1000);
         return newToken;
     } catch (error) {
-        console.error('Error getting Twitch access token:', error);
+        logger.error`Error getting Twitch access token: ${error}`;
         throw error;
     }
 }
@@ -52,7 +53,7 @@ async function getUserId(): Promise<string> {
         });
         return response.data.data[0].id;
     } catch (error) {
-        console.error('Error getting Twitch user ID:', error);
+        logger.error`Error getting Twitch user ID: ${error}`;
         throw error;
     }
 }
@@ -98,7 +99,7 @@ export async function checkStreamStatus(client: any): Promise<boolean> {
 
         return isLive;
     } catch (error) {
-        console.error('Error checking Twitch stream status:', error);
+        logger.error`Error checking Twitch stream status: ${error}`;
         return false;
     }
 }

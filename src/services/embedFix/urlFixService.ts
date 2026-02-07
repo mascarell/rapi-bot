@@ -13,6 +13,7 @@
  */
 
 import { Message, TextChannel } from 'discord.js';
+import { embedFixLogger } from '../../utils/logger.js';
 
 // Fixup service domains that we should skip (already fixed)
 const FIXUP_DOMAINS = [
@@ -41,7 +42,6 @@ const processedContentIds = new Map<string, OriginalMessageInfo>();
 // Clean old entries every 5 minutes to prevent memory growth
 setInterval(() => {
     if (processedContentIds.size > 1000) {
-        console.log(`[UrlFix] Clearing ${processedContentIds.size} tracked content IDs`);
         processedContentIds.clear();
     }
 }, 5 * 60 * 1000);
@@ -152,44 +152,31 @@ export class UrlFixService {
      * 9. Suppress original message embeds
      */
     public async processMessage(message: Message): Promise<void> {
-        console.log(`[UrlFix] processMessage called for message from ${message.author.username} in ${message.guild?.name}`);
-
         // CRITICAL: Bot check must be FIRST to prevent infinite loops
         if (message.author.bot) {
-            console.log('[UrlFix] Skipping bot message');
             return;
         }
 
         // Fast path checks (order matters for performance)
         if (!message.guild) {
-            console.log('[UrlFix] Skipping non-guild message');
             return;
         }
         if (!message.content.includes('http')) {
-            console.log('[UrlFix] No URLs detected in message');
             return;
         }
 
         // Only process in art-focused channels
         const channelName = (message.channel as TextChannel).name?.toLowerCase() ?? '';
-        console.log(`[UrlFix] Channel name: #${channelName}`);
         if (!['art', 'nsfw'].includes(channelName)) {
-            console.log(`[UrlFix] Skipping channel #${channelName} (not art or nsfw)`);
             return;
         }
-
-        console.log('[UrlFix] Channel check passed, processing message');
-        console.log(`[UrlFix] Message content: ${message.content}`);
 
         // Extract content IDs from all supported URL formats (Twitter + Pixiv)
         const twitterUrls = this.extractTwitterUrls(message.content);
         const pixivUrls = this.extractPixivUrls(message.content);
         const allUrls = [...twitterUrls, ...pixivUrls];
 
-        console.log(`[UrlFix] Found ${twitterUrls.length} Twitter/X URLs and ${pixivUrls.length} Pixiv URLs`);
-
         if (allUrls.length === 0) {
-            console.log('[UrlFix] No supported URLs found, skipping');
             return;
         }
 
@@ -205,7 +192,7 @@ export class UrlFixService {
                     platform: urlInfo.platform,
                     originalInfo
                 });
-                console.log(`[UrlFix] ${urlInfo.platform} content ${urlInfo.contentId} already processed in message ${originalInfo.messageId}`);
+                embedFixLogger.debug`${urlInfo.platform} content ${urlInfo.contentId} already processed in message ${originalInfo.messageId}`;
             } else {
                 newUrls.push(urlInfo);
             }
@@ -213,8 +200,6 @@ export class UrlFixService {
 
         // If all content IDs are duplicates, reply with duplicate notification
         if (newUrls.length === 0 && duplicateContentInfo.length > 0) {
-            console.log(`[UrlFix] All content IDs already processed, sending duplicate notification`);
-
             // Suppress embeds on the duplicate message
             try {
                 await message.suppressEmbeds(true).catch(() => {});
@@ -236,20 +221,16 @@ export class UrlFixService {
                     await message.suppressEmbeds(true).catch(() => {});
                 }, 1500);
 
-                console.log(`[UrlFix] Sent duplicate notification for ${duplicateContentInfo.length} content ID(s)`);
             } catch (error) {
-                console.error('[UrlFix] Error sending duplicate notification:', error);
+                embedFixLogger.error`Error sending duplicate notification: ${error}`;
             }
             return;
         }
 
         // If no new URLs found, skip
         if (newUrls.length === 0) {
-            console.log(`[UrlFix] No new content IDs to process, skipping`);
             return;
         }
-
-        console.log(`[UrlFix] Processing ${newUrls.length} new content ID(s)`);
 
         // Get fixed URLs for all new content
         const fixedUrls = newUrls.map(urlInfo => urlInfo.fixedUrl);
@@ -291,9 +272,8 @@ export class UrlFixService {
                 await suppressOriginalEmbeds();
             }, 1500);
 
-            console.log(`[UrlFix] Replied to ${message.author.username} with ${fixedUrls.length} fixed URL(s) in #${channelName}`);
         } catch (error) {
-            console.error('[UrlFix] Error replying to message:', error);
+            embedFixLogger.error`Error replying to message: ${error}`;
         }
     }
 }
@@ -310,6 +290,6 @@ export const getUrlFixService = (): UrlFixService =>
  */
 export async function checkEmbedFixUrls(message: Message): Promise<void> {
     getUrlFixService().processMessage(message).catch(err => {
-        console.error('[UrlFix] Unexpected error:', err);
+        embedFixLogger.error`Unexpected error: ${err}`;
     });
 }

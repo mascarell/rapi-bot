@@ -29,6 +29,7 @@ import { pixivHandler } from './handlers/pixivHandler.js';
 import { twitterHandler } from './handlers/twitterHandler.js';
 import { embedFixRateLimiter } from './rateLimiter.js';
 import { urlMatcher } from './urlMatcher.js';
+import { embedFixLogger } from '../../utils/logger.js';
 
 /**
  * Download a video file, checking size constraints
@@ -52,7 +53,6 @@ async function downloadVideo(
 
             const contentLength = headResponse.headers.get('content-length');
             if (contentLength && parseInt(contentLength) > maxSize) {
-                console.log(`[EmbedFix] Video too large: ${contentLength} bytes > ${maxSize} limit`);
                 return null;
             }
         } catch {
@@ -71,7 +71,7 @@ async function downloadVideo(
         clearTimeout(downloadTimeout);
 
         if (!response.ok) {
-            console.log(`[EmbedFix] Video download failed: ${response.status}`);
+            embedFixLogger.warn`Video download failed: ${response.status}`;
             return null;
         }
 
@@ -80,7 +80,6 @@ async function downloadVideo(
 
         // Check actual size
         if (buffer.length > maxSize) {
-            console.log(`[EmbedFix] Downloaded video too large: ${buffer.length} bytes`);
             return null;
         }
 
@@ -91,9 +90,9 @@ async function downloadVideo(
         return { buffer, filename };
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-            console.log('[EmbedFix] Video download timed out');
+            embedFixLogger.warn`Video download timed out`;
         } else {
-            console.error('[EmbedFix] Video download error:', error);
+            embedFixLogger.error`Video download error: ${error}`;
         }
         return null;
     }
@@ -164,7 +163,6 @@ class EmbedFixService {
         urlMatcher.registerHandler(instagramHandler);
 
         this.initialized = true;
-        console.log('[EmbedFix] Service initialized with handlers:', urlMatcher.getHandlers().map(h => h.platform).join(', '));
     }
 
     /**
@@ -319,7 +317,7 @@ class EmbedFixService {
 
         // Check circuit breaker
         if (circuitBreaker.isOpen(platform)) {
-            console.log(`[EmbedFix] Circuit breaker open for ${platform}, skipping ${url}`);
+            embedFixLogger.debug`Circuit breaker open for ${platform}, skipping ${url}`;
             return null;
         }
 
@@ -353,7 +351,7 @@ class EmbedFixService {
                 return null;
             }
         } catch (error) {
-            console.error(`[EmbedFix] Error processing ${url}:`, error);
+            embedFixLogger.error`Error processing ${url}: ${error}`;
             embedCache.setNegative(cacheKey);
             circuitBreaker.recordFailure(platform);
             return null;
@@ -491,8 +489,8 @@ class EmbedFixService {
                     channelId: message.channel.id,
                     messageId: reply.id,
                     sharedBy: message.author.id,
-                }).catch(err => {
-                    console.error('[EmbedFix] Failed to record artwork:', err);
+                }).catch((err: unknown) => {
+                    embedFixLogger.debug`Failed to record artwork: ${err}`;
                 });
             }
         } catch (error) {
@@ -752,7 +750,7 @@ class EmbedFixService {
             });
         } catch (error) {
             // Silently fail - user likely has DMs disabled
-            console.log(`[EmbedFix] Could not send DM to user ${user.id}: ${error}`);
+            embedFixLogger.warn`Could not send DM to user ${user.id}: ${error}`;
         }
     }
 

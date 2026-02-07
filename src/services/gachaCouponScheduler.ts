@@ -5,6 +5,7 @@ import { getGachaDataService } from './gachaDataService.js';
 import { getSupportedGameIds, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { syncBD2PulseCodes, ScrapeResult } from './bd2PulseScraperService.js';
+import { schedulerLogger } from '../utils/logger.js';
 
 /**
  * Configuration for dev mode intervals (in minutes)
@@ -51,18 +52,6 @@ export class GachaCouponScheduler {
         this.bot = bot;
         this.isDevelopment = process.env.NODE_ENV === 'development';
         this.devConfig = { ...DEFAULT_DEV_CONFIG, ...devConfig };
-
-        if (this.isDevelopment) {
-            console.log('⚠️  DEV MODE: Gacha coupon scheduler using shortened intervals for testing.');
-            console.log(`   Weekly Digest: Every ${this.devConfig.weeklyDigestInterval} min`);
-            console.log(`   Expiration Warnings: Every ${this.devConfig.expirationWarningInterval} min`);
-            console.log(`   Auto-Redemption: Every ${this.devConfig.autoRedemptionInterval} min`);
-            console.log(`   Code Scraping: Every ${this.devConfig.codeScrapingInterval} min`);
-            console.log(`   Expired Cleanup: Every ${this.devConfig.expiredCleanupInterval} min`);
-            if (this.devConfig.triggerOnStartup) {
-                console.log(`   Startup Trigger: Enabled (${this.devConfig.startupDelay}s delay)`);
-            }
-        }
     }
 
     /**
@@ -75,33 +64,27 @@ export class GachaCouponScheduler {
         this.scheduleCodeScraping();
         this.scheduleExpiredCodeCleanup();
 
-        console.log('Gacha Coupon Scheduler initialized');
-
         // Always scrape codes on startup (after a short delay to let bot fully initialize)
         // This ensures we have the latest codes immediately after restart/deploy
         const startupDelay = this.isDevelopment ? this.devConfig.startupDelay : 15;
         setTimeout(async () => {
-            console.log('[Startup] Scraping codes on startup...');
             try {
                 const result = await this.triggerCodeScraping();
                 if (result.success) {
                     if (result.newCodes.length > 0) {
-                        console.log(`[Startup] Found ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`);
-                    } else {
-                        console.log('[Startup] No new codes found');
+                        schedulerLogger.debug`[Startup] Found ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`;
                     }
                 } else {
-                    console.error('[Startup] Code scraping failed:', result.error);
+                    schedulerLogger.error`[Startup] Code scraping failed: ${result.error}`;
                 }
             } catch (error) {
-                console.error('[Startup] Code scraping error:', error);
+                schedulerLogger.error`[Startup] Code scraping error: ${error}`;
             }
         }, startupDelay * 1000);
 
         // In dev mode, optionally trigger all tasks after a short delay for immediate testing
         if (this.isDevelopment && this.devConfig.triggerOnStartup) {
             setTimeout(async () => {
-                console.log('[DEV] Triggering all gacha tasks for immediate testing...');
                 await this.triggerAllTasks();
             }, this.devConfig.startupDelay * 1000);
         }
@@ -111,44 +94,35 @@ export class GachaCouponScheduler {
      * Trigger all scheduled tasks immediately (for testing)
      */
     public async triggerAllTasks(): Promise<void> {
-        console.log('Triggering all gacha coupon tasks...');
-
         try {
             await this.triggerExpirationWarnings();
-            console.log('  ✓ Expiration warnings sent');
         } catch (error) {
-            console.error('  ✗ Expiration warnings failed:', error);
+            schedulerLogger.error`Expiration warnings failed: ${error}`;
         }
 
         try {
             await this.triggerWeeklyDigest();
-            console.log('  ✓ Weekly digest sent');
         } catch (error) {
-            console.error('  ✗ Weekly digest failed:', error);
+            schedulerLogger.error`Weekly digest failed: ${error}`;
         }
 
         try {
             await this.triggerAutoRedemption();
-            console.log('  ✓ Auto-redemption processed');
         } catch (error) {
-            console.error('  ✗ Auto-redemption failed:', error);
+            schedulerLogger.error`Auto-redemption failed: ${error}`;
         }
 
         try {
             await this.triggerCodeScraping();
-            console.log('  ✓ Code scraping completed');
         } catch (error) {
-            console.error('  ✗ Code scraping failed:', error);
+            schedulerLogger.error`Code scraping failed: ${error}`;
         }
 
         try {
             await this.triggerExpiredCodeCleanup();
-            console.log('  ✓ Expired code cleanup completed');
         } catch (error) {
-            console.error('  ✗ Expired code cleanup failed:', error);
+            schedulerLogger.error`Expired code cleanup failed: ${error}`;
         }
-
-        console.log('All gacha coupon tasks completed');
     }
 
     /**
@@ -164,12 +138,10 @@ export class GachaCouponScheduler {
         const taskName = 'weekly-digest';
         const job = schedule.scheduleJob(cronExpression, async () => {
             if (this.runningTasks.has(taskName)) {
-                console.log('Skipping gacha weekly digest - already running');
                 return;
             }
 
             this.runningTasks.add(taskName);
-            console.log('Running gacha weekly digest...');
             try {
                 const redemptionService = getGachaRedemptionService();
                 const gameIds = getSupportedGameIds();
@@ -177,17 +149,14 @@ export class GachaCouponScheduler {
                 for (const gameId of gameIds) {
                     await redemptionService.sendWeeklyDigest(this.bot, gameId);
                 }
-
-                console.log('Gacha weekly digest completed for all games');
             } catch (error) {
-                console.error('Error running gacha weekly digest:', error);
+                schedulerLogger.error`Error running gacha weekly digest: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
         });
 
         this.scheduledJobs.set('gacha-weekly-digest', job);
-        console.log(`Scheduled gacha weekly digest: ${this.isDevelopment ? `Every ${interval} minutes (dev)` : 'Sundays at 12:00 UTC'}`);
     }
 
     /**
@@ -202,12 +171,10 @@ export class GachaCouponScheduler {
         const taskName = 'expiration-warnings';
         const job = schedule.scheduleJob(cronExpression, async () => {
             if (this.runningTasks.has(taskName)) {
-                console.log('Skipping gacha expiration warnings - already running');
                 return;
             }
 
             this.runningTasks.add(taskName);
-            console.log('Running gacha expiration warnings...');
             try {
                 const redemptionService = getGachaRedemptionService();
                 const gameIds = getSupportedGameIds();
@@ -215,17 +182,14 @@ export class GachaCouponScheduler {
                 for (const gameId of gameIds) {
                     await redemptionService.sendExpirationWarnings(this.bot, gameId);
                 }
-
-                console.log('Gacha expiration warnings completed');
             } catch (error) {
-                console.error('Error running gacha expiration warnings:', error);
+                schedulerLogger.error`Error running gacha expiration warnings: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
         });
 
         this.scheduledJobs.set('gacha-expiration-warnings', job);
-        console.log(`Scheduled gacha expiration warnings: ${this.isDevelopment ? `Every ${interval} minutes (dev)` : 'Daily at 09:00 UTC'}`);
     }
 
     /**
@@ -241,30 +205,21 @@ export class GachaCouponScheduler {
         const taskName = 'auto-redemption';
         const job = schedule.scheduleJob(cronExpression, async () => {
             if (this.runningTasks.has(taskName)) {
-                console.log('Skipping gacha auto-redemption - already running');
                 return;
             }
 
             this.runningTasks.add(taskName);
-            console.log('Running gacha auto-redemption...');
             try {
                 const redemptionService = getGachaRedemptionService();
-                const results = await redemptionService.processAllAutoRedemptions(this.bot);
-
-                for (const result of results) {
-                    console.log(`${result.gameId}: ${result.usersProcessed} users, ${result.successful} successful, ${result.failed} failed`);
-                }
-
-                console.log('Gacha auto-redemption completed');
+                await redemptionService.processAllAutoRedemptions(this.bot);
             } catch (error) {
-                console.error('Error running gacha auto-redemption:', error);
+                schedulerLogger.error`Error running gacha auto-redemption: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
         });
 
         this.scheduledJobs.set('gacha-auto-redemption', job);
-        console.log(`Scheduled gacha auto-redemption: ${this.isDevelopment ? `Every ${interval} minutes (dev)` : 'Every 6 hours'}`);
     }
 
     /**
@@ -280,37 +235,30 @@ export class GachaCouponScheduler {
         const taskName = 'code-scraping';
         const job = schedule.scheduleJob(cronExpression, async () => {
             if (this.runningTasks.has(taskName)) {
-                console.log('Skipping code scraping - already running');
                 return;
             }
 
             this.runningTasks.add(taskName);
-            console.log('Running BD2 Pulse code scraping...');
             try {
                 const result = await syncBD2PulseCodes();
 
                 if (result.success) {
                     if (result.newCodes.length > 0) {
-                        console.log(`[BD2 Pulse] Added ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`);
-
                         // Trigger auto-redemption for new codes with notification enabled
                         const redemptionService = getGachaRedemptionService();
                         await redemptionService.processGameAutoRedemptions(this.bot, 'bd2', { hasNewCodes: true });
-                    } else {
-                        console.log('[BD2 Pulse] No new codes found');
                     }
                 } else {
-                    console.error('[BD2 Pulse] Scraping failed:', result.error);
+                    schedulerLogger.error`[BD2 Pulse] Scraping failed: ${result.error}`;
                 }
             } catch (error) {
-                console.error('Error running code scraping:', error);
+                schedulerLogger.error`Error running code scraping: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
         });
 
         this.scheduledJobs.set('gacha-code-scraping', job);
-        console.log(`Scheduled code scraping: ${this.isDevelopment ? `Every ${interval} minutes (dev)` : 'Every 30 minutes'}`);
     }
 
     /**
@@ -326,33 +274,21 @@ export class GachaCouponScheduler {
         const taskName = 'expired-cleanup';
         const job = schedule.scheduleJob(cronExpression, async () => {
             if (this.runningTasks.has(taskName)) {
-                console.log('Skipping expired code cleanup - already running');
                 return;
             }
 
             this.runningTasks.add(taskName);
-            console.log('Running expired code cleanup...');
             try {
                 const dataService = getGachaDataService();
-                const result = await dataService.cleanupExpiredCoupons();
-
-                if (result.cleaned > 0) {
-                    console.log(`Expired code cleanup completed: ${result.cleaned} codes marked inactive`);
-                    for (const [gameId, count] of Object.entries(result.byGame)) {
-                        console.log(`  ${gameId}: ${count} codes`);
-                    }
-                } else {
-                    console.log('Expired code cleanup: No expired codes found');
-                }
+                await dataService.cleanupExpiredCoupons();
             } catch (error) {
-                console.error('Error running expired code cleanup:', error);
+                schedulerLogger.error`Error running expired code cleanup: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
         });
 
         this.scheduledJobs.set('gacha-expired-cleanup', job);
-        console.log(`Scheduled expired code cleanup: ${this.isDevelopment ? `Every ${interval} minutes (dev)` : 'Daily at 00:00 UTC'}`);
     }
 
     /**
@@ -361,7 +297,6 @@ export class GachaCouponScheduler {
     public cancelAllSchedules(): void {
         this.scheduledJobs.forEach((job, name) => {
             job.cancel();
-            console.log(`Cancelled gacha schedule: ${name}`);
         });
         this.scheduledJobs.clear();
     }
@@ -404,7 +339,6 @@ export class GachaCouponScheduler {
     }
 
     public async triggerCodeScraping(): Promise<ScrapeResult> {
-        console.log('Manually triggering BD2 Pulse code scraping...');
         const result = await syncBD2PulseCodes();
 
         if (result.success && result.newCodes.length > 0) {
@@ -417,7 +351,6 @@ export class GachaCouponScheduler {
     }
 
     public async triggerExpiredCodeCleanup(): Promise<{ cleaned: number; byGame: Record<string, number> }> {
-        console.log('Manually triggering expired code cleanup...');
         const dataService = getGachaDataService();
         return dataService.cleanupExpiredCoupons();
     }

@@ -4,6 +4,7 @@ import { bosses, bossesLinks, towerRotation, rapiMessages, readNikkeMessages } f
 import { promises as fs } from "fs";
 import path from "path";
 import { Command, SlashCommand, MessageCommand } from './interfaces/Command.interface.js';
+import { logger } from './logger.js';
 
 export { gamesData };
 
@@ -22,7 +23,7 @@ export function findRoleByName(guild: Guild, roleName: string) {
 }
 
 export function logError(guildId: string, guildName: string, error: Error, context: string) {
-    console.error(`[Guild ${guildId} - ${guildName}] Error in ${context}:`, error);
+    logger.error`[Guild ${guildId} - ${guildName}] Error in ${context}: ${error}`;
 }
 
 export function getVoiceChannel(guild: Guild, channelId: string): VoiceBasedChannel | undefined {
@@ -89,7 +90,7 @@ export function handleTimeout(msg: any, duration: number = 300000) {
         member.timeout(duration, "Commander, I need a moment of peace away from you!")
             .then(() => {
                 const emojis = ["sefhistare:1124869893880283306", "❌"];
-                emojis.forEach(emoji => msg.react(emoji).catch(console.error));
+                emojis.forEach(emoji => msg.react(emoji).catch((e: unknown) => logger.error`Failed to react with emoji: ${e}`));
                 
                 const smugRapiMediaUrl = `${cdnDomainUrl}/commands/damnTrain/SmugRapi.jpg`;
 
@@ -99,7 +100,7 @@ export function handleTimeout(msg: any, duration: number = 300000) {
                 });
             })
             .catch((error: any) => {
-                console.error('Failed to timeout the user:', error);
+                logger.error`Failed to timeout the user: ${error}`;
                 handleTimeoutError(msg, author);
             });
     } else {

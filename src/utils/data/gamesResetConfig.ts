@@ -120,7 +120,6 @@ const nikkeResetConfig: DailyResetConfig = {
             });
 
             reactionCollector.on('collect', async (reaction, user) => {
-                console.log(`Collected ${reaction.emoji.name} reaction from ${user.tag} on daily reset message in guild: ${message.guild?.name}`);
                 try {
                     const phraseMessage = getRandomQuietRapiPhrase();
                     const randomCdnMediaUrl = await getRandomCdnMediaUrl(
@@ -143,9 +142,7 @@ const nikkeResetConfig: DailyResetConfig = {
                 }
             });
 
-            reactionCollector.on('end', (collected: any) => {
-                console.log(`Reaction collector ended. Collected ${collected.size} reactions in guild: ${message.guild?.name}`);
-            });
+            reactionCollector.on('end', () => {});
 
             // Create message collector for "good girl" responses
             if ('createMessageCollector' in message.channel) {
@@ -180,9 +177,7 @@ const nikkeResetConfig: DailyResetConfig = {
                     }
                 });
 
-                messageCollector.on('end', (collected: any) => {
-                    console.log(`Message collector stopped. Collected ${collected.size} responses for server: ${message.guild?.name}.`);
-                });
+                messageCollector.on('end', () => {});
             }
         }
     }

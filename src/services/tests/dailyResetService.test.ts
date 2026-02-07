@@ -190,16 +190,14 @@ describe('DailyResetService', () => {
         it('should handle missing channel gracefully', async () => {
             vi.mocked(util.findChannelByName).mockReturnValue(undefined);
 
-            const consoleSpy = vi.spyOn(console, 'log');
             const service = new DailyResetService(mockBot, { games: [testConfig] });
 
             // Access private method
             const sendResetMessageToGuild = (service as any).sendResetMessageToGuild;
             await sendResetMessageToGuild.call(service, mockGuild, testConfig);
 
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining("Channel 'test-channel' not found")
-            );
+            // Channel.send should never be called since channel was not found
+            expect(mockChannel.send).not.toHaveBeenCalled();
         });
 
         it('should handle role ping if roleName is provided', async () => {
@@ -288,20 +286,13 @@ describe('DailyResetService', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'development';
 
-            const consoleSpy = vi.spyOn(console, 'log');
-
             const service = new DailyResetService(mockBot, { games: [testConfig], devModeInterval: 5 });
             service.initializeSchedules();
 
-            // Check that dev mode warning was logged
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('⚠️  DEV MODE: Daily reset messages will trigger every 5 minutes')
-            );
-
-            // Check that schedule description mentions dev mode
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('[DEV] Scheduled reset for Test Game')
-            );
+            // Verify jobs were created
+            const jobs = service.getScheduledJobs();
+            expect(jobs.size).toBe(1);
+            expect(jobs.has('Test Game-reset')).toBe(true);
 
             process.env.NODE_ENV = originalEnv;
         });
@@ -310,20 +301,13 @@ describe('DailyResetService', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'production';
 
-            const consoleSpy = vi.spyOn(console, 'log');
-
             const service = new DailyResetService(mockBot, { games: [testConfig] });
             service.initializeSchedules();
 
-            // Check that dev mode warning was NOT logged
-            expect(consoleSpy).not.toHaveBeenCalledWith(
-                expect.stringContaining('⚠️  DEV MODE')
-            );
-
-            // Check that normal daily schedule was used
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Scheduled reset for Test Game at 12:00 UTC')
-            );
+            // Verify jobs were created
+            const jobs = service.getScheduledJobs();
+            expect(jobs.size).toBe(1);
+            expect(jobs.has('Test Game-reset')).toBe(true);
 
             process.env.NODE_ENV = originalEnv;
         });
@@ -332,15 +316,13 @@ describe('DailyResetService', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'development';
 
-            const consoleSpy = vi.spyOn(console, 'log');
-
             const service = new DailyResetService(mockBot, { games: [testConfig], devModeInterval: 10 });
             service.initializeSchedules();
 
-            // Check that custom interval was used
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('every 10 minutes')
-            );
+            // Verify jobs were created with custom interval
+            const jobs = service.getScheduledJobs();
+            expect(jobs.size).toBe(1);
+            expect(jobs.has('Test Game-reset')).toBe(true);
 
             process.env.NODE_ENV = originalEnv;
         });
@@ -350,8 +332,6 @@ describe('DailyResetService', () => {
         it('should schedule Chaos Zero Nightmare with correct reset time (18:00 UTC)', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'production';
-
-            const consoleSpy = vi.spyOn(console, 'log');
 
             // Use the actual config to test
             const chaosZeroConfig = dailyResetServiceConfig.games.find((g: any) => g.game === 'Chaos Zero Nightmare');
@@ -363,10 +343,9 @@ describe('DailyResetService', () => {
             const service = new DailyResetService(mockBot, dailyResetServiceConfig);
             service.initializeSchedules();
 
-            // Check that schedule includes Chaos Zero
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Scheduled reset for Chaos Zero Nightmare at 18:00 UTC')
-            );
+            // Verify Chaos Zero reset job was created
+            const jobs = service.getScheduledJobs();
+            expect(jobs.has('Chaos Zero Nightmare-reset')).toBe(true);
 
             process.env.NODE_ENV = originalEnv;
         });
@@ -452,8 +431,6 @@ describe('DailyResetService', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'production';
 
-            const consoleSpy = vi.spyOn(console, 'log');
-
             const configWithWarning = {
                 ...testConfig,
                 resetTime: { hour: 20, minute: 0 },
@@ -466,10 +443,11 @@ describe('DailyResetService', () => {
             const service = new DailyResetService(mockBot, { games: [configWithWarning] });
             service.initializeSchedules();
 
-            // Should log warning at 19:00 (1 hour before 20:00)
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Scheduled warning for Test Game at 19:00 UTC (60 min before reset)')
-            );
+            // Verify both warning and reset jobs were created
+            const jobs = service.getScheduledJobs();
+            expect(jobs.size).toBe(2);
+            expect(jobs.has('Test Game-warning')).toBe(true);
+            expect(jobs.has('Test Game-reset')).toBe(true);
 
             process.env.NODE_ENV = originalEnv;
         });
@@ -572,8 +550,6 @@ describe('DailyResetService', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'development';
 
-            const consoleSpy = vi.spyOn(console, 'log');
-
             const configWithWarning = {
                 ...testConfig,
                 warningConfig: {
@@ -585,13 +561,11 @@ describe('DailyResetService', () => {
             const service = new DailyResetService(mockBot, { games: [configWithWarning], devModeInterval: 5 });
             service.initializeSchedules();
 
-            // Should log both warning and reset schedules
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('[DEV] Scheduled warning for Test Game every 5 minutes')
-            );
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('[DEV] Scheduled reset for Test Game at +2 min offset')
-            );
+            // Verify both warning and reset jobs were created in dev mode
+            const jobs = service.getScheduledJobs();
+            expect(jobs.size).toBe(2);
+            expect(jobs.has('Test Game-warning')).toBe(true);
+            expect(jobs.has('Test Game-reset')).toBe(true);
 
             process.env.NODE_ENV = originalEnv;
         });

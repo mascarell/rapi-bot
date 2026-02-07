@@ -5,12 +5,13 @@ import {
     ChatInputCommandInteraction,
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface';
-import { 
+import {
     GACHA_CONFIGS,
     RateLimiter,
     GachaPuller,
-    handlePagination 
+    handlePagination
 } from './utils';
+import { logger } from '../utils/logger.js';
 
 // Initialize rate limiter
 RateLimiter.init();
@@ -67,7 +68,7 @@ export default {
             await handlePagination(interaction, embeds);
 
         } catch (error) {
-            console.error('Gacha pull error:', error);
+            logger.error`Gacha pull error: ${error}`;
             await interaction.followUp('Commander, there was an error with the gacha system...');
         }
     }

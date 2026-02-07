@@ -2,6 +2,7 @@ import { SlashCommandBuilder, CommandInteraction ,
     MessageFlags
 } from 'discord.js';
 import fs from 'fs';
+import { discordLogger } from '../utils/logger.js';
 
 interface UserData {
     [userID: string]: {
@@ -16,7 +17,7 @@ const loadUserData = () => {
         const data = fs.readFileSync('user_data.json', 'utf8');
         return JSON.parse(data);
     } catch (err) {
-        console.error('Error loading user data:', err);
+        discordLogger.error`Error loading user data: ${err}`;
         return {};
     }
 };
@@ -25,7 +26,7 @@ const saveUserData = (data: UserData) => {
     try {
         fs.writeFileSync('user_data.json', JSON.stringify(data, null, 4));
     } catch (err) {
-        console.error('Error saving user data:', err);
+        discordLogger.error`Error saving user data: ${err}`;
     }
 };
 
@@ -151,7 +152,7 @@ export default {
             if (emoji) {
                 await message.react(emoji);
             } else {
-                console.warn(`Emoji '${reaction}' not found in guild ${interaction.guild?.name}`);
+                discordLogger.warning`Emoji '${reaction}' not found in guild ${interaction.guild?.name}`;
             }
         }
     },

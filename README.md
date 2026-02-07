@@ -458,3 +458,40 @@ The `/rules` command displays the server rules ephemerally (visible only to you)
 The bot also automatically manages a persistent rules message in the `#rules` channel for all configured servers. This message is created/updated automatically when the bot starts
 
 ---
+
+## Logging
+
+The bot uses [LogTape](https://logtape.org/) for structured logging — a zero-dependency library with native Bun support.
+
+### Log Levels
+
+| Environment | Default Level | What Prints |
+|-------------|---------------|-------------|
+| Production | `warning` | Warnings and errors only |
+| Development (`NODE_ENV=development`) | `debug` | Everything |
+
+### Override Log Level
+
+```bash
+# Force debug logging in any environment
+LOG_LEVEL=debug bun run start
+
+# Only show errors
+LOG_LEVEL=error bun run start
+```
+
+### Logger Categories
+
+Logs are organized by subsystem using hierarchical categories:
+
+| Logger | Category | Area |
+|--------|----------|------|
+| `logger` | `bot` | General / commands |
+| `discordLogger` | `bot.discord` | Discord events, voice, reactions |
+| `gachaLogger` | `bot.gacha` | Coupon redemption, scraping |
+| `embedFixLogger` | `bot.embed-fix` | URL fix, Twitter/Pixiv handlers |
+| `schedulerLogger` | `bot.scheduler` | Cron jobs, daily resets |
+| `mediaLogger` | `bot.media` | CDN media manager |
+| `rulesLogger` | `bot.rules` | Rules management |
+
+---

@@ -6,6 +6,7 @@
 import { EMBED_FIX_CONFIG } from '../../../utils/data/embedFixConfig';
 import { EmbedData, EmbedPlatform } from '../../../utils/interfaces/EmbedFix.interface';
 import { BaseHandler } from './baseHandler.js';
+import { embedFixLogger } from '../../../utils/logger.js';
 
 export class PixivHandler extends BaseHandler {
     platform: EmbedPlatform = 'pixiv';
@@ -23,7 +24,7 @@ export class PixivHandler extends BaseHandler {
         // Extract artwork ID from different URL patterns
         const artworkId = this.extractArtworkId(match, url);
         if (!artworkId) {
-            console.log(`[PixivHandler] Could not extract artwork ID from ${url}`);
+            embedFixLogger.warn`Could not extract artwork ID from ${url}`;
             return null;
         }
 

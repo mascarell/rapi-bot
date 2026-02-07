@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import './utils/logger.js';
 import express from 'express';
 import { initDiscordBot } from './discord.js';
 import router from './router.js';
@@ -10,4 +11,4 @@ app.use('/', router);
 
 initDiscordBot();
 
-app.listen(port, () => console.log(`App listening at port ${port}`));
+app.listen(port);

@@ -8,6 +8,7 @@ import {
     SlashCommandBuilder,
 } from 'discord.js';
 import { getEmbedFixService } from '../services/embedFix/embedFixService';
+import { embedFixLogger } from '../utils/logger.js';
 import { getEmbedVotesService } from '../services/embedFix/embedVotesService';
 
 export default {
@@ -99,7 +100,7 @@ export default {
                 }
             }
         } catch (error) {
-            console.error('[/embed] Error processing URL:', error);
+            embedFixLogger.error`[/embed] Error processing URL: ${error}`;
             await interaction.editReply({
                 content: 'An error occurred while processing the URL. Please try again later.',
             });

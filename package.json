@@ -20,6 +20,7 @@
     "@aws-sdk/client-s3": "^3.772.0",
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.19.0",
+    "@logtape/logtape": "^2.0.2",
     "@snazzah/davey": "^0.1.9",
     "axios": "^1.7.7",
     "discord.js": "^14.14.1",
