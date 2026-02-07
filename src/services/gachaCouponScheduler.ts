@@ -5,7 +5,7 @@ import { getGachaDataService } from './gachaDataService.js';
 import { getSupportedGameIds, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { syncBD2PulseCodes, ScrapeResult } from './bd2PulseScraperService.js';
-import { schedulerLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Configuration for dev mode intervals (in minutes)
@@ -72,13 +72,13 @@ export class GachaCouponScheduler {
                 const result = await this.triggerCodeScraping();
                 if (result.success) {
                     if (result.newCodes.length > 0) {
-                        schedulerLogger.debug`[Startup] Found ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`;
+                        logger.debug`[Startup] Found ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`;
                     }
                 } else {
-                    schedulerLogger.error`[Startup] Code scraping failed: ${result.error}`;
+                    logger.error`[Startup] Code scraping failed: ${result.error}`;
                 }
             } catch (error) {
-                schedulerLogger.error`[Startup] Code scraping error: ${error}`;
+                logger.error`[Startup] Code scraping error: ${error}`;
             }
         }, startupDelay * 1000);
 
@@ -97,31 +97,31 @@ export class GachaCouponScheduler {
         try {
             await this.triggerExpirationWarnings();
         } catch (error) {
-            schedulerLogger.error`Expiration warnings failed: ${error}`;
+            logger.error`Expiration warnings failed: ${error}`;
         }
 
         try {
             await this.triggerWeeklyDigest();
         } catch (error) {
-            schedulerLogger.error`Weekly digest failed: ${error}`;
+            logger.error`Weekly digest failed: ${error}`;
         }
 
         try {
             await this.triggerAutoRedemption();
         } catch (error) {
-            schedulerLogger.error`Auto-redemption failed: ${error}`;
+            logger.error`Auto-redemption failed: ${error}`;
         }
 
         try {
             await this.triggerCodeScraping();
         } catch (error) {
-            schedulerLogger.error`Code scraping failed: ${error}`;
+            logger.error`Code scraping failed: ${error}`;
         }
 
         try {
             await this.triggerExpiredCodeCleanup();
         } catch (error) {
-            schedulerLogger.error`Expired code cleanup failed: ${error}`;
+            logger.error`Expired code cleanup failed: ${error}`;
         }
     }
 
@@ -150,7 +150,7 @@ export class GachaCouponScheduler {
                     await redemptionService.sendWeeklyDigest(this.bot, gameId);
                 }
             } catch (error) {
-                schedulerLogger.error`Error running gacha weekly digest: ${error}`;
+                logger.error`Error running gacha weekly digest: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
@@ -183,7 +183,7 @@ export class GachaCouponScheduler {
                     await redemptionService.sendExpirationWarnings(this.bot, gameId);
                 }
             } catch (error) {
-                schedulerLogger.error`Error running gacha expiration warnings: ${error}`;
+                logger.error`Error running gacha expiration warnings: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
@@ -213,7 +213,7 @@ export class GachaCouponScheduler {
                 const redemptionService = getGachaRedemptionService();
                 await redemptionService.processAllAutoRedemptions(this.bot);
             } catch (error) {
-                schedulerLogger.error`Error running gacha auto-redemption: ${error}`;
+                logger.error`Error running gacha auto-redemption: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
@@ -249,10 +249,10 @@ export class GachaCouponScheduler {
                         await redemptionService.processGameAutoRedemptions(this.bot, 'bd2', { hasNewCodes: true });
                     }
                 } else {
-                    schedulerLogger.error`[BD2 Pulse] Scraping failed: ${result.error}`;
+                    logger.error`[BD2 Pulse] Scraping failed: ${result.error}`;
                 }
             } catch (error) {
-                schedulerLogger.error`Error running code scraping: ${error}`;
+                logger.error`Error running code scraping: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }
@@ -282,7 +282,7 @@ export class GachaCouponScheduler {
                 const dataService = getGachaDataService();
                 await dataService.cleanupExpiredCoupons();
             } catch (error) {
-                schedulerLogger.error`Error running expired code cleanup: ${error}`;
+                logger.error`Error running expired code cleanup: ${error}`;
             } finally {
                 this.runningTasks.delete(taskName);
             }

@@ -6,7 +6,7 @@
 import { EMBED_FIX_CONFIG } from '../../../utils/data/embedFixConfig';
 import { EmbedData, EmbedPlatform } from '../../../utils/interfaces/EmbedFix.interface';
 import { BaseHandler } from './baseHandler.js';
-import { embedFixLogger } from '../../../utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 interface FxTwitterAuthor {
     name: string;
@@ -76,7 +76,7 @@ export class TwitterHandler extends BaseHandler {
         const statusId = match[4];
 
         if (!username || !statusId) {
-            embedFixLogger.warn`Could not extract username or statusId from URL: ${url}`;
+            logger.warn`Could not extract username or statusId from URL: ${url}`;
             return null;
         }
 
@@ -85,14 +85,14 @@ export class TwitterHandler extends BaseHandler {
             const response = await this.fetchWithTimeout(apiUrl);
 
             if (!response.ok) {
-                embedFixLogger.warn`API returned ${response.status} for ${url}`;
+                logger.warn`API returned ${response.status} for ${url}`;
                 return null;
             }
 
             const data: FxTwitterResponse = await response.json();
 
             if (data.code !== 200 || !data.tweet) {
-                embedFixLogger.warn`Invalid response for ${url}: ${data.message}`;
+                logger.warn`Invalid response for ${url}: ${data.message}`;
                 return null;
             }
 
@@ -159,9 +159,9 @@ export class TwitterHandler extends BaseHandler {
             };
         } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {
-                embedFixLogger.error`Request timed out for ${url}`;
+                logger.error`Request timed out for ${url}`;
             } else {
-                embedFixLogger.error`Error fetching ${url}: ${error}`;
+                logger.error`Error fetching ${url}: ${error}`;
             }
             return null;
         }

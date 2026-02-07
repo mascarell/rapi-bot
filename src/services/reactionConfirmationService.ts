@@ -2,7 +2,7 @@ import { Client, Message, MessageReaction, User, PartialMessageReaction, Partial
 import { getGachaDataService } from './gachaDataService.js';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { getGameConfig, GACHA_GAMES } from '../utils/data/gachaGamesConfig';
-import { gachaLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Reaction emojis for manual confirmation
@@ -98,7 +98,7 @@ class ReactionConfirmationService {
             try {
                 await reaction.fetch();
             } catch (error) {
-                gachaLogger.error`Failed to fetch reaction: ${error}`;
+                logger.error`Failed to fetch reaction: ${error}`;
                 return;
             }
         }
@@ -109,7 +109,7 @@ class ReactionConfirmationService {
             try {
                 message = await message.fetch();
             } catch (error) {
-                gachaLogger.error`Failed to fetch message: ${error}`;
+                logger.error`Failed to fetch message: ${error}`;
                 return;
             }
         }
@@ -134,7 +134,7 @@ class ReactionConfirmationService {
         const { gameId, code } = parsed;
         const discordId = user.id;
 
-        gachaLogger.debug`User ${discordId} reacted with ${emoji} on ${gameId}:${code}`;
+        logger.debug`User ${discordId} reacted with ${emoji} on ${gameId}:${code}`;
 
         const dataService = getGachaDataService();
 
@@ -174,7 +174,7 @@ class ReactionConfirmationService {
             }
             // Note: reaction.users.remove() doesn't work in DMs - users can unreact manually
         } catch (error) {
-            gachaLogger.error`Error handling reaction: ${error}`;
+            logger.error`Error handling reaction: ${error}`;
         }
     }
 
@@ -228,7 +228,7 @@ class ReactionConfirmationService {
             try {
                 await this.handleReaction(reaction, user, bot);
             } catch (error) {
-                gachaLogger.error`Error in reaction handler: ${error}`;
+                logger.error`Error in reaction handler: ${error}`;
             }
         });
 

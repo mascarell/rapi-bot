@@ -3,7 +3,7 @@ import schedule from 'node-schedule';
 import { DailyResetConfig, DailyResetServiceConfig } from '../utils/interfaces/DailyResetConfig.interface';
 import { findChannelByName, findRoleByName, logError } from '../utils/util';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager';
-import { schedulerLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Service for managing daily reset messages across multiple games
@@ -156,7 +156,7 @@ export class DailyResetService {
         const channel = findChannelByName(guild, config.channelName);
 
         if (!channel) {
-            schedulerLogger.warn`Channel '${config.channelName}' not found in server: ${guild.name}`;
+            logger.warn`Channel '${config.channelName}' not found in server: ${guild.name}`;
             return;
         }
 
@@ -192,7 +192,7 @@ export class DailyResetService {
         const channel = findChannelByName(guild, config.channelName);
 
         if (!channel) {
-            schedulerLogger.warn`Channel '${config.channelName}' not found in server: ${guild.name}`;
+            logger.warn`Channel '${config.channelName}' not found in server: ${guild.name}`;
             return;
         }
 
@@ -273,7 +273,7 @@ export class DailyResetService {
                 }
             } catch (error) {
                 // Log but don't fail the entire message if media fetch fails
-                schedulerLogger.warn`Failed to fetch media for ${config.game} in guild ${guild.name}: ${error}`;
+                logger.warn`Failed to fetch media for ${config.game} in guild ${guild.name}: ${error}`;
             }
         }
 
@@ -334,7 +334,7 @@ export class DailyResetService {
                 }
             } catch (error) {
                 // Log but don't fail the entire message if media fetch fails
-                schedulerLogger.warn`Failed to fetch warning media for ${config.game} in guild ${guild.name}: ${error}`;
+                logger.warn`Failed to fetch warning media for ${config.game} in guild ${guild.name}: ${error}`;
             }
         }
 

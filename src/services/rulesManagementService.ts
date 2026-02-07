@@ -1,6 +1,6 @@
 import { Client, TextChannel, Message } from 'discord.js';
 import { getGachaGuildConfigService } from './gachaGuildConfigService.js';
-import { rulesLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 // Constants
 const RULES_CHANNEL_NAME = 'rules'; // Channel name to search for
@@ -90,7 +90,7 @@ class RulesManagementService {
                 try {
                     message = await textChannel.messages.fetch(config.rulesConfig.messageId);
                 } catch (error) {
-                    rulesLogger.warn`Stored message ID ${config.rulesConfig.messageId} not found, will search for bot message`;
+                    logger.warn`Stored message ID ${config.rulesConfig.messageId} not found, will search for bot message`;
                 }
             }
 
@@ -110,13 +110,13 @@ class RulesManagementService {
             }
 
             // Log message ID for manual config update
-            rulesLogger.warn`MESSAGE ID FOR CONFIG (${guild.name}): ${message.id} — Please update guild-config.json and dev-guild-config.json with this message ID`;
+            logger.warn`MESSAGE ID FOR CONFIG (${guild.name}): ${message.id} — Please update guild-config.json and dev-guild-config.json with this message ID`;
 
             return { success: true };
         } catch (error) {
             // Log error but don't throw - this allows bot to continue starting up
             const errorMessage = error instanceof Error ? error.message : String(error);
-            rulesLogger.error`Could not initialize rules message for guild ${guildId}: ${errorMessage}`;
+            logger.error`Could not initialize rules message for guild ${guildId}: ${errorMessage}`;
             return {
                 success: false,
                 error: errorMessage
@@ -137,7 +137,7 @@ class RulesManagementService {
         const failureCount = results.filter(r => !r.success).length;
 
         if (failureCount > 0) {
-            rulesLogger.warn`Failed to initialize rules in ${failureCount} guild(s) (expected if bot not in all guilds)`;
+            logger.warn`Failed to initialize rules in ${failureCount} guild(s) (expected if bot not in all guilds)`;
         }
 
         return {

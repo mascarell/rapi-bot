@@ -11,7 +11,7 @@ import {
 } from "../utils/interfaces/GachaCoupon.interface";
 import { getGameConfig } from "../utils/data/gachaGamesConfig";
 import { GACHA_CONFIG } from "../utils/data/gachaConfig";
-import { gachaLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const DATA_KEY = isDevelopment
@@ -66,12 +66,12 @@ export class GachaDataService {
             return this.cache;
         } catch (error: any) {
             if (error.name === 'NoSuchKey' || error.Code === 'NoSuchKey') {
-                gachaLogger.warn`Gacha coupon data file not found at ${DATA_KEY}, creating default...`;
+                logger.warn`Gacha coupon data file not found at ${DATA_KEY}, creating default...`;
                 const defaultData = this.getDefaultData();
                 await this.saveData(defaultData);
                 return defaultData;
             }
-            gachaLogger.error`Error fetching gacha coupon data: ${error}`;
+            logger.error`Error fetching gacha coupon data: ${error}`;
             throw error;
         }
     }
@@ -130,7 +130,7 @@ export class GachaDataService {
         } catch (error: any) {
             // Don't fail save if backup fails (file might not exist yet on first save)
             if (error.name !== 'NoSuchKey' && error.Code !== 'NoSuchKey') {
-                gachaLogger.warn`Gacha data backup failed: ${error.message}`;
+                logger.warn`Gacha data backup failed: ${error.message}`;
             }
         }
     }

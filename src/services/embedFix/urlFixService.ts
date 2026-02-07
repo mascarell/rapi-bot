@@ -13,7 +13,7 @@
  */
 
 import { Message, TextChannel } from 'discord.js';
-import { embedFixLogger } from '../../utils/logger.js';
+import { logger } from '../../utils/logger.js';
 
 // Fixup service domains that we should skip (already fixed)
 const FIXUP_DOMAINS = [
@@ -192,7 +192,7 @@ export class UrlFixService {
                     platform: urlInfo.platform,
                     originalInfo
                 });
-                embedFixLogger.debug`${urlInfo.platform} content ${urlInfo.contentId} already processed in message ${originalInfo.messageId}`;
+                logger.debug`${urlInfo.platform} content ${urlInfo.contentId} already processed in message ${originalInfo.messageId}`;
             } else {
                 newUrls.push(urlInfo);
             }
@@ -222,7 +222,7 @@ export class UrlFixService {
                 }, 1500);
 
             } catch (error) {
-                embedFixLogger.error`Error sending duplicate notification: ${error}`;
+                logger.error`Error sending duplicate notification: ${error}`;
             }
             return;
         }
@@ -273,7 +273,7 @@ export class UrlFixService {
             }, 1500);
 
         } catch (error) {
-            embedFixLogger.error`Error replying to message: ${error}`;
+            logger.error`Error replying to message: ${error}`;
         }
     }
 }
@@ -290,6 +290,6 @@ export const getUrlFixService = (): UrlFixService =>
  */
 export async function checkEmbedFixUrls(message: Message): Promise<void> {
     getUrlFixService().processMessage(message).catch(err => {
-        embedFixLogger.error`Unexpected error: ${err}`;
+        logger.error`Unexpected error: ${err}`;
     });
 }

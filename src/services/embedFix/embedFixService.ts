@@ -29,7 +29,7 @@ import { pixivHandler } from './handlers/pixivHandler.js';
 import { twitterHandler } from './handlers/twitterHandler.js';
 import { embedFixRateLimiter } from './rateLimiter.js';
 import { urlMatcher } from './urlMatcher.js';
-import { embedFixLogger } from '../../utils/logger.js';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Download a video file, checking size constraints
@@ -71,7 +71,7 @@ async function downloadVideo(
         clearTimeout(downloadTimeout);
 
         if (!response.ok) {
-            embedFixLogger.warn`Video download failed: ${response.status}`;
+            logger.warn`Video download failed: ${response.status}`;
             return null;
         }
 
@@ -90,9 +90,9 @@ async function downloadVideo(
         return { buffer, filename };
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-            embedFixLogger.warn`Video download timed out`;
+            logger.warn`Video download timed out`;
         } else {
-            embedFixLogger.error`Video download error: ${error}`;
+            logger.error`Video download error: ${error}`;
         }
         return null;
     }
@@ -317,7 +317,7 @@ class EmbedFixService {
 
         // Check circuit breaker
         if (circuitBreaker.isOpen(platform)) {
-            embedFixLogger.debug`Circuit breaker open for ${platform}, skipping ${url}`;
+            logger.debug`Circuit breaker open for ${platform}, skipping ${url}`;
             return null;
         }
 
@@ -351,7 +351,7 @@ class EmbedFixService {
                 return null;
             }
         } catch (error) {
-            embedFixLogger.error`Error processing ${url}: ${error}`;
+            logger.error`Error processing ${url}: ${error}`;
             embedCache.setNegative(cacheKey);
             circuitBreaker.recordFailure(platform);
             return null;
@@ -490,7 +490,7 @@ class EmbedFixService {
                     messageId: reply.id,
                     sharedBy: message.author.id,
                 }).catch((err: unknown) => {
-                    embedFixLogger.debug`Failed to record artwork: ${err}`;
+                    logger.debug`Failed to record artwork: ${err}`;
                 });
             }
         } catch (error) {
@@ -750,7 +750,7 @@ class EmbedFixService {
             });
         } catch (error) {
             // Silently fail - user likely has DMs disabled
-            embedFixLogger.warn`Could not send DM to user ${user.id}: ${error}`;
+            logger.warn`Could not send DM to user ${user.id}: ${error}`;
         }
     }
 

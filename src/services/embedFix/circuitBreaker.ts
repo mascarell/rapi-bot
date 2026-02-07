@@ -5,7 +5,7 @@
 
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
 import { CircuitBreakerState, EmbedPlatform } from '../../utils/interfaces/EmbedFix.interface';
-import { embedFixLogger } from '../../utils/logger.js';
+import { logger } from '../../utils/logger.js';
 
 class CircuitBreaker {
     private states: Map<EmbedPlatform, CircuitBreakerState> = new Map();
@@ -31,7 +31,7 @@ class CircuitBreaker {
             // Reset to half-open state (allow one request to test)
             state.isOpen = false;
             state.failures = 0;
-            embedFixLogger.debug`Circuit for ${platform} is now half-open, allowing test request`;
+            logger.debug`Circuit for ${platform} is now half-open, allowing test request`;
             return false;
         }
 
@@ -77,7 +77,7 @@ class CircuitBreaker {
         if (state.failures >= EMBED_FIX_CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
             state.isOpen = true;
             state.openUntil = now + EMBED_FIX_CONFIG.CIRCUIT_BREAKER_TIMEOUT;
-            embedFixLogger.warn`Circuit for ${platform} is now OPEN until ${new Date(state.openUntil).toISOString()}`;
+            logger.warn`Circuit for ${platform} is now OPEN until ${new Date(state.openUntil).toISOString()}`;
         }
     }
 

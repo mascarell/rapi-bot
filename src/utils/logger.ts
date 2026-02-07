@@ -16,10 +16,5 @@ await configure({
     ],
 });
 
+// Single logger export for all bot operations
 export const logger = getLogger(["bot"]);
-export const discordLogger = getLogger(["bot", "discord"]);
-export const gachaLogger = getLogger(["bot", "gacha"]);
-export const embedFixLogger = getLogger(["bot", "embed-fix"]);
-export const schedulerLogger = getLogger(["bot", "scheduler"]);
-export const mediaLogger = getLogger(["bot", "media"]);
-export const rulesLogger = getLogger(["bot", "rules"]);

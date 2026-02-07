@@ -1,6 +1,6 @@
 import { ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { s3Client, S3_BUCKET, CDN_DOMAIN_URL } from "./config";
-import { mediaLogger } from "../logger.js";
+import { logger } from "../logger.js";
 
 // Track recently sent media keys per guild and prefix
 const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
@@ -30,19 +30,19 @@ export async function getRandomCdnMediaUrl(
         
         return `${CDN_DOMAIN_URL}/${randomKey}`;
     } catch (error) {
-        mediaLogger.error`Error retrieving CDN media for guild ${guildId}: ${error}`;
+        logger.error`Error retrieving CDN media for guild ${guildId}: ${error}`;
         throw error instanceof Error ? error : new Error('Error retrieving CDN media');
     }
 }
 
 function validateInputs(prefix: string, guildId: string): void {
     if (!prefix || typeof prefix !== 'string') {
-        mediaLogger.warning`Invalid prefix provided: ${prefix}`;
+        logger.warning`Invalid prefix provided: ${prefix}`;
         throw new Error('Valid prefix path is required');
     }
 
     if (!guildId || typeof guildId !== 'string') {
-        mediaLogger.warning`Invalid guildId provided: ${guildId}`;
+        logger.warning`Invalid guildId provided: ${guildId}`;
         throw new Error('Valid guild ID is required');
     }
 }

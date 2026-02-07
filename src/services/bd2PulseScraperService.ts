@@ -9,7 +9,7 @@
 import puppeteer from 'puppeteer';
 import { getGachaDataService } from './gachaDataService.js';
 import { GachaCoupon } from '../utils/interfaces/GachaCoupon.interface';
-import { gachaLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 const BD2_PULSE_API_URL = 'https://api.thebd2pulse.com/redeem';
 const BOT_USER_ID = 'bd2pulse-scraper'; // System user ID for auto-added codes
@@ -89,7 +89,7 @@ function mapStatus(status: string): ScrapedCode['status'] {
 export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
     let browser;
     try {
-        gachaLogger.debug`Launching browser to capture API response...`;
+        logger.debug`Launching browser to capture API response...`;
         browser = await puppeteer.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -108,7 +108,7 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
                     const data = await response.json();
                     if (Array.isArray(data)) {
                         apiCodes = data;
-                        gachaLogger.debug`Captured API response with ${data.length} codes`;
+                        logger.debug`Captured API response with ${data.length} codes`;
                     }
                 } catch (e) {
                     // Ignore JSON parse errors
@@ -129,7 +129,7 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
         browser = null;
 
         if (apiCodes.length === 0) {
-            gachaLogger.warn`No codes captured from API`;
+            logger.warn`No codes captured from API`;
             return [];
         }
 
@@ -140,10 +140,10 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
             status: mapStatus(apiCode.status),
         }));
 
-        gachaLogger.debug`Parsed ${codes.length} codes`;
+        logger.debug`Parsed ${codes.length} codes`;
         return codes;
     } catch (error: any) {
-        gachaLogger.error`Failed to fetch BD2 Pulse codes: ${error.message}`;
+        logger.error`Failed to fetch BD2 Pulse codes: ${error.message}`;
         if (browser) {
             await browser.close();
         }
@@ -223,7 +223,7 @@ export async function syncBD2PulseCodes(): Promise<ScrapeResult> {
             } catch (error: any) {
                 // Code might already exist (race condition) - skip silently
                 if (!error.message?.includes('already exists')) {
-                    gachaLogger.error`Failed to add code ${scraped.code}: ${error.message}`;
+                    logger.error`Failed to add code ${scraped.code}: ${error.message}`;
                 }
             }
         }

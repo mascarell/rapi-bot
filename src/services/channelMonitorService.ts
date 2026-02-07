@@ -4,7 +4,7 @@ import { getGachaDataService } from './gachaDataService.js';
 import { getGachaRedemptionService } from './gachaRedemptionService.js';
 import { GachaGameId, GachaCoupon } from '../utils/interfaces/GachaCoupon.interface';
 import { GACHA_GAMES, getGameConfig } from '../utils/data/gachaGamesConfig';
-import { gachaLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -57,7 +57,7 @@ class ChannelMonitorService {
         for (const [gameId, config] of Object.entries(channelMonitors)) {
             // Verify the game exists and has parsePatterns
             if (!this.isValidGameId(gameId) || !GACHA_GAMES[gameId as GachaGameId].parsePatterns) {
-                gachaLogger.warn`Skipping ${gameId}: no parsePatterns defined`;
+                logger.warn`Skipping ${gameId}: no parsePatterns defined`;
                 continue;
             }
 
@@ -102,7 +102,7 @@ class ChannelMonitorService {
     public parseAnnouncementMessage(gameId: GachaGameId, content: string): ParsedCoupon | null {
         const gameConfig = GACHA_GAMES[gameId];
         if (!gameConfig.parsePatterns) {
-            gachaLogger.warn`No parse patterns for game: ${gameId}`;
+            logger.warn`No parse patterns for game: ${gameId}`;
             return null;
         }
 
@@ -186,7 +186,7 @@ class ChannelMonitorService {
 
             return date.toISOString();
         } catch (error) {
-            gachaLogger.error`Failed to parse expiration date: ${dateString} ${error}`;
+            logger.error`Failed to parse expiration date: ${dateString} ${error}`;
             return null;
         }
     }
@@ -259,7 +259,7 @@ class ChannelMonitorService {
             const redemptionService = getGachaRedemptionService();
             await redemptionService.notifyNewCode(bot, coupon);
         } catch (error) {
-            gachaLogger.error`Error adding coupon: ${error}`;
+            logger.error`Error adding coupon: ${error}`;
         }
     }
 
@@ -278,7 +278,7 @@ class ChannelMonitorService {
             try {
                 await this.handleMonitoredMessage(bot, message);
             } catch (error) {
-                gachaLogger.error`Error handling message: ${error}`;
+                logger.error`Error handling message: ${error}`;
             }
         });
 

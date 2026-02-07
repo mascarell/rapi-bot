@@ -5,7 +5,7 @@ import {
     MessageFlags
 } from 'discord.js';
 import { checkStreamStatus } from '../utils/twitch';
-import { discordLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -31,7 +31,7 @@ export default {
                 if (channel) {
                     await channel.send(`@everyone Commander Sefhi is now streaming! You can watch on Youtube or Twitch here: ${url} ${twitchLink}`);
                 } else {
-                    discordLogger.warning`Channel with ID ${channelId} not found.`;
+                    logger.warning`Channel with ID ${channelId} not found.`;
                 }
                 await interaction.reply({ content: 'Stream announcement sent!', flags: MessageFlags.Ephemeral });
             } else {

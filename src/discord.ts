@@ -50,7 +50,7 @@ import { checkEmbedFixUrls } from './services/embedFix/urlFixService.js';
 import { getChannelMonitorService } from './services/channelMonitorService.js';
 import { getReactionConfirmationService } from './services/reactionConfirmationService.js';
 import { getRulesManagementService } from './services/rulesManagementService.js';
-import { discordLogger } from './utils/logger.js';
+import { logger } from './utils/logger.js';
 
 // Destructure only the necessary functions from util
 const {
@@ -540,7 +540,7 @@ const chatCommands: { [key: string]: Command } = {
                 const emoji = "❌";
                 msg.react(emoji);
             } catch (error) {
-                discordLogger.error`Failed to react with emoji: ${error}`;
+                logger.error`Failed to react with emoji: ${error}`;
             }
 
             const randomCdnMediaUrl = await getRandomCdnMediaUrl(
@@ -789,7 +789,7 @@ const chatCommands: { [key: string]: Command } = {
                 });
 
             } catch (error) {
-                discordLogger.error`Error in leadership command: ${error}`;
+                logger.error`Error in leadership command: ${error}`;
                 await msg.reply('Commander, there seems to be an issue with the leadership files...');
                 logError(
                     msg.guild?.id || 'UNKNOWN',
@@ -823,7 +823,7 @@ const chatCommands: { [key: string]: Command } = {
                 if (emoji) {
                     await msg.react(emoji);
                 } else {
-                    discordLogger.warning`Emoji ${reaction} not found in guild ${msg.guild!.name}`;
+                    logger.warning`Emoji ${reaction} not found in guild ${msg.guild!.name}`;
                 }
             }
         },
@@ -1020,7 +1020,7 @@ async function loadCommands() {
             if (isMessageCommand(command)) {
                 bot.commands.set(command.name, command);
             } else {
-                discordLogger.warning`Skipping invalid chat command: ${key} - Does not match MessageCommand interface`;
+                logger.warning`Skipping invalid chat command: ${key} - Does not match MessageCommand interface`;
             }
         }
     }
@@ -1041,7 +1041,7 @@ async function loadCommands() {
                 bot.commands.set(command.data.name, command);
                 commands.push(command.data.toJSON());
             } else {
-                discordLogger.warning`Skipping invalid command in file ${file}: Command does not match SlashCommand interface`;
+                logger.warning`Skipping invalid command in file ${file}: Command does not match SlashCommand interface`;
             }
         } catch (error) {
             const errorMessage = `Failed to load command from file ${file}`;
@@ -1194,10 +1194,10 @@ function greetNewMembers() {
             channel.send(`Welcome Commander ${member}, please take care when going to the surface.`)
                 .catch((error: Error) => {
                     logError(member.guild.id, member.guild.name, error, 'Greeting new member');
-                    discordLogger.error`Failed to send welcome message to ${member.user.tag} in guild ${member.guild.name}: ${error}`;
+                    logger.error`Failed to send welcome message to ${member.user.tag} in guild ${member.guild.name}: ${error}`;
                 });
         } else {
-            discordLogger.warning`Welcome channel not found in guild ${member.guild.name}`;
+            logger.warning`Welcome channel not found in guild ${member.guild.name}`;
         }
     });
 }
@@ -1208,7 +1208,7 @@ function sendRandomMessages() {
         for (const guild of guilds) {
             const channel = findChannelByName(guild, "nikke");
             if (!channel) {
-                discordLogger.warning`Could not find suitable nikke text channel in guild ${guild.name}`;
+                logger.warning`Could not find suitable nikke text channel in guild ${guild.name}`;
                 continue;
             }
 
@@ -1234,7 +1234,7 @@ function sendRandomMessages() {
                 if (emoji) {
                     await sentMessage.react(emoji);
                 } else {
-                    discordLogger.warning`Emoji rapidd not found in guild ${guild.name}`;
+                    logger.warning`Emoji rapidd not found in guild ${guild.name}`;
                 }
             } catch (error) {
                 logError(guild.id, guild.name, error instanceof Error ? error : new Error(String(error)), 'Sending random message');
@@ -1318,7 +1318,7 @@ function handleMessages() {
                                 content: `Commander ${message.author}, you have been timed out for 5 minutes due to excessive spam violations.`,
                             });
                         } catch (err) {
-                            discordLogger.error`Failed to timeout user: ${err}`;
+                            logger.error`Failed to timeout user: ${err}`;
                         }
                         return;
                     }
@@ -1353,7 +1353,7 @@ function handleMessages() {
             if (isFileTooLargeError(error)) {
                 await message.reply("Commander, the selected media file is too large for this server (>10MB). You may need to boost the server to allow larger file uploads, or try the command again for a different file.").catch(() => {});
             } else if (isTimeoutOrNetworkError(error)) {
-                discordLogger.error`Chat command ${command} timed out for guild ${message.guild?.name}: ${error.message}`;
+                logger.error`Chat command ${command} timed out for guild ${message.guild?.name}: ${error.message}`;
                 await message.reply("Commander, the request timed out. Please try again in a moment.").catch(() => {});
             } else {
                 // Log unexpected errors and notify user
@@ -1385,7 +1385,7 @@ function handleMessages() {
 
             // Embed fix no longer processes edits - simple URL replacement only on initial message
         } catch (error) {
-            discordLogger.error`Error handling message update: ${error}`;
+            logger.error`Error handling message update: ${error}`;
         }
     });
 }
@@ -1588,7 +1588,7 @@ async function checkScarrowMention(message: Message): Promise<void> {
                 try {
                     await replyMessage.react(saluteEmoji);
                 } catch (error) {
-                    discordLogger.warning`Failed to react with salute emoji: ${error}`;
+                    logger.warning`Failed to react with salute emoji: ${error}`;
                 }
             }
         }
@@ -1610,7 +1610,7 @@ function handleSlashCommands() {
         const command = bot.commands.get(interaction.commandName);
 
         if (!command) {
-            discordLogger.error`No command matching ${interaction.commandName} was found`;
+            logger.error`No command matching ${interaction.commandName} was found`;
             return;
         }
 
@@ -1702,7 +1702,7 @@ async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
         });
 
         if (playlist.length === 0) {
-            discordLogger.error`No audio files found in ${RADIO_FOLDER_PATH}`;
+            logger.error`No audio files found in ${RADIO_FOLDER_PATH}`;
             return;
         }
 
@@ -1747,7 +1747,7 @@ function playNextSong(guildId: string) {
 
         // Skip missing files
         if (!fs.existsSync(songPath)) {
-            discordLogger.warning`Radio file not found, skipping: ${songPath}`;
+            logger.warning`Radio file not found, skipping: ${songPath}`;
             voiceConnectionData.currentSongIndex = nextIndex;
             playNextSong(guildId);
             return;
@@ -1769,7 +1769,7 @@ function playNextSong(guildId: string) {
 
             // Handle player errors - skip to next song
             voiceConnectionData.player.on('error', (error: Error) => {
-                discordLogger.error`Audio player error: ${error.message}`;
+                logger.error`Audio player error: ${error.message}`;
                 logError(guildId, 'RADIO', error, 'Audio player error');
                 playNextSong(guildId);
             });
@@ -1835,7 +1835,7 @@ async function initDiscordBot() {
             const rulesManagementService = getRulesManagementService();
             const rulesResult = await rulesManagementService.initializeRulesMessage(bot);
             if (!rulesResult.success) {
-                discordLogger.warning`Rules management skipped (not in primary server or missing permissions): ${rulesResult.error}`;
+                logger.warning`Rules management skipped (not in primary server or missing permissions): ${rulesResult.error}`;
             }
 
             enableAutoComplete();

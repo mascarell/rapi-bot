@@ -6,7 +6,7 @@
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, S3_BUCKET } from '../../utils/cdn/config';
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
-import { embedFixLogger } from '../../utils/logger.js';
+import { logger } from '../../utils/logger.js';
 import {
     ArtworkVotes,
     EmbedPlatform,
@@ -56,12 +56,12 @@ class EmbedVotesService {
             return this.cache;
         } catch (error: any) {
             if (error.name === 'NoSuchKey' || error.Code === 'NoSuchKey') {
-                embedFixLogger.warn`Data file not found, creating default...`;
+                logger.warn`Data file not found, creating default...`;
                 const defaultData = this.getDefaultData();
                 await this.saveData(defaultData);
                 return defaultData;
             }
-            embedFixLogger.error`Error fetching data: ${error}`;
+            logger.error`Error fetching data: ${error}`;
             throw error;
         }
     }
@@ -133,13 +133,13 @@ class EmbedVotesService {
 
         if (!artwork) {
             // Artwork not found - shouldn't happen if recordArtwork was called
-            embedFixLogger.warn`Artwork ${artworkId} not found for voting`;
+            logger.warn`Artwork ${artworkId} not found for voting`;
             return { added: false, newCount: 0 };
         }
 
         const guildData = artwork.guildVotes[guildId];
         if (!guildData) {
-            embedFixLogger.warn`Guild ${guildId} not found for artwork ${artworkId}`;
+            logger.warn`Guild ${guildId} not found for artwork ${artworkId}`;
             return { added: false, newCount: 0 };
         }
 

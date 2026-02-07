@@ -84,16 +84,10 @@ Uses **LogTape** (`@logtape/logtape`) — zero-dependency, Bun-native structured
 - **Development** (`NODE_ENV=development`): `debug` and above
 - **Override**: `LOG_LEVEL=debug bun run start` to force debug logging in any environment
 
-### Available Loggers (from `src/utils/logger.ts`)
-| Logger | Category | Used In |
-|--------|----------|---------|
-| `logger` | `["bot"]` | General / commands / utilities |
-| `discordLogger` | `["bot", "discord"]` | discord.ts, welcome, voice, reactions |
-| `gachaLogger` | `["bot", "gacha"]` | Redemption, data service, scraper, channel monitor |
-| `embedFixLogger` | `["bot", "embed-fix"]` | URL fix, embed fix, Twitter/Pixiv handlers, votes |
-| `schedulerLogger` | `["bot", "scheduler"]` | Cron jobs, daily reset, coupon scheduler |
-| `mediaLogger` | `["bot", "media"]` | CDN media manager |
-| `rulesLogger` | `["bot", "rules"]` | Rules management service |
+### Available Logger (from `src/utils/logger.ts`)
+- **`logger`** - Universal bot logger with category `["bot"]`
+- All subsystems use the same logger instance
+- For clarity, log messages can include semantic prefixes: `logger.error\`[subsystem] ${message}\``
 
 ### Guidelines
 - **Prefer `warning`/`error`** — even in dev, only log things that need attention

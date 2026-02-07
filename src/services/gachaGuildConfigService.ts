@@ -1,7 +1,7 @@
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client, S3_BUCKET } from "../utils/cdn/config";
 import { GACHA_CONFIG } from "../utils/data/gachaConfig";
-import { gachaLogger } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const CONFIG_KEY = isDevelopment
@@ -87,12 +87,12 @@ class GachaGuildConfigService {
             return this.cache;
         } catch (error: any) {
             if (error.name === 'NoSuchKey' || error.Code === 'NoSuchKey') {
-                gachaLogger.warn`Guild config not found at ${CONFIG_KEY}, creating default...`;
+                logger.warn`Guild config not found at ${CONFIG_KEY}, creating default...`;
                 const defaultConfig = this.getDefaultConfig();
                 await this.saveConfig(defaultConfig);
                 return defaultConfig;
             }
-            gachaLogger.error`Error fetching guild config: ${error}`;
+            logger.error`Error fetching guild config: ${error}`;
             throw error;
         }
     }
