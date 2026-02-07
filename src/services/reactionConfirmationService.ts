@@ -2,6 +2,7 @@ import { Client, Message, MessageReaction, User, PartialMessageReaction, Partial
 import { getGachaDataService } from './gachaDataService.js';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { getGameConfig, GACHA_GAMES } from '../utils/data/gachaGamesConfig';
+import { logger } from '../utils/logger.js';
 
 /**
  * Reaction emojis for manual confirmation
@@ -97,7 +98,7 @@ class ReactionConfirmationService {
             try {
                 await reaction.fetch();
             } catch (error) {
-                console.error('[ReactionConfirmation] Failed to fetch reaction:', error);
+                logger.error`Failed to fetch reaction: ${error}`;
                 return;
             }
         }
@@ -108,7 +109,7 @@ class ReactionConfirmationService {
             try {
                 message = await message.fetch();
             } catch (error) {
-                console.error('[ReactionConfirmation] Failed to fetch message:', error);
+                logger.error`Failed to fetch message: ${error}`;
                 return;
             }
         }
@@ -133,7 +134,7 @@ class ReactionConfirmationService {
         const { gameId, code } = parsed;
         const discordId = user.id;
 
-        console.log(`[ReactionConfirmation] User ${discordId} reacted with ${emoji} on ${gameId}:${code}`);
+        logger.debug`User ${discordId} reacted with ${emoji} on ${gameId}:${code}`;
 
         const dataService = getGachaDataService();
 
@@ -149,7 +150,6 @@ class ReactionConfirmationService {
                     await dataService.markCodesRedeemed(discordId, gameId, [code]);
                     await this.updateMessageForRedeemed(message, code);
                     confirmationMessage = `✅ Code \`${code}\` marked as redeemed! You won't receive more reminders for this code.`;
-                    console.log(`[ReactionConfirmation] Marked ${code} as redeemed for ${discordId}`);
                     break;
 
                 case CONFIRMATION_EMOJIS.IGNORE:
@@ -157,7 +157,6 @@ class ReactionConfirmationService {
                     await dataService.addIgnoredCode(discordId, gameId, code);
                     await this.updateMessageForIgnored(message, code);
                     confirmationMessage = `❌ Code \`${code}\` ignored. You won't receive more reminders for this code.`;
-                    console.log(`[ReactionConfirmation] Added ${code} to ignored for ${discordId}`);
                     break;
 
                 case CONFIRMATION_EMOJIS.RESET:
@@ -166,7 +165,6 @@ class ReactionConfirmationService {
                     await dataService.removeIgnoredCode(discordId, gameId, code);
                     await this.updateMessageForReset(message, code);
                     confirmationMessage = `🔄 Code \`${code}\` status reset. You'll receive reminders for this code again.`;
-                    console.log(`[ReactionConfirmation] Reset ${code} status for ${discordId}`);
                     break;
             }
 
@@ -176,7 +174,7 @@ class ReactionConfirmationService {
             }
             // Note: reaction.users.remove() doesn't work in DMs - users can unreact manually
         } catch (error) {
-            console.error(`[ReactionConfirmation] Error handling reaction:`, error);
+            logger.error`Error handling reaction: ${error}`;
         }
     }
 
@@ -230,11 +228,10 @@ class ReactionConfirmationService {
             try {
                 await this.handleReaction(reaction, user, bot);
             } catch (error) {
-                console.error('[ReactionConfirmation] Error in reaction handler:', error);
+                logger.error`Error in reaction handler: ${error}`;
             }
         });
 
-        console.log('[ReactionConfirmation] Reaction listening started');
     }
 
     /**

@@ -1,5 +1,6 @@
 import { ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { s3Client, S3_BUCKET, CDN_DOMAIN_URL } from "./config";
+import { logger } from "../logger.js";
 
 // Track recently sent media keys per guild and prefix
 const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
@@ -24,26 +25,24 @@ export async function getRandomCdnMediaUrl(
     const trackLast = options.trackLast ?? 5;
 
     try {
-        console.log(`Fetching media for prefix: ${prefix} in guild: ${guildId}`);
-
         const mediaKeys = await fetchAndFilterMediaKeys(prefix, maxSizeMB, extensions);
         const randomKey = await getRandomUniqueKey(mediaKeys, guildId, prefix, trackLast);
         
         return `${CDN_DOMAIN_URL}/${randomKey}`;
     } catch (error) {
-        console.error(`Error retrieving CDN media for guild ${guildId}:`, error);
+        logger.error`Error retrieving CDN media for guild ${guildId}: ${error}`;
         throw error instanceof Error ? error : new Error('Error retrieving CDN media');
     }
 }
 
 function validateInputs(prefix: string, guildId: string): void {
     if (!prefix || typeof prefix !== 'string') {
-        console.error('Invalid prefix provided:', prefix);
+        logger.warning`Invalid prefix provided: ${prefix}`;
         throw new Error('Valid prefix path is required');
     }
 
     if (!guildId || typeof guildId !== 'string') {
-        console.error('Invalid guildId provided:', guildId);
+        logger.warning`Invalid guildId provided: ${guildId}`;
         throw new Error('Valid guild ID is required');
     }
 }
@@ -93,7 +92,6 @@ async function getRandomUniqueKey(
     const availableKeys = mediaKeys.filter(key => !recentKeys.includes(key));
 
     if (availableKeys.length === 0) {
-        console.log(`All media for ${prefix} have been recently used in guild: ${guildId}. Resetting tracking.`);
         guildTracking.set(prefix, []);
         const randomKey = mediaKeys[Math.floor(Math.random() * mediaKeys.length)]!;
         guildTracking.get(prefix)!.push(randomKey);
@@ -112,13 +110,11 @@ async function getRandomUniqueKey(
 
 function initializeTracking(guildId: string, prefix: string): void {
     if (!recentlySentMediaKeys.has(guildId)) {
-        console.log(`Initializing tracking for new guild: ${guildId}`);
         recentlySentMediaKeys.set(guildId, new Map());
     }
 
     const guildTracking = recentlySentMediaKeys.get(guildId)!;
     if (!guildTracking.has(prefix)) {
-        console.log(`Initializing tracking for prefix: ${prefix} in guild: ${guildId}`);
         guildTracking.set(prefix, []);
     }
 } 

@@ -3,6 +3,7 @@ import schedule from 'node-schedule';
 import { DailyResetConfig, DailyResetServiceConfig } from '../utils/interfaces/DailyResetConfig.interface';
 import { findChannelByName, findRoleByName, logError } from '../utils/util';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager';
+import { logger } from '../utils/logger.js';
 
 /**
  * Service for managing daily reset messages across multiple games
@@ -21,7 +22,7 @@ export class DailyResetService {
         this.isDevelopment = process.env.NODE_ENV === 'development';
 
         if (this.isDevelopment) {
-            console.log(`⚠️  DEV MODE: Daily reset messages will trigger every ${this.devModeInterval} minutes instead of daily schedules.`);
+            // Dev mode: triggers every N minutes instead of daily
         }
     }
 
@@ -72,7 +73,6 @@ export class DailyResetService {
                     await this.sendWarningMessage(config);
                 });
                 this.scheduledJobs.set(`${config.game}-warning`, warningJob);
-                console.log(`[DEV] Scheduled warning for ${config.game} every ${this.devModeInterval} minutes`);
             }
 
             // Schedule reset with 2-minute offset from warning
@@ -82,7 +82,6 @@ export class DailyResetService {
                 await this.sendResetMessage(config);
             });
             this.scheduledJobs.set(`${config.game}-reset`, resetJob);
-            console.log(`[DEV] Scheduled reset for ${config.game} at +${resetOffset} min offset (repeats every ${this.devModeInterval} min)`);
 
         } else {
             // Production mode: Schedule at exact times
@@ -99,7 +98,6 @@ export class DailyResetService {
                     await this.sendWarningMessage(config);
                 });
                 this.scheduledJobs.set(`${config.game}-warning`, warningJob);
-                console.log(`Scheduled warning for ${config.game} at ${String(warningHour).padStart(2, '0')}:${String(warningMinute).padStart(2, '0')} ${config.timezone} (${config.warningConfig.minutesBefore} min before reset)`);
             }
 
             // Schedule reset at configured time
@@ -108,7 +106,6 @@ export class DailyResetService {
                 await this.sendResetMessage(config);
             });
             this.scheduledJobs.set(`${config.game}-reset`, resetJob);
-            console.log(`Scheduled reset for ${config.game} at ${String(config.resetTime.hour).padStart(2, '0')}:${String(config.resetTime.minute).padStart(2, '0')} ${config.timezone}`);
         }
     }
 
@@ -159,7 +156,7 @@ export class DailyResetService {
         const channel = findChannelByName(guild, config.channelName);
 
         if (!channel) {
-            console.log(`Channel '${config.channelName}' not found in server: ${guild.name}.`);
+            logger.warn`Channel '${config.channelName}' not found in server: ${guild.name}`;
             return;
         }
 
@@ -195,7 +192,7 @@ export class DailyResetService {
         const channel = findChannelByName(guild, config.channelName);
 
         if (!channel) {
-            console.log(`Channel '${config.channelName}' not found in server: ${guild.name}.`);
+            logger.warn`Channel '${config.channelName}' not found in server: ${guild.name}`;
             return;
         }
 
@@ -276,7 +273,7 @@ export class DailyResetService {
                 }
             } catch (error) {
                 // Log but don't fail the entire message if media fetch fails
-                console.log(`Failed to fetch media for ${config.game} in guild ${guild.name}: ${error}`);
+                logger.warn`Failed to fetch media for ${config.game} in guild ${guild.name}: ${error}`;
             }
         }
 
@@ -337,7 +334,7 @@ export class DailyResetService {
                 }
             } catch (error) {
                 // Log but don't fail the entire message if media fetch fails
-                console.log(`Failed to fetch warning media for ${config.game} in guild ${guild.name}: ${error}`);
+                logger.warn`Failed to fetch warning media for ${config.game} in guild ${guild.name}: ${error}`;
             }
         }
 
@@ -350,7 +347,6 @@ export class DailyResetService {
     public cancelAllSchedules(): void {
         this.scheduledJobs.forEach((job, gameName) => {
             job.cancel();
-            console.log(`Cancelled schedule for ${gameName}`);
         });
         this.scheduledJobs.clear();
     }

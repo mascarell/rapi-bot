@@ -13,6 +13,7 @@ import {
 } from '../utils/interfaces/GachaCoupon.interface';
 import { getGameConfig, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GACHA_CONFIG } from '../utils/data/gachaConfig';
+import { logger } from '../utils/logger.js';
 
 const RERUN_EMOJI = '🔁';
 
@@ -62,7 +63,7 @@ class CircuitBreaker {
         if (Date.now() - circuit.lastFailure >= GACHA_CONFIG.CIRCUIT_BREAKER_COOLDOWN) {
             circuit.isOpen = false;
             circuit.failures = 0;
-            console.log(`Circuit breaker CLOSED for ${gameId} (cooldown expired)`);
+            logger.debug`Circuit breaker CLOSED for ${gameId} (cooldown expired)`;
             return false;
         }
         return true;
@@ -94,7 +95,7 @@ class CircuitBreaker {
 
         if (circuit.failures >= GACHA_CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
             circuit.isOpen = true;
-            console.warn(`Circuit breaker OPEN for ${gameId} after ${circuit.failures} consecutive failures`);
+            logger.warning`Circuit breaker OPEN for ${gameId} after ${circuit.failures} consecutive failures`;
         }
     }
 
@@ -171,7 +172,7 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
                 code: code.toUpperCase().trim(),
             };
 
-            console.log(`BD2 API Request: userId=${requestBody.userId}, code=${requestBody.code}, appId=${requestBody.appId}`);
+            logger.debug`BD2 API Request: userId=${requestBody.userId}, code=${requestBody.code}, appId=${requestBody.appId}`;
 
             const response = await this.fetchWithRetry(config.apiEndpoint, {
                 method: 'POST',
@@ -187,13 +188,13 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
             // Handle HTTP-level errors
             if (!response.ok) {
                 const responseText = await response.text();
-                console.error(`BD2 API HTTP Error: ${response.status} ${response.statusText} - ${responseText}`);
+                logger.error`BD2 API HTTP Error: ${response.status} ${response.statusText} - ${responseText}`;
                 circuitBreaker.recordFailure(this.gameId);
                 return this.createResult(code, false, `API error: ${response.status} ${response.statusText}`, 'NetworkError');
             }
 
             const data = await response.json();
-            console.log(`BD2 API Response:`, JSON.stringify(data));
+            logger.debug`BD2 API Response: ${JSON.stringify(data)}`;
 
             if (data.success) {
                 circuitBreaker.recordSuccess(this.gameId);
@@ -208,7 +209,7 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
                 return this.createResult(code, false, errorMessage, errorCode);
             }
         } catch (error: any) {
-            console.error('BD2 API Error:', error.message, error.stack);
+            logger.error`BD2 API Error: ${error.message} ${error.stack}`;
             circuitBreaker.recordFailure(this.gameId);
 
             if (error.name === 'AbortError') {
@@ -241,7 +242,7 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
                 if (response.status >= 500 || response.status === 429) {
                     if (attempt < maxRetries) {
                         const delay = this.calculateBackoffDelay(attempt);
-                        console.log(`BD2 API returned ${response.status}, retry ${attempt}/${maxRetries} after ${delay}ms`);
+                        logger.debug`BD2 API returned ${response.status}, retry ${attempt}/${maxRetries} after ${delay}ms`;
                         await new Promise(r => setTimeout(r, delay));
                         continue;
                     }
@@ -254,7 +255,7 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
                 // Retry on network/timeout errors
                 if (attempt < maxRetries && this.isRetryableError(error)) {
                     const delay = this.calculateBackoffDelay(attempt);
-                    console.log(`BD2 API error: ${error.message}, retry ${attempt}/${maxRetries} after ${delay}ms`);
+                    logger.debug`BD2 API error: ${error.message}, retry ${attempt}/${maxRetries} after ${delay}ms`;
                     await new Promise(r => setTimeout(r, delay));
                     continue;
                 }
@@ -342,13 +343,13 @@ export class GachaRedemptionService {
         } catch (error: any) {
             // Check if this is a "Cannot send messages to this user" error
             if (error.code === 50007) {
-                console.warn(`Cannot send DM to ${user.id} - user has DMs disabled`);
+                logger.warning`Cannot send DM to ${user.id} - user has DMs disabled`;
                 if (gameId) {
                     const dataService = getGachaDataService();
                     await dataService.markDMDisabled(user.id, gameId);
                 }
             } else {
-                console.error(`Failed to send DM to ${user.id}:`, error.message);
+                logger.error`Failed to send DM to ${user.id}: ${error.message}`;
             }
             return null;
         }
@@ -440,7 +441,7 @@ export class GachaRedemptionService {
 
             // Stop on rate limit or network errors
             if (result.errorCode === 'RateLimited' || result.errorCode === 'NetworkError') {
-                console.log(`Stopping batch redemption for ${gameId} due to: ${result.message}`);
+                logger.debug`Stopping batch redemption for ${gameId} due to: ${result.message}`;
                 break;
             }
         }
@@ -500,8 +501,6 @@ export class GachaRedemptionService {
                         return { skipped: true, redemptions: 0, successful: 0, failed: 0, successfulCodes: [], historyEntries: [] };
                     }
 
-                    console.log(`Processing ${codesToRedeem.length} codes for ${subscription.gameUserId} in ${gameId}`);
-
                     const redemptionResults = await this.redeemMultipleCodes(
                         gameId,
                         subscription.gameUserId,
@@ -517,7 +516,7 @@ export class GachaRedemptionService {
 
                     // Log actual failures only (not already redeemed or expired)
                     for (const failed of actualFailures) {
-                        console.error(`Redemption failed for ${subscription.gameUserId} - Code: ${failed.code}, Error: ${failed.errorCode || 'Unknown'}, Message: ${failed.message}`);
+                        logger.error`Redemption failed for ${subscription.gameUserId} - Code: ${failed.code}, Error: ${failed.errorCode || 'Unknown'}, Message: ${failed.message}`;
                     }
 
                     // Send DM only if not disabled AND we have meaningful results
@@ -579,7 +578,7 @@ export class GachaRedemptionService {
                 }
             } else {
                 // Promise was rejected - count as failed
-                console.error('Subscriber processing failed:', settledResult.reason);
+                logger.error`Subscriber processing failed: ${settledResult.reason}`;
                 result.failed++;
             }
         }
@@ -587,13 +586,12 @@ export class GachaRedemptionService {
         // Single batch S3 write for all successful redemptions
         if (batchUpdates.length > 0) {
             const batchResult = await dataService.batchMarkCodesRedeemed(batchUpdates);
-            console.log(`Batch S3 write: ${batchResult.success} users updated, ${batchResult.failed} failed`);
+            logger.debug`Batch S3 write: ${batchResult.success} users updated, ${batchResult.failed} failed`;
         }
 
         // Batch write redemption history
         if (historyEntries.length > 0) {
             await dataService.addBatchRedemptionHistory(historyEntries);
-            console.log(`Logged ${historyEntries.length} redemption history entries`);
         }
 
         return result;
@@ -638,7 +636,7 @@ export class GachaRedemptionService {
         }
 
         const codes = activeCoupons.map(c => c.code);
-        console.log(`[Subscribe] Redeeming ${codes.length} codes for new subscriber ${gameUserId} in ${gameId}`);
+        logger.debug`[Subscribe] Redeeming ${codes.length} codes for new subscriber ${gameUserId} in ${gameId}`;
 
         // Redeem all codes
         const results = await this.redeemMultipleCodes(gameId, gameUserId, codes);
@@ -670,11 +668,9 @@ export class GachaRedemptionService {
             try {
                 await this.sendRedemptionResultsDM(bot, discordId, gameId, results, gameUserId);
             } catch (error) {
-                console.error(`[Subscribe] Failed to send redemption DM to ${discordId}:`, error);
+                logger.error`[Subscribe] Failed to send redemption DM to ${discordId}: ${error}`;
             }
         }
-
-        console.log(`[Subscribe] Completed: ${successful.length} successful, ${alreadyRedeemed.length} already redeemed, ${failed.length} failed`);
 
         return {
             successful: successful.length,
@@ -770,7 +766,7 @@ export class GachaRedemptionService {
 
             await this.sendDMWithDelay(user, { embeds: [embed] });
         } catch (error) {
-            console.error(`Failed to send redemption DM to ${discordId}:`, error);
+            logger.error`Failed to send redemption DM to ${discordId}: ${error}`;
         }
     }
 
@@ -841,7 +837,7 @@ export class GachaRedemptionService {
 
             await new Promise(resolve => setTimeout(resolve, GACHA_CONFIG.DM_RATE_LIMIT_DELAY));
         } catch (error) {
-            console.error(`Failed to send all-codes-redeemed DM to ${discordId}:`, error);
+            logger.error`Failed to send all-codes-redeemed DM to ${discordId}: ${error}`;
         }
     }
 
@@ -866,7 +862,7 @@ export class GachaRedemptionService {
         });
 
         collector.on('collect', async () => {
-            console.log(`[Force Rerun] User ${discordId} requested re-run for ${gameId}`);
+            logger.debug`[Force Rerun] User ${discordId} requested re-run for ${gameId}`;
             await this.processForceRerun(bot, discordId, gameId, gameUserId);
         });
 
@@ -908,7 +904,6 @@ export class GachaRedemptionService {
 
             // Record the force re-run (resets redeemed codes)
             await dataService.recordForceRerun(discordId, gameId);
-            console.log(`[Force Rerun] Reset redeemed codes for ${discordId} in ${gameId}`);
 
             // Send confirmation DM
             const user = await bot.users.fetch(discordId);
@@ -928,7 +923,7 @@ export class GachaRedemptionService {
             const subscription = await dataService.getGameSubscription(discordId, gameId);
 
             if (!subscription || !gameUserId) {
-                console.error(`[Force Rerun] No subscription found for ${discordId} in ${gameId}`);
+                logger.warning`[Force Rerun] No subscription found for ${discordId} in ${gameId}`;
                 return;
             }
 
@@ -958,7 +953,7 @@ export class GachaRedemptionService {
             await this.sendRedemptionResultsDM(bot, discordId, gameId, results, gameUserId);
 
         } catch (error) {
-            console.error(`[Force Rerun] Error processing re-run for ${discordId}:`, error);
+            logger.error`[Force Rerun] Error processing re-run for ${discordId}: ${error}`;
             try {
                 const user = await bot.users.fetch(discordId);
                 await user.send({
@@ -988,7 +983,6 @@ export class GachaRedemptionService {
 
         // Skip notification if code is already expired (handles edge case of codes added with past dates)
         if (coupon.expirationDate && new Date(coupon.expirationDate) <= new Date()) {
-            console.log(`[notifyNewCode] Skipping notification for expired code: ${coupon.code}`);
             return;
         }
 
@@ -1076,7 +1070,7 @@ export class GachaRedemptionService {
         // Log any notification failures
         notifyResults.forEach((result, index) => {
             if (result.status === 'rejected') {
-                console.error(`Failed to notify ${notifyOnlySubs[index].discordId} about new code:`, result.reason);
+                logger.error`Failed to notify ${notifyOnlySubs[index].discordId} about new code: ${result.reason}`;
             }
         });
 
@@ -1114,7 +1108,7 @@ export class GachaRedemptionService {
             // Log any redemption failures
             redeemResults.forEach((result, index) => {
                 if (result.status === 'rejected') {
-                    console.error(`Failed to auto-redeem for ${autoRedeemSubs[index].discordId}:`, result.reason);
+                    logger.error`Failed to auto-redeem for ${autoRedeemSubs[index].discordId}: ${result.reason}`;
                 }
             });
         }
@@ -1241,7 +1235,7 @@ export class GachaRedemptionService {
         // Log any failures
         results.forEach((result, index) => {
             if (result.status === 'rejected') {
-                console.error(`Failed to send expiration warning to ${subscribers[index].discordId}:`, result.reason);
+                logger.error`Failed to send expiration warning to ${subscribers[index].discordId}: ${result.reason}`;
             }
         });
     }
@@ -1324,7 +1318,7 @@ export class GachaRedemptionService {
         // Log any failures
         results.forEach((result, index) => {
             if (result.status === 'rejected') {
-                console.error(`Failed to send weekly digest to ${subscribers[index].discordId}:`, result.reason);
+                logger.error`Failed to send weekly digest to ${subscribers[index].discordId}: ${result.reason}`;
             }
         });
     }

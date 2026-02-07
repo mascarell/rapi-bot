@@ -9,6 +9,7 @@
 import puppeteer from 'puppeteer';
 import { getGachaDataService } from './gachaDataService.js';
 import { GachaCoupon } from '../utils/interfaces/GachaCoupon.interface';
+import { logger } from '../utils/logger.js';
 
 const BD2_PULSE_API_URL = 'https://api.thebd2pulse.com/redeem';
 const BOT_USER_ID = 'bd2pulse-scraper'; // System user ID for auto-added codes
@@ -88,7 +89,7 @@ function mapStatus(status: string): ScrapedCode['status'] {
 export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
     let browser;
     try {
-        console.log('[BD2 Pulse] Launching browser to capture API response...');
+        logger.debug`Launching browser to capture API response...`;
         browser = await puppeteer.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -107,7 +108,7 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
                     const data = await response.json();
                     if (Array.isArray(data)) {
                         apiCodes = data;
-                        console.log(`[BD2 Pulse] Captured API response with ${data.length} codes`);
+                        logger.debug`Captured API response with ${data.length} codes`;
                     }
                 } catch (e) {
                     // Ignore JSON parse errors
@@ -116,7 +117,6 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
         });
 
         // Navigate to the page (which triggers the API call)
-        console.log('[BD2 Pulse] Loading page...');
         await page.goto('https://thebd2pulse.com/en/', {
             waitUntil: 'networkidle2',
             timeout: 30000,
@@ -129,7 +129,7 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
         browser = null;
 
         if (apiCodes.length === 0) {
-            console.log('[BD2 Pulse] No codes captured from API');
+            logger.warn`No codes captured from API`;
             return [];
         }
 
@@ -140,10 +140,10 @@ export async function scrapeBD2PulseCodes(): Promise<ScrapedCode[]> {
             status: mapStatus(apiCode.status),
         }));
 
-        console.log(`[BD2 Pulse] Parsed ${codes.length} codes`);
+        logger.debug`Parsed ${codes.length} codes`;
         return codes;
     } catch (error: any) {
-        console.error('Failed to fetch BD2 Pulse codes:', error.message);
+        logger.error`Failed to fetch BD2 Pulse codes: ${error.message}`;
         if (browser) {
             await browser.close();
         }
@@ -220,20 +220,12 @@ export async function syncBD2PulseCodes(): Promise<ScrapeResult> {
                     source: 'BD2 Pulse (Auto)',
                 });
                 newCodes.push(scraped.code);
-                const expiryInfo = scraped.expirationDate
-                    ? ` (expires ${new Date(scraped.expirationDate).toLocaleDateString()})`
-                    : '';
-                console.log(`[BD2 Pulse] Added new code: ${scraped.code} - ${scraped.rewards}${expiryInfo}`);
             } catch (error: any) {
                 // Code might already exist (race condition) - skip silently
                 if (!error.message?.includes('already exists')) {
-                    console.error(`[BD2 Pulse] Failed to add code ${scraped.code}:`, error.message);
+                    logger.error`Failed to add code ${scraped.code}: ${error.message}`;
                 }
             }
-        }
-
-        if (skippedExpired.length > 0) {
-            console.log(`[BD2 Pulse] Skipped ${skippedExpired.length} expired codes`);
         }
 
         return {

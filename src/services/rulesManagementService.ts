@@ -1,5 +1,6 @@
 import { Client, TextChannel, Message } from 'discord.js';
 import { getGachaGuildConfigService } from './gachaGuildConfigService.js';
+import { logger } from '../utils/logger.js';
 
 // Constants
 const RULES_CHANNEL_NAME = 'rules'; // Channel name to search for
@@ -88,45 +89,34 @@ class RulesManagementService {
             if (config.rulesConfig?.messageId) {
                 try {
                     message = await textChannel.messages.fetch(config.rulesConfig.messageId);
-                    console.log(`[RulesManagement] Found rules message by stored ID: ${config.rulesConfig.messageId}`);
                 } catch (error) {
-                    console.log(`[RulesManagement] Stored message ID ${config.rulesConfig.messageId} not found, will search for bot message`);
+                    logger.warn`Stored message ID ${config.rulesConfig.messageId} not found, will search for bot message`;
                 }
             }
 
             // If no message found by ID, search for bot's message in channel
             if (!message) {
-                console.log('[RulesManagement] Searching for bot message in rules channel...');
                 const messages = await textChannel.messages.fetch({ limit: 50 });
                 message = messages.find(msg => msg.author.id === bot.user?.id) || null;
-
-                if (message) {
-                    console.log(`[RulesManagement] Found existing bot message: ${message.id}`);
-                } else {
-                    console.log('[RulesManagement] No existing bot message found');
-                }
             }
 
             // Update or create message
             if (message) {
                 // Update existing message
                 await message.edit({ content: RULES_CONTENT });
-                console.log(`[RulesManagement] ✅ Updated existing rules message (ID: ${message.id})`);
             } else {
                 // Create new message
                 message = await textChannel.send({ content: RULES_CONTENT });
-                console.log(`[RulesManagement] ✅ Created new rules message (ID: ${message.id})`);
             }
 
             // Log message ID for manual config update
-            console.log(`[RulesManagement] 📝 MESSAGE ID FOR CONFIG (${guild.name}): ${message.id}`);
-            console.log(`[RulesManagement] Please update guild-config.json and dev-guild-config.json with this message ID`);
+            logger.warn`MESSAGE ID FOR CONFIG (${guild.name}): ${message.id} — Please update guild-config.json and dev-guild-config.json with this message ID`;
 
             return { success: true };
         } catch (error) {
             // Log error but don't throw - this allows bot to continue starting up
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.log(`[RulesManagement] Could not initialize rules message for guild ${guildId}: ${errorMessage}`);
+            logger.error`Could not initialize rules message for guild ${guildId}: ${errorMessage}`;
             return {
                 success: false,
                 error: errorMessage
@@ -146,11 +136,8 @@ class RulesManagementService {
         const successCount = results.filter(r => r.success).length;
         const failureCount = results.filter(r => !r.success).length;
 
-        if (successCount > 0) {
-            console.log(`[RulesManagement] Initialized rules in ${successCount} guild(s)`);
-        }
         if (failureCount > 0) {
-            console.log(`[RulesManagement] Failed to initialize rules in ${failureCount} guild(s) (expected if bot not in all guilds)`);
+            logger.warn`Failed to initialize rules in ${failureCount} guild(s) (expected if bot not in all guilds)`;
         }
 
         return {

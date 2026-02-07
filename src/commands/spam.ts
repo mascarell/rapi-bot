@@ -8,6 +8,7 @@ import {
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface';
 import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter';
+import { logger } from '../utils/logger.js';
 
 // Asset URLs (import from discord.ts or create a shared config)
 const RAPI_BOT_THUMBNAIL_URL = process.env.CDN_DOMAIN_URL + '/assets/rapi-bot-thumbnail.jpg';
@@ -72,7 +73,7 @@ export default {
                     });
             }
         } catch (error) {
-            console.error('Error in spam command:', error);
+            logger.error`Error in spam command: ${error}`;
             await interaction.reply({ 
                 content: 'An error occurred while processing your request.', 
                 flags: MessageFlags.Ephemeral 

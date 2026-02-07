@@ -3,6 +3,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder ,
 } from 'discord.js';
 import { getUptimeService } from '../services/uptimeService';
 import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter';
+import { logger } from '../utils/logger.js';
 
 /**
  * Command export for Discord.js
@@ -46,7 +47,7 @@ export default {
             });
             
         } catch (error) {
-            console.error('Error in age command:', error);
+            logger.error`Error in age command: ${error}`;
             await interaction.reply({
                 content: 'Commander, there was an error getting the uptime information.',
                 flags: MessageFlags.Ephemeral
