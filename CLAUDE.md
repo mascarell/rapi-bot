@@ -6,6 +6,7 @@ Discord bot for gacha games: daily reset notifications, music playback, chat com
 ## Tech Stack
 - TypeScript, Node.js, Discord.js
 - **bun** - Fast package manager and runtime
+- **LogTape** - Zero-dependency structured logging (Bun-native)
 - AWS S3 for data persistence (JSON documents)
 - Vitest for testing
 - Docker for deployment
@@ -73,6 +74,32 @@ GachaCouponData {
 bun run test:run        # Run all tests
 bunx tsc --noEmit       # Type check
 ```
+
+## Logging
+
+Uses **LogTape** (`@logtape/logtape`) — zero-dependency, Bun-native structured logging.
+
+### Configuration
+- **Production** (`NODE_ENV != 'development'`): Only `warning` and `error` are printed
+- **Development** (`NODE_ENV=development`): `debug` and above
+- **Override**: `LOG_LEVEL=debug bun run start` to force debug logging in any environment
+
+### Available Loggers (from `src/utils/logger.ts`)
+| Logger | Category | Used In |
+|--------|----------|---------|
+| `logger` | `["bot"]` | General / commands / utilities |
+| `discordLogger` | `["bot", "discord"]` | discord.ts, welcome, voice, reactions |
+| `gachaLogger` | `["bot", "gacha"]` | Redemption, data service, scraper, channel monitor |
+| `embedFixLogger` | `["bot", "embed-fix"]` | URL fix, embed fix, Twitter/Pixiv handlers, votes |
+| `schedulerLogger` | `["bot", "scheduler"]` | Cron jobs, daily reset, coupon scheduler |
+| `mediaLogger` | `["bot", "media"]` | CDN media manager |
+| `rulesLogger` | `["bot", "rules"]` | Rules management service |
+
+### Guidelines
+- **Prefer `warning`/`error`** — even in dev, only log things that need attention
+- **Use `debug`** sparingly — only for complex/newer features (gacha API, BD2 scraper, circuit breaker)
+- **Delete** rather than downlevel — if a log doesn't help diagnose a failure, remove it
+- LogTape uses tagged template syntax: `logger.error\`message ${variable}\``
 
 ## Common Patterns
 
@@ -223,3 +250,75 @@ Test coverage includes:
 - **Graceful error handling**: Failed embed suppression doesn't stop reply
 - **Non-blocking**: Uses setTimeout for delayed suppression (doesn't block bot)
 - **Platform-agnostic**: Twitter ID 123 and Pixiv ID 123 are tracked separately
+
+## Pull Request Guidelines
+
+### PR Description Format
+
+**For Short PRs** (small changes, quick fixes):
+```markdown
+## Summary
+Brief 1-2 sentence description of the change.
+
+## Changes
+- Bullet list of key modifications
+- What was added/removed/fixed
+
+## Testing
+- [ ] Type check passes
+- [ ] Tests pass
+- [ ] Manual testing done (if applicable)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+**For Detailed PRs** (features, refactors, bug fixes):
+```markdown
+## Summary
+Brief 1-2 sentence overview.
+
+## Problem / Motivation (for bugs/refactors)
+What issue this PR solves or why the change is needed.
+
+## Solution / Changes Made
+Detailed breakdown of what changed:
+- Component/file changes
+- Before/after code snippets (if helpful)
+- Architecture decisions
+
+## Technical Details
+- Patterns used
+- Integration points
+- Dependencies
+
+## Testing
+- Automated test coverage
+- Manual testing checklist
+- Edge cases considered
+
+## Impact / Benefits
+What improves from this change:
+- User experience
+- Developer experience
+- Performance
+- Maintainability
+
+## Files Changed
+Summary of modified files with brief descriptions.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+### PR Title Format
+- **Feature**: `feat: Add Pixiv URL support to embed fix system`
+- **Bug Fix**: `fix: Fix command registration race condition`
+- **Refactor**: `refactor: Migrate from CommonJS to ESM modules`
+- **Documentation**: `docs: Update README with bun commands`
+- **Chore**: `chore: Update dependencies`
+
+### Guidelines
+- **Be concise** - Short PRs for small changes, detailed for complex ones
+- **Include testing** - Always mention test coverage
+- **Link issues** - Reference related issues/PRs when applicable
+- **Show impact** - Explain what improves
+- **End with signature** - Always include Claude Code attribution
