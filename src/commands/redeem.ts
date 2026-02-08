@@ -447,70 +447,12 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
             pages.push(embed);
         }
 
-        // Use pagination if multiple pages
-        if (pages.length > 1) {
-            let currentPage = 0;
-            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('list_previous')
-                    .setLabel('Previous')
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('list_page')
-                    .setLabel(`Page 1 of ${totalPages}`)
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('list_next')
-                    .setLabel('Next')
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(totalPages <= 1)
-            );
-
-            const message = await interaction.editReply({
-                embeds: [pages[currentPage]],
-                components: [row]
-            });
-
-            const collector = message.createMessageComponentCollector({
-                time: 5 * 60 * 1000 // 5 minutes
-            });
-
-            collector.on('collect', async (i) => {
-                if (i.user.id !== interaction.user.id) {
-                    await i.reply({
-                        content: 'You cannot use these buttons.',
-                        flags: MessageFlags.Ephemeral
-                    });
-                    return;
-                }
-
-                currentPage = i.customId === 'list_next'
-                    ? (currentPage + 1) % pages.length
-                    : (currentPage - 1 + pages.length) % pages.length;
-
-                row.components[0].setDisabled(currentPage === 0);
-                row.components[1].setLabel(`Page ${currentPage + 1} of ${totalPages}`);
-                row.components[2].setDisabled(currentPage === pages.length - 1);
-
-                await i.update({
-                    embeds: [pages[currentPage]],
-                    components: [row]
-                });
-            });
-
-            collector.on('end', () => {
-                const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    row.components.map(component =>
-                        ButtonBuilder.from(component).setDisabled(true)
-                    )
-                );
-                message.edit({ components: [disabledRow] }).catch(() => {});
-            });
-        } else {
-            await interaction.editReply({ embeds: [pages[0]] });
-        }
+        // Use pagination helper from Phase 2.1
+        await createPaginatedMessage(interaction, pages, {
+            customIdPrefix: 'list',
+            timeoutMs: 5 * 60 * 1000,
+            unauthorizedMessage: 'You cannot use these buttons.'
+        });
     } catch (error: any) {
         await interaction.editReply({ content: `❌ ${error.message}` });
     }
@@ -1026,70 +968,12 @@ async function handleModSubscribers(interaction: ChatInputCommandInteraction): P
             pages.push(embed);
         }
 
-        // Use pagination if multiple pages
-        if (pages.length > 1) {
-            let currentPage = 0;
-            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('sub_previous')
-                    .setLabel('Previous')
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('sub_page')
-                    .setLabel(`Page 1 of ${totalPages}`)
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('sub_next')
-                    .setLabel('Next')
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(totalPages <= 1)
-            );
-
-            const message = await interaction.editReply({
-                embeds: [pages[currentPage]],
-                components: [row]
-            });
-
-            const collector = message.createMessageComponentCollector({
-                time: 5 * 60 * 1000 // 5 minutes
-            });
-
-            collector.on('collect', async (i) => {
-                if (i.user.id !== interaction.user.id) {
-                    await i.reply({
-                        content: 'You cannot use these buttons.',
-                        flags: MessageFlags.Ephemeral
-                    });
-                    return;
-                }
-
-                currentPage = i.customId === 'sub_next'
-                    ? (currentPage + 1) % pages.length
-                    : (currentPage - 1 + pages.length) % pages.length;
-
-                row.components[0].setDisabled(currentPage === 0);
-                row.components[1].setLabel(`Page ${currentPage + 1} of ${totalPages}`);
-                row.components[2].setDisabled(currentPage === pages.length - 1);
-
-                await i.update({
-                    embeds: [pages[currentPage]],
-                    components: [row]
-                });
-            });
-
-            collector.on('end', () => {
-                const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    row.components.map(component =>
-                        ButtonBuilder.from(component).setDisabled(true)
-                    )
-                );
-                message.edit({ components: [disabledRow] }).catch(() => {});
-            });
-        } else {
-            await interaction.editReply({ embeds: [pages[0]] });
-        }
+        // Use pagination helper from Phase 2.1
+        await createPaginatedMessage(interaction, pages, {
+            customIdPrefix: 'subscribers',
+            timeoutMs: 5 * 60 * 1000,
+            unauthorizedMessage: 'You cannot use these buttons.'
+        });
     } catch (error: any) {
         await interaction.editReply({ content: `❌ ${error.message}` });
     }
