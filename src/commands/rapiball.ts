@@ -1,7 +1,5 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction ,
-    MessageFlags
-} from 'discord.js';
-import { enforceChannelRestriction } from '../utils/channelRestrictions';
+import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { enforceChannelRestriction } from '../utils/channelRestrictions.js';
 
 const rapiBallResponses = [
     // 8-ball style affirmative responses
@@ -94,7 +92,7 @@ export default {
         if (isRestricted) return;
 
         // Get the user's question
-        const question = interaction.options.get('question')?.value as string;
+        const question = interaction.options.getString('question', true);
         
         // Get a random response
         const response = rapiBallResponses[Math.floor(Math.random() * rapiBallResponses.length)];

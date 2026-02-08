@@ -1,6 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction ,
-    MessageFlags
-} from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
 import fs from 'fs';
 import { logger } from '../utils/logger.js';
 

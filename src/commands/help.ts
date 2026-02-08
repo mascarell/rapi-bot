@@ -1,14 +1,12 @@
-import { SlashCommandBuilder, CommandInteraction ,
-    MessageFlags
-} from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { replyEphemeral } from '../utils/interactionHelpers.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('List of custom commands available for all Commanders'),
-    async execute(interaction: CommandInteraction) {
-        await interaction.reply({
-            content: `====================\n**SLASH COMMANDS**\n====================\n
+    async execute(interaction: ChatInputCommandInteraction) {
+        await replyEphemeral(interaction, `====================\n**SLASH COMMANDS**\n====================\n
 ➜ **/gacha <type> <game>** : Gamba with rapi bot, you can do singles or multis, works with NIKKE
 ➜ **/lucky** : How lucky are you today?
 ➜ **/rapiball** : Get an eight ball of Rapi's wisdom
@@ -52,8 +50,6 @@ export default {
 ➜ **belorta...** : CURSE OF BELORTA.
 ➜ **get dat nikke** : Send Rapi to fight your rival.
 
-`,
-            flags: MessageFlags.Ephemeral
-        });
+`);
     }
 };

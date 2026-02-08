@@ -1,9 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder ,
-    MessageFlags
-} from 'discord.js';
-import { getUptimeService } from '../services/uptimeService';
-import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter';
-import { logger } from '../utils/logger.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { getUptimeService } from '../services/uptimeService.js';
+import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter.js';
+import { handleCommandError } from '../utils/commandErrorHandler.js';
+import { replyWithEmbed } from '../utils/interactionHelpers.js';
 
 /**
  * Command export for Discord.js
@@ -41,17 +40,9 @@ export default {
                 })
                 .setTimestamp();
 
-            await interaction.reply({
-                embeds: [embed],
-                flags: MessageFlags.Ephemeral
-            });
-            
+            await replyWithEmbed(interaction, embed, true);
         } catch (error) {
-            logger.error`Error in age command: ${error}`;
-            await interaction.reply({
-                content: 'Commander, there was an error getting the uptime information.',
-                flags: MessageFlags.Ephemeral
-            });
+            await handleCommandError(interaction, error, 'age');
         }
     },
 }; 

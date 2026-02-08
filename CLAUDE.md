@@ -15,13 +15,33 @@ Discord bot for gacha games: daily reset notifications, music playback, chat com
 ```
 src/
 ├── commands/           # Slash commands (/redeem, /spam, /gacha, /rules, etc.)
-├── services/
-│   ├── embedFix/      # Twitter/X URL fix service (urlFixService.ts)
-│   └── ...            # Other services (gachaRedemptionService, gachaDataService, rulesManagementService)
-├── utils/
+│   ├── utils/         # Command utilities (commandBase, paginationBuilder)
+│   └── tests/         # Command tests
+├── services/           # Business logic services
+│   ├── embedFix/      # Twitter/X + Pixiv URL fix system
+│   └── ...            # gachaRedemptionService, gachaDataService, rulesManagementService, etc.
+├── chatCommands/       # Message-based chat commands
+│   ├── mediaCommands.ts
+│   ├── types.ts
+│   ├── index.ts
+│   └── utils/
+├── handlers/           # Event handlers
+│   ├── messageHandler.ts
+│   ├── slashCommandHandler.ts
+├── bootstrap/          # Initialization logic
+│   └── serviceInitializer.ts
+├── config/             # Configuration
+│   └── assets.ts      # Centralized CDN asset URLs
+├── utils/              # Shared utilities
+│   ├── interactionHelpers.ts      # replyEphemeral, replyWithEmbed, etc.
+│   ├── commandErrorHandler.ts     # handleCommandError
+│   ├── permissionHelpers.ts       # checkModPermission
+│   ├── embedTemplates.ts          # createBasicEmbed, createErrorEmbed, etc.
+│   ├── sensitiveTermsChecker.ts   # Content moderation
 │   ├── data/          # Config files (gachaGamesConfig, gachaConfig)
 │   └── interfaces/    # TypeScript interfaces
-└── index.ts           # Entry point, cron jobs
+├── discord.ts          # Bot orchestrator (reduced from 1,885 → 513 lines)
+└── index.ts            # Entry point, cron jobs
 ```
 
 ## Gacha Coupon System (Primary Feature)
@@ -95,17 +115,157 @@ Uses **LogTape** (`@logtape/logtape`) — zero-dependency, Bun-native structured
 - **Delete** rather than downlevel — if a log doesn't help diagnose a failure, remove it
 - LogTape uses tagged template syntax: `logger.error\`message ${variable}\``
 
-## Common Patterns
+## Codebase Standards & Patterns
 
-### Adding a new /redeem subcommand
+### Architecture Principles
+- **Modular design**: Each file has a single, well-defined responsibility
+- **Service layer separation**: Business logic in services, commands are thin wrappers
+- **Utility extraction**: Common patterns extracted into reusable helpers
+- **Type safety**: Prefer proper TypeScript types over `as` casts
+- **Centralized configuration**: Asset URLs, game configs, and constants in dedicated files
+
+### Command Patterns
+
+**Standard Command Structure:**
+```typescript
+import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { replyEphemeral } from '../utils/interactionHelpers.js';
+import { handleCommandError } from '../utils/commandErrorHandler.js';
+
+export default {
+    data: new SlashCommandBuilder()
+        .setName('command-name')
+        .setDescription('Command description'),
+    async execute(interaction: ChatInputCommandInteraction) {
+        try {
+            // Command logic here
+            await replyEphemeral(interaction, 'Response message');
+        } catch (error) {
+            await handleCommandError(interaction, error, 'command-name');
+        }
+    },
+};
+```
+
+**Key Guidelines:**
+- Use `ChatInputCommandInteraction` (not `CommandInteraction`)
+- Use `interaction.options.getString('name', true)` instead of type casts
+- Wrap command logic in try-catch with `handleCommandError`
+- Use utility helpers for common patterns
+
+### Utility Functions
+
+**Interaction Helpers** (`src/utils/interactionHelpers.ts`):
+```typescript
+// Ephemeral replies (only visible to user)
+await replyEphemeral(interaction, 'Message');
+
+// Public replies with embeds
+await replyWithEmbed(interaction, embed, isEphemeral);
+
+// Deferred replies (for long operations)
+await deferReply(interaction, isEphemeral);
+await editReply(interaction, content);
+```
+
+**Error Handling** (`src/utils/commandErrorHandler.ts`):
+```typescript
+// Standardized error handling for commands
+await handleCommandError(interaction, error, 'command-name');
+```
+
+**Permission Checks** (`src/utils/permissionHelpers.ts`):
+```typescript
+// Check for mod permissions (role or administrator)
+const isMod = await checkModPermission(interaction);
+if (!isMod) {
+    await replyEphemeral(interaction, 'You do not have permission to use this command.');
+    return;
+}
+```
+
+**Embed Templates** (`src/utils/embedTemplates.ts`):
+```typescript
+// Pre-configured embed templates
+const embed = createBasicEmbed(title, description, color);
+const errorEmbed = createErrorEmbed(message);
+const successEmbed = createSuccessEmbed(message);
+```
+
+**Asset URLs** (`src/config/assets.ts`):
+```typescript
+// Centralized CDN asset management
+import { getAssetUrls } from '../config/assets.js';
+
+const ASSET_URLS = getAssetUrls();
+const thumbnailUrl = ASSET_URLS.rapiBot.thumbnail;
+const logoUrl = ASSET_URLS.nikke.logo;
+```
+
+### Handler Patterns
+
+**Message Handler** (`src/handlers/messageHandler.ts`):
+- Processes `messageCreate` and `messageUpdate` events
+- Rate limiting, sensitive terms checking
+- Chat command execution
+- URL embed fix integration
+
+**Slash Command Handler** (`src/handlers/slashCommandHandler.ts`):
+- Processes interaction events
+- Command routing and execution
+- Autocomplete handling
+- Consistent error handling
+
+### Service Patterns
+
+**Service Structure:**
+```typescript
+export class MyService {
+    private static instance: MyService;
+
+    private constructor() {
+        // Initialize service
+    }
+
+    public static getInstance(): MyService {
+        if (!MyService.instance) {
+            MyService.instance = new MyService();
+        }
+        return MyService.instance;
+    }
+
+    // Public methods
+}
+
+export const getMyService = (): MyService => MyService.getInstance();
+```
+
+### Common Patterns
+
+**Adding a new slash command:**
+1. Create file in `src/commands/command-name.ts`
+2. Use standard command structure with proper imports
+3. Import in `src/discord.ts` and add to command collection
+4. Add tests in `src/commands/tests/`
+5. Update help command if user-facing
+
+**Adding a new /redeem subcommand:**
 1. Add to SlashCommandBuilder (around line 1170-1220)
 2. Create `handleXxx` function
 3. Add to switch statement in `execute()`
 4. If mod-only, add to `modCommands` array
 5. Update `handleHelp` if user-facing
 
-### Pagination (subscribers command)
-Uses inline ActionRowBuilder with Previous/Next buttons, 5-min timeout.
+**Pagination Pattern** (`src/commands/utils/paginationBuilder.ts`):
+```typescript
+import { PaginationBuilder } from '../commands/utils/paginationBuilder.js';
+
+const pagination = new PaginationBuilder()
+    .setEmbeds(embedArray)
+    .setTimeout(5 * 60 * 1000);  // 5 minutes
+
+await pagination.send(interaction);
+```
 
 ## Environment Variables
 ```
@@ -316,3 +476,59 @@ Summary of modified files with brief descriptions.
 - **Link issues** - Reference related issues/PRs when applicable
 - **Show impact** - Explain what improves
 - **End with signature** - Always include Claude Code attribution
+
+## Token Usage Management
+
+### Monitoring Guidelines
+
+**Track token usage proactively:**
+- Monitor the token counter throughout the session
+- Keep a 20% ceiling buffer (e.g., for 200K limit, plan to stop at ~160K)
+- Consider task complexity when estimating remaining capacity
+
+**When to suggest a new chat session:**
+1. **Current usage + estimated task tokens > 80% of limit**
+   - Example: At 140K/200K tokens, avoid starting a 50K+ token task
+2. **Complex multi-phase work with >3 phases remaining**
+   - Each phase typically uses 20-40K tokens (reads, writes, tests, commits)
+3. **Large file refactoring (>500 lines)**
+   - Reading + editing + testing can consume 30-50K tokens
+4. **Multiple service/command files to modify**
+   - Each file refactor: ~10-20K tokens
+
+**Recommendation format:**
+```
+"We're currently at [X]K/[Y]K tokens ([Z]% used). Given the [task description]
+ahead, which may require [estimate]K tokens, I recommend continuing this work
+in a new chat session to ensure we have sufficient context for testing and
+debugging. I can document the remaining tasks in [file/todo list] before we
+transition."
+```
+
+**Best practices:**
+- **Document before transitioning**: Write remaining tasks to a file or todo list
+- **Commit completed work**: Always commit before suggesting a new session
+- **Provide clear handoff**: Include file paths, line numbers, and next steps
+- **Update session summary**: If available, update project memory/notes
+
+### Task Size Estimation
+
+| Task Type | Estimated Tokens | Notes |
+|-----------|-----------------|-------|
+| Read single file (<500 lines) | 2-5K | Includes file content in context |
+| Edit single file | 3-8K | Read + edit + verification |
+| Write new file | 5-10K | Content generation + imports |
+| Run tests | 5-15K | Output can be verbose |
+| Refactor command file | 10-20K | Read + multiple edits + testing |
+| Refactor service file | 15-30K | Larger files, more complexity |
+| Multi-file phase | 30-60K | Several files + coordination |
+| Create PR | 5-10K | Commit + PR description + push |
+
+**Example calculation:**
+```
+Task: Refactor 5 command files + run tests + commit
+Estimate: (5 files × 15K) + 10K (tests) + 5K (commit) = 90K tokens
+Current usage: 120K/200K
+Risk assessment: 120K + 90K = 210K > 200K limit ❌
+Recommendation: Complete 2-3 files now, new session for remainder ✅
+```
