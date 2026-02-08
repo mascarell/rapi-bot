@@ -25,8 +25,16 @@ import {
     isValidGameId
 } from '../utils/data/gachaGamesConfig';
 import { getGachaGuildConfigService } from '../services/gachaGuildConfigService';
+// Phase 1 & 2 utilities
+import { getAssetUrls } from '../config/assets.js';
+import { checkModPermission, requireModPermission } from '../utils/permissionHelpers.js';
+import { gachaEmbed } from '../utils/embedTemplates.js';
+import { handleCommandError } from '../utils/commandErrorHandler.js';
+import { formatDate, parseExpirationDate, isExpiringSoon, isExpired } from '../utils/dateHelpers.js';
+import { validateGameId, validateSubscriptionMode, validateGameUserId } from '../utils/validators.js';
+import { createPaginatedMessage } from './utils/paginationBuilder.js';
 
-const RAPI_BOT_THUMBNAIL_URL = process.env.CDN_DOMAIN_URL + '/assets/rapi-bot-thumbnail.jpg';
+const ASSET_URLS = getAssetUrls();
 
 // Build game choices for slash command options
 const GAME_CHOICES = getSupportedGameIds().map(id => ({
@@ -34,75 +42,12 @@ const GAME_CHOICES = getSupportedGameIds().map(id => ({
     value: id,
 }));
 
-/**
- * Check if user has mod permissions
- */
-async function checkModPermission(interaction: ChatInputCommandInteraction): Promise<boolean> {
-    const guild = interaction.guild;
-    if (!guild) return false;
-
-    const member = await guild.members.fetch(interaction.user.id);
-    return member.roles.cache.some((role: Role) =>
-        role.name.toLowerCase() === 'mods'
-    ) || member.permissions.has(PermissionFlagsBits.Administrator);
-}
-
-/**
- * Format date for display
- */
-function formatDate(dateStr: string | null): string {
-    if (!dateStr) return 'No expiration';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric'
-    });
-}
-
-/**
- * Parse expiration date from user input
- */
-function parseExpirationDate(input: string): string | null {
-    if (!input || input.toLowerCase() === 'never' || input.toLowerCase() === 'none') {
-        return null;
-    }
-    const date = new Date(input);
-    if (isNaN(date.getTime())) {
-        throw new Error('Invalid date format. Use YYYY-MM-DD or "never".');
-    }
-    return date.toISOString();
-}
-
-/**
- * Validate game user ID format
- * Prevents malformed IDs from causing API errors
- */
-function validateGameUserId(gameId: GachaGameId, userId: string): { valid: boolean; error?: string } {
-    const config = getGameConfig(gameId);
-    const trimmedId = userId.trim();
-
-    // Check for empty input
-    if (!trimmedId) {
-        return { valid: false, error: `${config.userIdFieldName} cannot be empty` };
-    }
-
-    // Check length
-    if (trimmedId.length > config.maxNicknameLength) {
-        return { valid: false, error: `${config.userIdFieldName} must be ${config.maxNicknameLength} characters or less` };
-    }
-
-    // Check for valid characters (alphanumeric, underscores, hyphens)
-    if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
-        return { valid: false, error: `${config.userIdFieldName} can only contain letters, numbers, underscores, and hyphens` };
-    }
-
-    return { valid: true };
-}
-
 // ==================== Command Handlers ====================
 
 async function handleSubscribe(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameUserIdInput = interaction.options.getString('userid', false); // Now optional
-    let mode = interaction.options.getString('mode', true) as SubscriptionMode;
+    let mode = validateSubscriptionMode(interaction.options.getString('mode', true));
 
     const gameConfig = getGameConfig(gameId);
 
@@ -149,7 +94,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
             .setThumbnail(gameConfig.logoPath)
             .setDescription(`You are now subscribed to ${gameConfig.name} coupon updates!`)
             .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         // Only show userid field if the game requires one and it was provided
         if (gameConfig.requiresUserId && gameUserId) {
@@ -192,7 +137,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
 }
 
 async function handleUnsubscribe(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameConfig = getGameConfig(gameId);
 
     try {
@@ -205,7 +150,7 @@ async function handleUnsubscribe(interaction: ChatInputCommandInteraction): Prom
                 .setTitle('👋 Unsubscribed')
                 .setDescription(`You have been unsubscribed from ${gameConfig.name} coupon updates.`)
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
@@ -220,7 +165,8 @@ async function handleUnsubscribe(interaction: ChatInputCommandInteraction): Prom
 }
 
 async function handleStatus(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game') as GachaGameId | null;
+    const gameIdInput = interaction.options.getString('game');
+    const gameId = gameIdInput ? validateGameId(gameIdInput) : null;
 
     try {
         const dataService = getGachaDataService();
@@ -262,7 +208,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
                     { name: 'Pending', value: `${unredeemed.length}`, inline: true }
                 )
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             if (unredeemed.length > 0) {
                 const codeList = unredeemed.slice(0, 5).map(c => `• \`${c.code}\` - ${c.rewards}`).join('\n');
@@ -276,12 +222,12 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
                 .setColor(0x3498DB)
                 .setTitle('📊 Your Coupon Subscriptions')
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             for (const [gId, gameSub] of Object.entries(userSubs.games)) {
                 if (!gameSub) continue;
-                const gameConfig = getGameConfig(gId as GachaGameId);
-                const unredeemed = await dataService.getUnredeemedCodes(interaction.user.id, gId as GachaGameId);
+                const gameConfig = getGameConfig(validateGameId(gId));
+                const unredeemed = await dataService.getUnredeemedCodes(interaction.user.id, validateGameId(gId));
 
                 embed.addFields({
                     name: `${gameConfig.name}`,
@@ -297,7 +243,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleCodes(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameConfig = getGameConfig(gameId);
 
     try {
@@ -317,7 +263,7 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
             .setTitle(`🎟️ ${gameConfig.shortName} Coupon Codes`)
             .setThumbnail(gameConfig.logoPath)
             .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         if (gameConfig.manualRedeemUrl) {
             embed.setDescription(`Use the [official redemption page](${gameConfig.manualRedeemUrl}) or redeem in-game.`);
@@ -345,7 +291,7 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
 }
 
 async function handleModAdd(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const code = interaction.options.getString('code', true);
     const rewards = interaction.options.getString('rewards', true);
     const expirationInput = interaction.options.getString('expiration') || 'never';
@@ -381,7 +327,7 @@ async function handleModAdd(interaction: ChatInputCommandInteraction): Promise<v
                 { name: 'Expires', value: formatDate(expirationDate), inline: true }
             )
             .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         if (source) {
             embed.addFields({ name: 'Source', value: source, inline: true });
@@ -399,7 +345,7 @@ async function handleModAdd(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleModRemove(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const code = interaction.options.getString('code', true);
     const gameConfig = getGameConfig(gameId);
 
@@ -413,7 +359,7 @@ async function handleModRemove(interaction: ChatInputCommandInteraction): Promis
                 .setTitle('🗑️ Coupon Deactivated')
                 .setDescription(`\`${code.toUpperCase()}\` has been deactivated for ${gameConfig.name}.`)
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
@@ -425,7 +371,7 @@ async function handleModRemove(interaction: ChatInputCommandInteraction): Promis
 }
 
 async function handleModList(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const filter = interaction.options.getString('filter') || 'all';
     const gameConfig = getGameConfig(gameId);
 
@@ -495,7 +441,7 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
                     `**Total:** ${couponsToDisplay.length} codes | ✅ Active | ⏰ Grace Period | ❌ Inactive\n\n` +
                     codeList
                 )
-                .setFooter({ text: `Page ${i + 1} of ${totalPages}`, iconURL: RAPI_BOT_THUMBNAIL_URL })
+                .setFooter({ text: `Page ${i + 1} of ${totalPages}`, iconURL: ASSET_URLS.rapiBot.thumbnail })
                 .setTimestamp();
 
             pages.push(embed);
@@ -571,7 +517,7 @@ async function handleModList(interaction: ChatInputCommandInteraction): Promise<
 }
 
 async function handleModTrigger(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameConfig = getGameConfig(gameId);
 
     if (!gameConfig.supportsAutoRedeem) {
@@ -598,7 +544,7 @@ async function handleModTrigger(interaction: ChatInputCommandInteraction): Promi
                 { name: '⏭️ Skipped', value: `${result.skipped}`, inline: true }
             )
             .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error: any) {
@@ -610,7 +556,7 @@ async function handleModTrigger(interaction: ChatInputCommandInteraction): Promi
 
 async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise<void> {
     const targetUser = interaction.options.getUser('user', true);
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameConfig = getGameConfig(gameId);
 
     try {
@@ -623,7 +569,7 @@ async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise
                 .setTitle('🔧 User Unsubscribed')
                 .setDescription(`<@${targetUser.id}> has been unsubscribed from ${gameConfig.name}.`)
                 .setTimestamp()
-                .setFooter({ text: 'Admin Action', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } else {
@@ -639,7 +585,7 @@ async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise
 
 async function handleModUpdate(interaction: ChatInputCommandInteraction): Promise<void> {
     const targetUser = interaction.options.getUser('user', true);
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const newUserId = interaction.options.getString('userid', true);
     const gameConfig = getGameConfig(gameId);
 
@@ -663,7 +609,7 @@ async function handleModUpdate(interaction: ChatInputCommandInteraction): Promis
             .setDescription(`Updated ${gameConfig.userIdFieldName} for <@${targetUser.id}> in ${gameConfig.name}.`)
             .addFields({ name: `New ${gameConfig.userIdFieldName}`, value: `\`${newUserId}\`` })
             .setTimestamp()
-            .setFooter({ text: 'Admin Action', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
@@ -691,11 +637,11 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
             .setTitle(`🔍 Subscriptions for ${targetUser.username}`)
             .setThumbnail(targetUser.displayAvatarURL())
             .setTimestamp()
-            .setFooter({ text: 'Admin Lookup', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Admin Lookup', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         for (const [gId, gameSub] of Object.entries(userSubs.games)) {
             if (!gameSub) continue;
-            const gameConfig = getGameConfig(gId as GachaGameId);
+            const gameConfig = getGameConfig(validateGameId(gId));
 
             embed.addFields({
                 name: gameConfig.name,
@@ -711,7 +657,7 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
 
 async function handleModReset(interaction: ChatInputCommandInteraction): Promise<void> {
     const targetUser = interaction.options.getUser('user', true);
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameConfig = getGameConfig(gameId);
 
     try {
@@ -724,7 +670,7 @@ async function handleModReset(interaction: ChatInputCommandInteraction): Promise
             .setDescription(`Reset redeemed codes list for <@${targetUser.id}> in ${gameConfig.name}.`)
             .addFields({ name: 'Effect', value: 'All codes are now marked as unredeemed for this user. Auto-redemption will attempt all active codes again.' })
             .setTimestamp()
-            .setFooter({ text: 'Admin Action', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
@@ -733,8 +679,8 @@ async function handleModReset(interaction: ChatInputCommandInteraction): Promise
 }
 
 async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
-    const newMode = interaction.options.getString('mode', true) as SubscriptionMode;
+    const gameId = validateGameId(interaction.options.getString('game', true));
+    const newMode = validateSubscriptionMode(interaction.options.getString('mode', true));
     const gameConfig = getGameConfig(gameId);
 
     try {
@@ -775,7 +721,7 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
             )
             .addFields({ name: 'What changes?', value: modeDescription })
             .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         if (!gameConfig.supportsAutoRedeem && newMode === 'auto-redeem') {
             embed.addFields({
@@ -791,7 +737,7 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handlePreferences(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const gameConfig = getGameConfig(gameId);
 
     // Get toggle values (null means not provided, so we should show current status)
@@ -832,7 +778,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
                     value: 'Use `/redeem preferences` with options to toggle settings.\nExample: `/redeem preferences game:Brown Dust 2 weekly_digest:False`'
                 })
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             return;
@@ -865,7 +811,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
                 { name: '🆕 New Code Alerts', value: updatedPrefs?.newCodeAlerts !== false ? '✅ Enabled' : '❌ Disabled', inline: true }
             )
             .setTimestamp()
-            .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     } catch (error: any) {
@@ -874,7 +820,8 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
 }
 
 async function handleModStats(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game') as GachaGameId | null;
+    const gameIdInput = interaction.options.getString('game');
+    const gameId = gameIdInput ? validateGameId(gameIdInput) : null;
 
     try {
         const dataService = getGachaDataService();
@@ -894,7 +841,7 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
                     { name: '✨ Redemptions', value: `Total: **${analytics.redemptions.total}**\n👤 Users: ${analytics.redemptions.uniqueUsers}\n📈 Avg/User: ${analytics.redemptions.avgPerUser}`, inline: true }
                 )
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             if (analytics.topCodes.length > 0) {
                 const topCodesList = analytics.topCodes
@@ -917,13 +864,13 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
                     { name: '✨ Total Redemptions', value: `${analytics.totalRedemptions}`, inline: true }
                 )
                 .setTimestamp()
-                .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+                .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
             // Add per-game breakdown
             if (Object.keys(analytics.byGame).length > 0) {
                 let gameBreakdown = '';
                 for (const [gId, stats] of Object.entries(analytics.byGame)) {
-                    const config = getGameConfig(gId as GachaGameId);
+                    const config = getGameConfig(validateGameId(gId));
                     gameBreakdown += `**${config.shortName}**: ${stats.subscribers} subs, ${stats.coupons} codes, ${stats.redemptions} redeemed\n`;
                 }
                 embed.addFields({ name: '🎮 By Game', value: gameBreakdown });
@@ -967,7 +914,7 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
             .setTitle('🔍 BD2 Pulse Sync')
             .setDescription(statusMessage)
             .setTimestamp()
-            .setFooter({ text: 'BD2 Pulse • thebd2pulse.com', iconURL: RAPI_BOT_THUMBNAIL_URL });
+            .setFooter({ text: 'BD2 Pulse • thebd2pulse.com', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         // Stats row
         embed.addFields(
@@ -1030,7 +977,7 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
 }
 
 async function handleModSubscribers(interaction: ChatInputCommandInteraction): Promise<void> {
-    const gameId = interaction.options.getString('game', true) as GachaGameId;
+    const gameId = validateGameId(interaction.options.getString('game', true));
     const modeFilter = interaction.options.getString('mode') || 'all';
     const gameConfig = getGameConfig(gameId);
 
@@ -1038,7 +985,7 @@ async function handleModSubscribers(interaction: ChatInputCommandInteraction): P
 
     try {
         const dataService = getGachaDataService();
-        const mode = modeFilter === 'all' ? undefined : modeFilter as SubscriptionMode;
+        const mode = modeFilter === 'all' ? undefined : validateSubscriptionMode(modeFilter);
         const subscribers = await dataService.getGameSubscribers(gameId, mode);
 
         if (subscribers.length === 0) {
@@ -1073,7 +1020,7 @@ async function handleModSubscribers(interaction: ChatInputCommandInteraction): P
                     `${mode ? ` (${mode})` : ''}\n\n` +
                     subscriberList
                 )
-                .setFooter({ text: `Page ${i + 1} of ${totalPages}`, iconURL: RAPI_BOT_THUMBNAIL_URL })
+                .setFooter({ text: `Page ${i + 1} of ${totalPages}`, iconURL: ASSET_URLS.rapiBot.thumbnail })
                 .setTimestamp();
 
             pages.push(embed);
@@ -1156,7 +1103,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
         .setTitle('Coupon Redemption System Help')
         .setDescription('Automatically redeem coupon codes for supported gacha games.')
         .setTimestamp()
-        .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL });
+        .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
     // User Commands Section
     embed.addFields({
@@ -1516,12 +1463,7 @@ export default {
         // Mod-only commands
         const modCommands = ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers'];
         if (modCommands.includes(subcommand)) {
-            const hasPermission = await checkModPermission(interaction);
-            if (!hasPermission) {
-                await interaction.reply({
-                    content: '❌ You need the "mods" role or administrator permission for this command.',
-                    flags: MessageFlags.Ephemeral
-                });
+            if (!(await requireModPermission(interaction, 'You need the "mods" role or administrator permission for this command.'))) {
                 return;
             }
         }
@@ -1552,8 +1494,9 @@ export default {
         const focusedOption = interaction.options.getFocused(true);
 
         if (focusedOption.name === 'code') {
-            const gameId = interaction.options.getString('game') as GachaGameId | null;
-            if (!gameId || !isValidGameId(gameId)) {
+            const gameIdInput = interaction.options.getString('game');
+            const gameId = gameIdInput && isValidGameId(gameIdInput) ? validateGameId(gameIdInput) : null;
+            if (!gameId) {
                 await interaction.respond([]);
                 return;
             }
