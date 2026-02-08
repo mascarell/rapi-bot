@@ -4,14 +4,14 @@ import {
     ColorResolvable,
     ChatInputCommandInteraction,
 } from 'discord.js';
-import { SlashCommand } from '../utils/interfaces/Command.interface';
+import { SlashCommand } from '../utils/interfaces/Command.interface.js';
 import {
     GACHA_CONFIGS,
     RateLimiter,
     GachaPuller,
     handlePagination
-} from './utils';
-import { logger } from '../utils/logger.js';
+} from './utils/index.js';
+import { handleCommandError } from '../utils/commandErrorHandler.js';
 
 // Initialize rate limiter
 RateLimiter.init();
@@ -66,10 +66,8 @@ export default {
             }
 
             await handlePagination(interaction, embeds);
-
         } catch (error) {
-            logger.error`Gacha pull error: ${error}`;
-            await interaction.followUp('Commander, there was an error with the gacha system...');
+            await handleCommandError(interaction, error, 'gacha');
         }
     }
 } as SlashCommand;

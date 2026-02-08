@@ -4,12 +4,12 @@
 
 import {
     ChatInputCommandInteraction,
-    MessageFlags,
     SlashCommandBuilder,
 } from 'discord.js';
-import { getEmbedFixService } from '../services/embedFix/embedFixService';
-import { logger } from '../utils/logger.js';
-import { getEmbedVotesService } from '../services/embedFix/embedVotesService';
+import { getEmbedFixService } from '../services/embedFix/embedFixService.js';
+import { getEmbedVotesService } from '../services/embedFix/embedVotesService.js';
+import { replyEphemeral } from '../utils/interactionHelpers.js';
+import { handleCommandError } from '../utils/commandErrorHandler.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -27,10 +27,7 @@ export default {
 
         // Validate URL format
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            await interaction.reply({
-                content: 'Please provide a valid URL starting with http:// or https://',
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyEphemeral(interaction, 'Please provide a valid URL starting with http:// or https://');
             return;
         }
 
@@ -39,10 +36,10 @@ export default {
         // Check if URL is supported
         if (!service.isUrlSupported(url)) {
             const supportedPlatforms = service.getSupportedPlatforms();
-            await interaction.reply({
-                content: `This URL is not supported. Currently supported platforms: ${supportedPlatforms.join(', ')}`,
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyEphemeral(
+                interaction,
+                `This URL is not supported. Currently supported platforms: ${supportedPlatforms.join(', ')}`
+            );
             return;
         }
 
@@ -100,10 +97,7 @@ export default {
                 }
             }
         } catch (error) {
-            logger.error`[/embed] Error processing URL: ${error}`;
-            await interaction.editReply({
-                content: 'An error occurred while processing the URL. Please try again later.',
-            });
+            await handleCommandError(interaction, error, 'embed');
         }
     },
 };

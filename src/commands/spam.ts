@@ -4,14 +4,15 @@ import {
     ChatInputCommandInteraction,
     PermissionFlagsBits,
     Role,
-    MessageFlags
 } from 'discord.js';
-import { SlashCommand } from '../utils/interfaces/Command.interface';
-import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter';
-import { logger } from '../utils/logger.js';
+import { SlashCommand } from '../utils/interfaces/Command.interface.js';
+import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter.js';
+import { getAssetUrls } from '../config/assets.js';
+import { replyEphemeral, replyWithEmbed } from '../utils/interactionHelpers.js';
+import { handleCommandError } from '../utils/commandErrorHandler.js';
+import { checkModPermission } from '../utils/permissionHelpers.js';
 
-// Asset URLs (import from discord.ts or create a shared config)
-const RAPI_BOT_THUMBNAIL_URL = process.env.CDN_DOMAIN_URL + '/assets/rapi-bot-thumbnail.jpg';
+const ASSET_URLS = getAssetUrls();
 
 /**
  * Command export for Discord.js
@@ -48,10 +49,7 @@ export default {
         const guild = interaction.guild;
         
         if (!guild) {
-            await interaction.reply({ 
-                content: 'This command can only be used in a server.', 
-                flags: MessageFlags.Ephemeral 
-            });
+            await replyEphemeral(interaction, 'This command can only be used in a server.');
             return;
         }
 
@@ -67,17 +65,10 @@ export default {
                     await this.handleReset(interaction, guild);
                     break;
                 default:
-                    await interaction.reply({ 
-                        content: 'Unknown subcommand.', 
-                        flags: MessageFlags.Ephemeral 
-                    });
+                    await replyEphemeral(interaction, 'Unknown subcommand.');
             }
         } catch (error) {
-            logger.error`Error in spam command: ${error}`;
-            await interaction.reply({ 
-                content: 'An error occurred while processing your request.', 
-                flags: MessageFlags.Ephemeral 
-            });
+            await handleCommandError(interaction, error, 'spam');
         }
     },
 
@@ -139,7 +130,7 @@ export default {
                 text: 'Stay safe on the surface, Commander!', 
                 iconURL: interaction.client.user?.displayAvatarURL() 
             });
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await replyWithEmbed(interaction, embed, true);
     },
 
     /**
@@ -150,16 +141,7 @@ export default {
      */
     async handleStats(interaction: ChatInputCommandInteraction, guild: any) {
         // Check for admin permissions
-        const member = await guild.members.fetch(interaction.user.id);
-        const hasAdminRole = member.roles.cache.some((role: Role) => 
-            role.name.toLowerCase() === 'mods'
-        );
-        
-        if (!hasAdminRole && !member.permissions.has(PermissionFlagsBits.Administrator)) {
-            await interaction.reply({ 
-                content: 'Commander, you need administrator permissions or the "mods" role to view statistics.', 
-                flags: MessageFlags.Ephemeral 
-            });
+        if (!(await checkModPermission(interaction))) {
             return;
         }
 
@@ -232,7 +214,7 @@ export default {
             });
         }
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await replyWithEmbed(interaction, embed, true);
     },
 
     /**
@@ -243,25 +225,13 @@ export default {
      */
     async handleReset(interaction: ChatInputCommandInteraction, guild: any) {
         // Check for admin permissions
-        const member = await guild.members.fetch(interaction.user.id);
-        const hasAdminRole = member.roles.cache.some((role: Role) => 
-            role.name.toLowerCase() === 'mods'
-        );
-        
-        if (!hasAdminRole && !member.permissions.has(PermissionFlagsBits.Administrator)) {
-            await interaction.reply({ 
-                content: 'Commander, you need administrator permissions or the "mods" role to reset rate limits.', 
-                flags: MessageFlags.Ephemeral 
-            });
+        if (!(await checkModPermission(interaction))) {
             return;
         }
 
-        const targetUser = interaction.options.getUser('user');
+        const targetUser = interaction.options.getUser('user', true);
         if (!targetUser) {
-            await interaction.reply({ 
-                content: 'Please specify a valid user to reset.', 
-                flags: MessageFlags.Ephemeral 
-            });
+            await replyEphemeral(interaction, 'Please specify a valid user to reset.');
             return;
         }
 
@@ -284,7 +254,7 @@ export default {
                 iconURL: interaction.client.user?.displayAvatarURL() 
             });
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await replyWithEmbed(interaction, embed, true);
     },
 
     /**
