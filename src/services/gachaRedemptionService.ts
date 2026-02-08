@@ -14,10 +14,11 @@ import {
 import { getGameConfig, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GACHA_CONFIG } from '../utils/data/gachaConfig';
 import { logger } from '../utils/logger.js';
+import { getAssetUrls } from '../config/assets.js';
 
 const RERUN_EMOJI = '🔁';
-
-const RAPI_BOT_THUMBNAIL_URL = process.env.CDN_DOMAIN_URL + '/assets/rapi-bot-thumbnail.jpg';
+const ASSET_URLS = getAssetUrls();
+const RAPI_BOT_THUMBNAIL_URL = ASSET_URLS.rapiBot.thumbnail;
 
 /**
  * Human-readable error messages
