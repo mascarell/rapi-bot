@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, EmbedBuilder } from 'discord.js';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, S3_BUCKET } from '../utils/cdn/config.js';
 import { YOUTUBE_CONFIG } from '../utils/data/youtubeConfig.js';
@@ -164,7 +164,9 @@ class YouTubeNotificationService {
      * Returns new videos to notify about, grouped with their channel config
      */
     public async checkForNewVideos(): Promise<{ videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[]> {
-        const data = await this.getData();
+        const cachedData = await this.getData();
+        // Deep copy to avoid mutating cached S3 data before save succeeds
+        const data: YouTubeNotificationData = JSON.parse(JSON.stringify(cachedData));
         const results: { videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[] = [];
         let dataChanged = false;
 
@@ -190,6 +192,16 @@ class YouTubeNotificationService {
             }
 
             if (newVideos.length > 0) {
+                // If we walked the entire feed without finding lastSeenId, the tracked video
+                // was likely deleted or the feed changed significantly. Re-seed to avoid
+                // flooding with up to 15 old videos.
+                if (newVideos.length === entries.length) {
+                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelName}, re-seeding`;
+                    data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
+                    dataChanged = true;
+                    continue;
+                }
+
                 // Reverse to post oldest first (chronological order)
                 newVideos.reverse();
                 results.push({ videos: newVideos, channelConfig });
@@ -217,7 +229,13 @@ class YouTubeNotificationService {
         newVideoGroups: { videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[]
     ): Promise<{ notified: number; errors: number }> {
         const guildConfigService = getGachaGuildConfigService();
-        const allowedGuildIds = await guildConfigService.getAllowedGuildIds();
+        const config = await guildConfigService.getConfig();
+        const allowedGuildIds = config.allowedGuildIds;
+
+        // Skip if YouTube notifications are explicitly disabled
+        if (config.youtubeConfig?.enabled === false) {
+            return { notified: 0, errors: 0 };
+        }
 
         let notified = 0;
         let errors = 0;
@@ -328,3 +346,8 @@ class YouTubeNotificationService {
 
 export const getYouTubeNotificationService = (): YouTubeNotificationService =>
     YouTubeNotificationService.getInstance();
+
+/** Reset singleton for testing */
+export const _testResetYouTubeService = (): void => {
+    (YouTubeNotificationService as any).instance = undefined;
+};

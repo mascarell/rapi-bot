@@ -44,6 +44,7 @@ vi.mock('../../utils/util', () => ({
 
 import {
     getYouTubeNotificationService,
+    _testResetYouTubeService,
     YouTubeNotificationData,
     YouTubeChannelConfig,
     YouTubeVideoEntry,
@@ -120,12 +121,7 @@ describe('YouTubeNotificationService', () => {
     let mockBot: any;
 
     beforeEach(() => {
-        // Reset singleton
-        (getYouTubeNotificationService as any).instance = undefined;
-        // Force re-create by accessing private static
-        const ServiceClass = (getYouTubeNotificationService() as any).constructor;
-        ServiceClass.instance = undefined;
-
+        _testResetYouTubeService();
         service = getYouTubeNotificationService();
         service.clearCache();
 
@@ -153,6 +149,11 @@ describe('YouTubeNotificationService', () => {
 
         mockGuildConfigService = {
             getAllowedGuildIds: vi.fn().mockResolvedValue(['guild_123']),
+            getConfig: vi.fn().mockResolvedValue({
+                allowedGuildIds: ['guild_123'],
+                lastUpdated: new Date().toISOString(),
+                schemaVersion: 1,
+            }),
         };
 
         vi.mocked(getGachaGuildConfigService).mockReturnValue(mockGuildConfigService);
@@ -368,6 +369,28 @@ describe('YouTubeNotificationService', () => {
             expect(results).toHaveLength(0);
         });
 
+        it('should re-seed when lastSeenVideoId is not found in feed (deleted video)', async () => {
+            const data = createMockS3Data({
+                lastSeenVideoIds: { 'UC_test_channel': 'deleted_video_id' },
+            });
+            mockS3GetResponse(data);
+
+            vi.mocked(global.fetch).mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(SAMPLE_RSS),
+            } as Response);
+
+            // Mock saveData
+            vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
+
+            const results = await service.checkForNewVideos();
+
+            // Should re-seed instead of treating all 15 as new
+            expect(results).toHaveLength(0);
+            // Should still save the re-seeded ID
+            expect(s3Client.send).toHaveBeenCalledTimes(2);
+        });
+
         it('should persist seeded IDs to S3 even when no new videos to post', async () => {
             const data = createMockS3Data({
                 lastSeenVideoIds: {}, // First run
@@ -475,6 +498,30 @@ describe('YouTubeNotificationService', () => {
 
             expect(result.errors).toBe(1);
             expect(result.notified).toBe(0);
+        });
+
+        it('should skip all guilds when youtubeConfig.enabled is false', async () => {
+            mockGuildConfigService.getConfig.mockResolvedValueOnce({
+                allowedGuildIds: ['guild_123'],
+                youtubeConfig: { enabled: false },
+                lastUpdated: new Date().toISOString(),
+                schemaVersion: 1,
+            });
+
+            const videoGroups = [{
+                videos: [{
+                    videoId: 'vid1', title: 'Test', channelName: 'TC', channelId: 'UC_test',
+                    publishedAt: '2026-03-05T12:00:00Z',
+                    thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
+                    videoUrl: 'https://www.youtube.com/watch?v=vid1',
+                }] as YouTubeVideoEntry[],
+                channelConfig: { channelId: 'UC_test', channelName: 'TC', discordUserId: '123' } as YouTubeChannelConfig,
+            }];
+
+            const result = await service.postNotifications(mockBot as Client, videoGroups);
+
+            expect(result.notified).toBe(0);
+            expect(mockChannel.send).not.toHaveBeenCalled();
         });
 
         it('should post multiple videos for a channel in order', async () => {
