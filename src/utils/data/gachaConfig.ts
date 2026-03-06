@@ -7,7 +7,7 @@ export const GACHA_CONFIG = {
     // API settings
     API_TIMEOUT_MS: 10000,
     MAX_RETRIES: 3,
-    RATE_LIMIT_DELAY: 2000,
+    RATE_LIMIT_DELAY: 2500,
 
     // Discord settings
     DM_RATE_LIMIT_DELAY: 100,

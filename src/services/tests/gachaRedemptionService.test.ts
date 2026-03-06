@@ -302,7 +302,7 @@ describe('GachaRedemptionService', () => {
             expect(results[1].success).toBe(true);
         });
 
-        it('should stop on rate limit error', async () => {
+        it('should continue on rate limit error (handled by circuit breaker wait)', async () => {
             vi.mocked(global.fetch)
                 .mockResolvedValueOnce({
                     ok: true,
@@ -314,11 +314,12 @@ describe('GachaRedemptionService', () => {
                 } as Response);
 
             const service = getGachaRedemptionService();
-            const results = await service.redeemMultipleCodes('bd2', 'TestUser', ['CODE1', 'CODE2', 'CODE3']);
+            const results = await service.redeemMultipleCodes('bd2', 'TestUser', ['CODE1', 'CODE2']);
 
-            // Should stop after rate limit
-            expect(results).toHaveLength(1);
+            // RateLimited no longer stops the batch — circuit breaker wait-and-retry handles it
+            expect(results).toHaveLength(2);
             expect(results[0].errorCode).toBe('RateLimited');
+            expect(results[1].success).toBe(true);
         });
 
         it('should stop on network error', async () => {

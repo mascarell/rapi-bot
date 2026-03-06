@@ -313,12 +313,16 @@ export class GachaRedemptionService {
     private lastRequestTime: Map<GachaGameId, number> = new Map();
     private handlers: Map<GachaGameId, GameRedemptionHandler> = new Map();
     private subscriberLimit = pLimit(GACHA_CONFIG.CONCURRENT_SUBSCRIBER_LIMIT);
+    private apiLimit: Map<GachaGameId, ReturnType<typeof pLimit>> = new Map();
 
     private constructor() {
         // Register game-specific handlers
         this.handlers.set('bd2', new BD2RedemptionHandler());
         // Add more handlers here as games are supported
         // this.handlers.set('nikke', new NikkeRedemptionHandler());
+
+        // Per-game API call serialization to prevent rate limit races
+        this.apiLimit.set('bd2', pLimit(1));
     }
 
     /**
@@ -407,8 +411,14 @@ export class GachaRedemptionService {
 
     /**
      * Redeem a single coupon code
+     * @param options.waitForCircuitBreaker - In batch mode, wait for circuit breaker cooldown instead of failing immediately
      */
-    public async redeemCode(gameId: GachaGameId, gameUserId: string, code: string): Promise<RedemptionResult> {
+    public async redeemCode(
+        gameId: GachaGameId,
+        gameUserId: string,
+        code: string,
+        options: { waitForCircuitBreaker?: boolean } = {}
+    ): Promise<RedemptionResult> {
         const handler = this.handlers.get(gameId);
 
         if (!handler) {
@@ -422,27 +432,45 @@ export class GachaRedemptionService {
             };
         }
 
+        const limiter = this.apiLimit.get(gameId);
+        if (limiter) {
+            return limiter(async () => {
+                if (options.waitForCircuitBreaker && circuitBreaker.isOpen(gameId)) {
+                    const status = circuitBreaker.getStatus(gameId);
+                    if (status.cooldownRemaining > 0) {
+                        logger.debug`Circuit breaker open for ${gameId}, waiting ${status.cooldownRemaining}ms...`;
+                        await new Promise(r => setTimeout(r, status.cooldownRemaining + 500));
+                    }
+                }
+                await this.enforceRateLimit(gameId);
+                return handler.redeem(gameUserId, code);
+            });
+        }
+
         await this.enforceRateLimit(gameId);
         return handler.redeem(gameUserId, code);
     }
 
     /**
      * Redeem multiple codes for a user
+     * @param options.waitForCircuitBreaker - In batch mode, wait for circuit breaker cooldown instead of failing
      */
     public async redeemMultipleCodes(
         gameId: GachaGameId,
         gameUserId: string,
-        codes: string[]
+        codes: string[],
+        options: { waitForCircuitBreaker?: boolean } = {}
     ): Promise<RedemptionResult[]> {
         const results: RedemptionResult[] = [];
 
         for (const code of codes) {
-            const result = await this.redeemCode(gameId, gameUserId, code);
+            const result = await this.redeemCode(gameId, gameUserId, code, options);
             results.push(result);
 
-            // Stop on rate limit or network errors
-            if (result.errorCode === 'RateLimited' || result.errorCode === 'NetworkError') {
-                logger.debug`Stopping batch redemption for ${gameId} due to: ${result.message}`;
+            // Only stop on hard network errors (server unreachable)
+            // RateLimited is handled by circuit breaker wait-and-retry when in batch mode
+            if (result.errorCode === 'NetworkError') {
+                logger.debug`Stopping batch for ${gameId} due to network error`;
                 break;
             }
         }
@@ -505,7 +533,8 @@ export class GachaRedemptionService {
                     const redemptionResults = await this.redeemMultipleCodes(
                         gameId,
                         subscription.gameUserId,
-                        codesToRedeem
+                        codesToRedeem,
+                        { waitForCircuitBreaker: true }
                     );
 
                     const successfulCodes = redemptionResults.filter(r => r.success).map(r => r.code);
@@ -639,8 +668,8 @@ export class GachaRedemptionService {
         const codes = activeCoupons.map(c => c.code);
         logger.debug`[Subscribe] Redeeming ${codes.length} codes for new subscriber ${gameUserId} in ${gameId}`;
 
-        // Redeem all codes
-        const results = await this.redeemMultipleCodes(gameId, gameUserId, codes);
+        // Redeem all codes (batch mode: wait for circuit breaker instead of failing)
+        const results = await this.redeemMultipleCodes(gameId, gameUserId, codes, { waitForCircuitBreaker: true });
 
         // Categorize results
         const successful = results.filter(r => r.success);
