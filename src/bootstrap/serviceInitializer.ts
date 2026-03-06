@@ -5,6 +5,7 @@ import { GachaCouponScheduler } from '../services/gachaCouponScheduler.js';
 import { getChannelMonitorService } from '../services/channelMonitorService.js';
 import { getReactionConfirmationService } from '../services/reactionConfirmationService.js';
 import { getRulesManagementService } from '../services/rulesManagementService.js';
+import { YouTubeNotificationScheduler } from '../services/youtubeNotificationScheduler.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -51,6 +52,11 @@ export async function initializeServices(bot: Client): Promise<void> {
         } else {
             logger.info`Rules management service initialized`;
         }
+
+        // Initialize YouTube upload notification scheduler
+        const youtubeScheduler = new YouTubeNotificationScheduler(bot);
+        youtubeScheduler.initializeSchedules();
+        logger.info`YouTube notification scheduler initialized`;
 
         logger.info`All services initialized successfully`;
     } catch (error) {

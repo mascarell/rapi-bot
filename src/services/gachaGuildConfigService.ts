@@ -29,6 +29,11 @@ export interface GachaGuildConfig {
     allowedGuildIds: string[];
     /** Channel monitoring configurations keyed by game ID */
     channelMonitors?: Record<string, ChannelMonitorConfig>;
+    /** YouTube notification settings */
+    youtubeConfig?: {
+        /** Whether YouTube notifications are enabled for this guild (default: true for all allowed guilds) */
+        enabled?: boolean;
+    };
     /** Rules message configuration for primary server */
     rulesConfig?: {
         /** Discord guild/server ID where rules message is managed */
