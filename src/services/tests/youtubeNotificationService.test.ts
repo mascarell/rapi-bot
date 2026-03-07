@@ -469,7 +469,7 @@ describe('YouTubeNotificationService', () => {
             } as YouTubeChannelConfig,
         }];
 
-        it('should post embed to configured channel in each target guild', async () => {
+        it('should post video URL to configured channel in each target guild', async () => {
             const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
             expect(result.notified).toBe(1);
@@ -480,7 +480,7 @@ describe('YouTubeNotificationService', () => {
             const sendCall = mockChannel.send.mock.calls[0][0];
             expect(sendCall.content).toContain('@everyone');
             expect(sendCall.content).toContain('<@118451485221715977>');
-            expect(sendCall.embeds).toHaveLength(1);
+            expect(sendCall.content).toContain('https://www.youtube.com/watch?v=vid1');
         });
 
         it('should skip targets where channel does not exist', async () => {
