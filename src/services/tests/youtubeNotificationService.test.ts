@@ -1,28 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Client, Guild, TextChannel, ChannelType } from 'discord.js';
+import { Client, Guild, TextChannel, ChannelType, Collection } from 'discord.js';
 
 // Set environment variable before any imports
 vi.stubEnv('CDN_DOMAIN_URL', 'https://cdn.example.com');
-
-// Mock EmbedBuilder
-vi.mock('discord.js', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('discord.js')>();
-    return {
-        ...actual,
-        EmbedBuilder: vi.fn().mockImplementation(() => ({
-            setColor: vi.fn().mockReturnThis(),
-            setTitle: vi.fn().mockReturnThis(),
-            setURL: vi.fn().mockReturnThis(),
-            setAuthor: vi.fn().mockReturnThis(),
-            setImage: vi.fn().mockReturnThis(),
-            setTimestamp: vi.fn().mockReturnThis(),
-            setFooter: vi.fn().mockReturnThis(),
-            setThumbnail: vi.fn().mockReturnThis(),
-            setDescription: vi.fn().mockReturnThis(),
-            toJSON: vi.fn().mockReturnValue({}),
-        })),
-    };
-});
+vi.stubEnv('YOUTUBE_API_KEY', 'test-api-key');
 
 // Mock S3
 vi.mock('../../utils/cdn/config', () => ({
@@ -47,65 +28,84 @@ import {
 import { s3Client } from '../../utils/cdn/config';
 import { getGachaGuildConfigService } from '../gachaGuildConfigService';
 
-// Sample RSS XML for testing
-const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/">
-  <title>Test Channel</title>
-  <entry>
-    <yt:videoId>video_newest</yt:videoId>
-    <title>Newest Video Title</title>
-    <author><name>Test Channel</name></author>
-    <published>2026-03-05T12:00:00+00:00</published>
-    <updated>2026-03-05T12:00:01+00:00</updated>
-  </entry>
-  <entry>
-    <yt:videoId>video_middle</yt:videoId>
-    <title>Middle Video Title</title>
-    <author><name>Test Channel</name></author>
-    <published>2026-03-04T12:00:00+00:00</published>
-    <updated>2026-03-04T12:00:01+00:00</updated>
-  </entry>
-  <entry>
-    <yt:videoId>video_oldest</yt:videoId>
-    <title>Oldest Video Title</title>
-    <author><name>Test Channel</name></author>
-    <published>2026-03-03T12:00:00+00:00</published>
-    <updated>2026-03-03T12:00:01+00:00</updated>
-  </entry>
-</feed>`;
+// Sample YouTube playlistItems API responses (no liveBroadcastContent — real API omits it)
+const SAMPLE_API_RESPONSE = {
+    items: [
+        {
+            snippet: {
+                resourceId: { videoId: 'video_newest' },
+                title: 'Newest Video Title',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-05T12:00:00Z',
+            },
+        },
+        {
+            snippet: {
+                resourceId: { videoId: 'video_middle' },
+                title: 'Middle Video Title',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-04T12:00:00Z',
+            },
+        },
+        {
+            snippet: {
+                resourceId: { videoId: 'video_oldest' },
+                title: 'Oldest Video Title',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-03T12:00:00Z',
+            },
+        },
+    ],
+};
 
-const SAMPLE_RSS_WITH_ENTITIES = `<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
-  <entry>
-    <yt:videoId>video_entities</yt:videoId>
-    <title>Tom &amp; Jerry&#39;s &quot;Adventure&quot;</title>
-    <author><name>Test &amp; Channel</name></author>
-    <published>2026-03-05T12:00:00+00:00</published>
-  </entry>
-</feed>`;
+// Playlist response with a mix of live streams and uploads
+const SAMPLE_API_WITH_LIVE = {
+    items: [
+        {
+            snippet: {
+                resourceId: { videoId: 'live_stream_1' },
+                title: 'LIVE - Playing games',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-05T20:00:00Z',
+            },
+        },
+        {
+            snippet: {
+                resourceId: { videoId: 'upcoming_1' },
+                title: 'Upcoming Premiere',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-06T20:00:00Z',
+            },
+        },
+        {
+            snippet: {
+                resourceId: { videoId: 'upload_1' },
+                title: 'Regular Upload Video',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-05T14:00:00Z',
+            },
+        },
+    ],
+};
 
-const SAMPLE_RSS_WITH_LIVE = `<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
-  <entry>
-    <yt:videoId>live_stream_1</yt:videoId>
-    <title>🔴LIVE — Playing games</title>
-    <author><name>Test Channel</name></author>
-    <published>2026-03-05T20:00:00+00:00</published>
-    <updated>2026-03-05T23:30:00+00:00</updated>
-  </entry>
-  <entry>
-    <yt:videoId>upload_1</yt:videoId>
-    <title>Regular Upload Video</title>
-    <author><name>Test Channel</name></author>
-    <published>2026-03-05T14:00:00+00:00</published>
-    <updated>2026-03-05T14:00:01+00:00</updated>
-  </entry>
-</feed>`;
+// videos.list response — only live streams have liveStreamingDetails
+const VIDEOS_NO_LIVE = {
+    items: [
+        { id: 'video_newest' },
+        { id: 'video_middle' },
+        { id: 'video_oldest' },
+    ],
+};
 
-const EMPTY_RSS = `<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
-  <title>Empty Channel</title>
-</feed>`;
+const VIDEOS_WITH_LIVE = {
+    items: [
+        { id: 'live_stream_1', liveStreamingDetails: { actualStartTime: '2026-03-05T17:00:00Z' } },
+        { id: 'upcoming_1', liveStreamingDetails: { scheduledStartTime: '2026-03-06T20:00:00Z' } },
+        { id: 'upload_1' },
+    ],
+};
+
+const EMPTY_API_RESPONSE = { items: [] };
 
 function createMockS3Data(overrides: Partial<YouTubeNotificationData> = {}): YouTubeNotificationData {
     return {
@@ -128,6 +128,25 @@ function mockS3GetResponse(data: YouTubeNotificationData) {
     } as any);
 }
 
+function mockApiResponse(response: any) {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(response),
+    } as Response);
+}
+
+/** Mock both playlistItems + videos.list calls for a complete fetchPlaylistItems flow */
+function mockPlaylistAndVideos(playlistResponse: any, videosResponse: any) {
+    mockApiResponse(playlistResponse);
+    mockApiResponse(videosResponse);
+}
+
+function createEmptyMessageCollection() {
+    const col = new Collection<string, any>();
+    // Give it a map() that returns string[] like the service expects
+    return col;
+}
+
 describe('YouTubeNotificationService', () => {
     let service: ReturnType<typeof getYouTubeNotificationService>;
     let mockGuildConfigService: any;
@@ -136,6 +155,7 @@ describe('YouTubeNotificationService', () => {
     let mockBot: any;
 
     beforeEach(() => {
+        vi.stubEnv('YOUTUBE_API_KEY', 'test-api-key');
         _testResetYouTubeService();
         service = getYouTubeNotificationService();
         service.clearCache();
@@ -145,6 +165,9 @@ describe('YouTubeNotificationService', () => {
             type: ChannelType.GuildText,
             isTextBased: vi.fn().mockReturnValue(true),
             send: vi.fn().mockResolvedValue({}),
+            messages: {
+                fetch: vi.fn().mockResolvedValue(createEmptyMessageCollection()),
+            },
         };
 
         mockGuild = {
@@ -183,101 +206,141 @@ describe('YouTubeNotificationService', () => {
         vi.clearAllMocks();
     });
 
-    describe('parseRssXml', () => {
-        it('should parse a valid YouTube RSS feed with multiple entries', () => {
-            const entries = service.parseRssXml(SAMPLE_RSS, 'UC_test');
-            expect(entries).toHaveLength(3);
-        });
+    describe('fetchPlaylistItems', () => {
+        it('should call YouTube Data API with correct playlist ID (UC -> UU)', async () => {
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
-        it('should extract videoId, title, channelName, publishedAt from each entry', () => {
-            const entries = service.parseRssXml(SAMPLE_RSS, 'UC_test');
-
-            expect(entries[0].videoId).toBe('video_newest');
-            expect(entries[0].title).toBe('Newest Video Title');
-            expect(entries[0].channelName).toBe('Test Channel');
-            expect(entries[0].publishedAt).toBe('2026-03-05T12:00:00+00:00');
-        });
-
-        it('should construct correct thumbnailUrl and videoUrl from videoId', () => {
-            const entries = service.parseRssXml(SAMPLE_RSS, 'UC_test');
-
-            expect(entries[0].thumbnailUrl).toBe('https://i.ytimg.com/vi/video_newest/hqdefault.jpg');
-            expect(entries[0].videoUrl).toBe('https://www.youtube.com/watch?v=video_newest');
-        });
-
-        it('should set channelId on each entry', () => {
-            const entries = service.parseRssXml(SAMPLE_RSS, 'UC_test');
-            expect(entries[0].channelId).toBe('UC_test');
-            expect(entries[2].channelId).toBe('UC_test');
-        });
-
-        it('should return empty array for empty feed (no entries)', () => {
-            const entries = service.parseRssXml(EMPTY_RSS, 'UC_test');
-            expect(entries).toHaveLength(0);
-        });
-
-        it('should return empty array for malformed/invalid XML', () => {
-            const entries = service.parseRssXml('not xml at all', 'UC_test');
-            expect(entries).toHaveLength(0);
-        });
-
-        it('should handle HTML entities in video titles', () => {
-            const entries = service.parseRssXml(SAMPLE_RSS_WITH_ENTITIES, 'UC_test');
-            expect(entries[0].title).toBe('Tom & Jerry\'s "Adventure"');
-        });
-
-        it('should filter out live streams based on published/updated gap', () => {
-            const entries = service.parseRssXml(SAMPLE_RSS_WITH_LIVE, 'UC_test');
-            expect(entries).toHaveLength(1);
-            expect(entries[0].videoId).toBe('upload_1');
-        });
-
-        it('should keep entries without updated tag (treated as uploads)', () => {
-            const rssNoUpdated = `<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
-  <entry>
-    <yt:videoId>no_updated</yt:videoId>
-    <title>No Updated Tag</title>
-    <author><name>TC</name></author>
-    <published>2026-03-05T12:00:00+00:00</published>
-  </entry>
-</feed>`;
-            const entries = service.parseRssXml(rssNoUpdated, 'UC_test');
-            expect(entries).toHaveLength(1);
-            expect(entries[0].videoId).toBe('no_updated');
-        });
-    });
-
-    describe('fetchRssFeed', () => {
-        it('should fetch RSS feed for a given channel ID', async () => {
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
-
-            const entries = await service.fetchRssFeed('UC_test');
+            const entries = await service.fetchPlaylistItems('UC_test');
             expect(entries).toHaveLength(3);
             expect(global.fetch).toHaveBeenCalledWith(
-                'https://www.youtube.com/feeds/videos.xml?channel_id=UC_test',
+                expect.stringContaining('playlistId=UU_test'),
                 expect.objectContaining({ signal: expect.any(AbortSignal) })
             );
         });
 
-        it('should return empty array on network error', async () => {
-            vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
+        it('should include API key in request', async () => {
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
-            const entries = await service.fetchRssFeed('UC_test');
-            expect(entries).toHaveLength(0);
+            await service.fetchPlaylistItems('UC_test');
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining('key=test-api-key'),
+                expect.any(Object)
+            );
         });
 
-        it('should return empty array on non-200 response', async () => {
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: false,
-                status: 404,
-            } as Response);
+        it('should map API response to YouTubeVideoEntry array', async () => {
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
-            const entries = await service.fetchRssFeed('UC_test');
+            const entries = await service.fetchPlaylistItems('UC_test');
+
+            expect(entries[0].videoId).toBe('video_newest');
+            expect(entries[0].title).toBe('Newest Video Title');
+            expect(entries[0].channelName).toBe('Test Channel');
+            expect(entries[0].publishedAt).toBe('2026-03-05T12:00:00Z');
+            expect(entries[0].thumbnailUrl).toBe('https://i.ytimg.com/vi/video_newest/hqdefault.jpg');
+            expect(entries[0].videoUrl).toBe('https://www.youtube.com/watch?v=video_newest');
+            expect(entries[0].channelId).toBe('UC_test');
+        });
+
+        it('should filter out live streams and upcoming premieres via videos.list', async () => {
+            mockPlaylistAndVideos(SAMPLE_API_WITH_LIVE, VIDEOS_WITH_LIVE);
+
+            const entries = await service.fetchPlaylistItems('UC_test');
+            expect(entries).toHaveLength(1);
+            expect(entries[0].videoId).toBe('upload_1');
+        });
+
+        it('should call videos.list with video IDs from playlist response', async () => {
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
+
+            await service.fetchPlaylistItems('UC_test');
+
+            // Second fetch call should be videos.list with the IDs
+            const videosCall = vi.mocked(global.fetch).mock.calls[1][0] as string;
+            expect(videosCall).toContain('videos?part=liveStreamingDetails');
+            expect(videosCall).toContain('video_newest');
+            expect(videosCall).toContain('video_middle');
+            expect(videosCall).toContain('video_oldest');
+        });
+
+        it('should return all videos if videos.list fails', async () => {
+            mockApiResponse(SAMPLE_API_RESPONSE);
+            // videos.list returns error
+            vi.mocked(global.fetch).mockResolvedValueOnce({ ok: false, status: 500 } as Response);
+
+            const entries = await service.fetchPlaylistItems('UC_test');
+            expect(entries).toHaveLength(3); // All returned, no filtering
+        });
+
+        it('should return empty array for empty response', async () => {
+            mockApiResponse(EMPTY_API_RESPONSE);
+
+            const entries = await service.fetchPlaylistItems('UC_test');
             expect(entries).toHaveLength(0);
+            // No videos.list call when playlist is empty
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('should retry on transient 500 and succeed', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(SAMPLE_API_RESPONSE) } as Response)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(VIDEOS_NO_LIVE) } as Response);
+
+            const promise = service.fetchPlaylistItems('UC_test');
+            await vi.advanceTimersByTimeAsync(10000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(3);
+            vi.useRealTimers();
+        });
+
+        it('should not retry on 403 (quota exceeded)', async () => {
+            vi.mocked(global.fetch).mockResolvedValueOnce({ ok: false, status: 403 } as Response);
+
+            const entries = await service.fetchPlaylistItems('UC_test');
+            expect(entries).toHaveLength(0);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('should retry on network error and succeed', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockRejectedValueOnce(new Error('Network error'))
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(SAMPLE_API_RESPONSE) } as Response)
+                .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(VIDEOS_NO_LIVE) } as Response);
+
+            const promise = service.fetchPlaylistItems('UC_test');
+            await vi.advanceTimersByTimeAsync(10000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(3);
+            vi.useRealTimers();
+        });
+
+        it('should return empty after all retries exhausted', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
+                .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
+                .mockResolvedValueOnce({ ok: false, status: 500 } as Response);
+
+            const promise = service.fetchPlaylistItems('UC_test');
+            await vi.advanceTimersByTimeAsync(30000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(0);
+            expect(global.fetch).toHaveBeenCalledTimes(3);
+            vi.useRealTimers();
+        });
+
+        it('should return empty when YOUTUBE_API_KEY is not set', async () => {
+            vi.stubEnv('YOUTUBE_API_KEY', '');
+
+            const entries = await service.fetchPlaylistItems('UC_test');
+            expect(entries).toHaveLength(0);
+            expect(global.fetch).not.toHaveBeenCalled();
         });
     });
 
@@ -287,11 +350,7 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: { 'UC_test_channel': 'video_oldest' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             // Mock saveData S3 call
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
@@ -310,11 +369,7 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: {}, // No prior state
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             // Mock saveData S3 call
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
@@ -324,7 +379,6 @@ describe('YouTubeNotificationService', () => {
             expect(results).toHaveLength(1);
             expect(results[0].videos).toHaveLength(1);
             expect(results[0].videos[0].videoId).toBe('video_newest');
-            // Should have saved the seeded ID
             expect(s3Client.send).toHaveBeenCalledTimes(2); // getData + saveData
         });
 
@@ -342,16 +396,9 @@ describe('YouTubeNotificationService', () => {
             mockS3GetResponse(data);
 
             // Channel 1: has new videos
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
-
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
             // Channel 2: same newest video (no new)
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             // Mock saveData
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
@@ -368,18 +415,12 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: { 'UC_test_channel': 'video_oldest' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
-
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
 
             const results = await service.checkForNewVideos();
             const videos = results[0].videos;
 
-            // video_middle should be before video_newest (oldest first)
             expect(videos[0].videoId).toBe('video_middle');
             expect(videos[1].videoId).toBe('video_newest');
         });
@@ -389,11 +430,7 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: { 'UC_test_channel': 'video_newest' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             const results = await service.checkForNewVideos();
             expect(results).toHaveLength(0);
@@ -409,40 +446,28 @@ describe('YouTubeNotificationService', () => {
             expect(results).toHaveLength(0);
         });
 
-        it('should re-seed when lastSeenVideoId is not found in feed (deleted video)', async () => {
+        it('should post newest video and re-seed when lastSeenVideoId is not found', async () => {
             const data = createMockS3Data({
                 lastSeenVideoIds: { 'UC_test_channel': 'deleted_video_id' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
-
-            // Mock saveData
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
 
             const results = await service.checkForNewVideos();
 
-            // Should re-seed instead of treating all 15 as new
-            expect(results).toHaveLength(0);
-            // Should still save the re-seeded ID
+            expect(results).toHaveLength(1);
+            expect(results[0].videos).toHaveLength(1);
+            expect(results[0].videos[0].videoId).toBe('video_newest');
             expect(s3Client.send).toHaveBeenCalledTimes(2);
         });
 
-        it('should persist seeded IDs to S3 even when no new videos to post', async () => {
+        it('should persist seeded IDs to S3 even when posting first-run video', async () => {
             const data = createMockS3Data({
                 lastSeenVideoIds: {}, // First run
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
-
-            // Mock saveData
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
 
             await service.checkForNewVideos();
@@ -481,6 +506,41 @@ describe('YouTubeNotificationService', () => {
             expect(sendCall.content).toContain('@everyone');
             expect(sendCall.content).toContain('<@118451485221715977>');
             expect(sendCall.content).toContain('https://www.youtube.com/watch?v=vid1');
+        });
+
+        it('should skip video if already posted in channel', async () => {
+            const existingMessages = new Collection<string, any>();
+            existingMessages.set('msg1', {
+                content: 'Check out https://www.youtube.com/watch?v=vid1',
+            });
+            mockChannel.messages.fetch.mockResolvedValueOnce(existingMessages);
+
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
+
+            expect(result.notified).toBe(0);
+            expect(mockChannel.send).not.toHaveBeenCalled();
+        });
+
+        it('should skip video if video ID found in channel messages', async () => {
+            const existingMessages = new Collection<string, any>();
+            existingMessages.set('msg1', {
+                content: 'Great video vid1 by the creator',
+            });
+            mockChannel.messages.fetch.mockResolvedValueOnce(existingMessages);
+
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
+
+            expect(result.notified).toBe(0);
+            expect(mockChannel.send).not.toHaveBeenCalled();
+        });
+
+        it('should still post if dedup message fetch fails', async () => {
+            mockChannel.messages.fetch.mockRejectedValueOnce(new Error('Missing Access'));
+
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
+
+            expect(result.notified).toBe(1);
+            expect(mockChannel.send).toHaveBeenCalledTimes(1);
         });
 
         it('should skip targets where channel does not exist', async () => {
@@ -540,6 +600,7 @@ describe('YouTubeNotificationService', () => {
                 name: 'videos',
                 isTextBased: vi.fn().mockReturnValue(true),
                 send: vi.fn().mockResolvedValue({}),
+                messages: { fetch: vi.fn().mockResolvedValue(createEmptyMessageCollection()) },
             };
             const mockGuild2 = {
                 id: 'guild_456',
@@ -600,11 +661,7 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: { 'UC_test_channel': 'video_newest' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             const result = await service.pollAndNotify(mockBot as Client);
 
@@ -618,11 +675,7 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: { 'UC_test_channel': 'video_middle' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             // Mock saveData
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
@@ -638,11 +691,7 @@ describe('YouTubeNotificationService', () => {
                 lastSeenVideoIds: { 'UC_test_channel': 'video_oldest' },
             });
             mockS3GetResponse(data);
-
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: true,
-                text: () => Promise.resolve(SAMPLE_RSS),
-            } as Response);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
 
             // Mock saveData
             vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
@@ -656,6 +705,16 @@ describe('YouTubeNotificationService', () => {
 
             expect(result.notified).toBe(1);
             expect(result.errors).toBe(1);
+        });
+
+        it('should return early when YOUTUBE_API_KEY is not set', async () => {
+            vi.stubEnv('YOUTUBE_API_KEY', '');
+
+            const result = await service.pollAndNotify(mockBot as Client);
+
+            expect(result.notified).toBe(0);
+            expect(result.errors).toBe(0);
+            expect(global.fetch).not.toHaveBeenCalled();
         });
     });
 

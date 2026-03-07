@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, TextChannel } from 'discord.js';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, S3_BUCKET } from '../utils/cdn/config.js';
 import { YOUTUBE_CONFIG } from '../utils/data/youtubeConfig.js';
@@ -102,64 +102,129 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Fetch and parse YouTube RSS feed for a channel
+     * Convert YouTube channel ID to uploads playlist ID (UC... -> UU...)
      */
-    public async fetchRssFeed(channelId: string): Promise<YouTubeVideoEntry[]> {
+    private channelIdToPlaylistId(channelId: string): string {
+        if (channelId.startsWith('UC')) {
+            return 'UU' + channelId.slice(2);
+        }
+        return channelId;
+    }
+
+    /**
+     * Fetch videos from YouTube Data API v3 using playlistItems.list
+     */
+    public async fetchPlaylistItems(channelId: string): Promise<YouTubeVideoEntry[]> {
+        const apiKey = process.env.YOUTUBE_API_KEY;
+        if (!apiKey) {
+            logger.error`[YouTube] YOUTUBE_API_KEY not set`;
+            return [];
+        }
+
+        const playlistId = this.channelIdToPlaylistId(channelId);
+        const url = `${YOUTUBE_CONFIG.PLAYLIST_API_URL}?part=snippet&playlistId=${playlistId}&maxResults=${YOUTUBE_CONFIG.API_MAX_RESULTS}&key=${apiKey}`;
+
+        for (let attempt = 1; attempt <= YOUTUBE_CONFIG.FETCH_MAX_RETRIES; attempt++) {
+            try {
+                const response = await fetch(url, {
+                    signal: AbortSignal.timeout(YOUTUBE_CONFIG.FETCH_TIMEOUT_MS),
+                });
+
+                if (response.ok) {
+                    const data = await response.json() as any;
+                    const entries = this.parseApiResponse(data, channelId);
+                    const filtered = await this.filterLiveStreams(entries, apiKey);
+                    logger.debug`[YouTube] Fetched ${entries.length} video(s), ${filtered.length} upload(s) for ${channelId}`;
+                    return filtered;
+                }
+
+                // 403 = quota exceeded or forbidden, don't retry
+                if (response.status === 403) {
+                    logger.warning`[YouTube] API returned 403 for channel ${channelId} (quota exceeded or forbidden)`;
+                    return [];
+                }
+
+                logger.debug`[YouTube] API returned ${response.status} for channel ${channelId} (attempt ${attempt}/${YOUTUBE_CONFIG.FETCH_MAX_RETRIES})`;
+            } catch (error: any) {
+                logger.debug`[YouTube] Fetch error for ${channelId} (attempt ${attempt}/${YOUTUBE_CONFIG.FETCH_MAX_RETRIES}): ${error.message}`;
+            }
+
+            if (attempt < YOUTUBE_CONFIG.FETCH_MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, YOUTUBE_CONFIG.FETCH_RETRY_DELAY_MS * attempt));
+            }
+        }
+
+        logger.warning`[YouTube] API failed after ${YOUTUBE_CONFIG.FETCH_MAX_RETRIES} retries for channel ${channelId}`;
+        return [];
+    }
+
+    /**
+     * Parse YouTube Data API playlistItems response into video entries
+     */
+    private parseApiResponse(data: any, channelId: string): YouTubeVideoEntry[] {
+        const items = data?.items;
+        if (!Array.isArray(items)) return [];
+
+        const entries: YouTubeVideoEntry[] = [];
+        for (const item of items) {
+            const snippet = item?.snippet;
+            if (!snippet) continue;
+
+            const videoId = snippet.resourceId?.videoId;
+            if (!videoId) continue;
+
+            entries.push({
+                videoId,
+                title: snippet.title || '',
+                channelName: snippet.videoOwnerChannelTitle || '',
+                channelId,
+                publishedAt: snippet.publishedAt || '',
+                thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+                videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+            });
+        }
+
+        return entries;
+    }
+
+    /**
+     * Filter out live streams/premieres using videos.list with liveStreamingDetails.
+     * Videos with liveStreamingDetails are live streams; those without are regular uploads.
+     */
+    private async filterLiveStreams(entries: YouTubeVideoEntry[], apiKey: string): Promise<YouTubeVideoEntry[]> {
+        if (entries.length === 0) return [];
+
+        const ids = entries.map(e => e.videoId).join(',');
+        const url = `${YOUTUBE_CONFIG.VIDEOS_API_URL}?part=liveStreamingDetails&id=${ids}&key=${apiKey}`;
+
         try {
-            const url = `${YOUTUBE_CONFIG.RSS_FEED_BASE_URL}${channelId}`;
             const response = await fetch(url, {
                 signal: AbortSignal.timeout(YOUTUBE_CONFIG.FETCH_TIMEOUT_MS),
             });
 
             if (!response.ok) {
-                logger.warning`[YouTube] RSS feed returned ${response.status} for channel ${channelId}`;
-                return [];
+                logger.warning`[YouTube] videos.list returned ${response.status}, skipping live stream filter`;
+                return entries;
             }
 
-            const xml = await response.text();
-            return this.parseRssXml(xml, channelId);
-        } catch (error: any) {
-            logger.warning`[YouTube] Failed to fetch RSS for channel ${channelId}: ${error.message}`;
-            return [];
-        }
-    }
+            const data = await response.json() as any;
+            const liveVideoIds = new Set<string>();
 
-    /**
-     * Parse YouTube RSS XML into video entries
-     */
-    public parseRssXml(xml: string, channelId: string): YouTubeVideoEntry[] {
-        const entries: YouTubeVideoEntry[] = [];
-        const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-
-        let match;
-        while ((match = entryRegex.exec(xml)) !== null) {
-            const entryXml = match[1];
-
-            const videoId = this.extractTag(entryXml, 'yt:videoId');
-            const title = this.decodeHtmlEntities(this.extractTag(entryXml, 'title') || '');
-            const channelName = this.extractTag(entryXml, 'name') || '';
-            const publishedAt = this.extractTag(entryXml, 'published') || '';
-            const updatedAt = this.extractTag(entryXml, 'updated') || '';
-
-            if (videoId) {
-                // Filter out live streams: they have a large gap between published and updated
-                if (this.isLikelyLiveStream(publishedAt, updatedAt)) {
-                    continue;
+            for (const item of data?.items || []) {
+                if (item.liveStreamingDetails) {
+                    liveVideoIds.add(item.id);
                 }
-
-                entries.push({
-                    videoId,
-                    title,
-                    channelName,
-                    channelId,
-                    publishedAt,
-                    thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-                    videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
-                });
             }
-        }
 
-        return entries;
+            if (liveVideoIds.size > 0) {
+                logger.debug`[YouTube] Filtered out ${liveVideoIds.size} live stream(s)`;
+            }
+
+            return entries.filter(e => !liveVideoIds.has(e.videoId));
+        } catch (error: any) {
+            logger.warning`[YouTube] Failed to check live stream status: ${error.message}`;
+            return entries;
+        }
     }
 
     /**
@@ -173,9 +238,14 @@ class YouTubeNotificationService {
         const results: { videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[] = [];
         let dataChanged = false;
 
+        logger.debug`[YouTube] Checking ${data.monitoredChannels.length} monitored channel(s)`;
+
         for (const channelConfig of data.monitoredChannels) {
-            const entries = await this.fetchRssFeed(channelConfig.channelId);
-            if (entries.length === 0) continue;
+            const entries = await this.fetchPlaylistItems(channelConfig.channelId);
+            if (entries.length === 0) {
+                logger.debug`[YouTube] No entries returned for ${channelConfig.channelId}, skipping`;
+                continue;
+            }
 
             const lastSeenId = data.lastSeenVideoIds[channelConfig.channelId];
 
@@ -195,12 +265,16 @@ class YouTubeNotificationService {
                 newVideos.push(entry);
             }
 
+            if (newVideos.length === 0) {
+                logger.debug`[YouTube] No new videos for ${channelConfig.channelId}, last seen ${lastSeenId} is current`;
+            }
+
             if (newVideos.length > 0) {
                 // If we walked the entire feed without finding lastSeenId, the tracked video
-                // was likely deleted or the feed changed significantly. Re-seed to avoid
-                // flooding with up to 15 old videos.
+                // was likely deleted or fell off. Post only the newest to avoid flooding.
                 if (newVideos.length === entries.length) {
-                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelId}, re-seeding`;
+                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelId}, posting latest and re-seeding`;
+                    results.push({ videos: [entries[0]], channelConfig });
                     data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
                     dataChanged = true;
                     continue;
@@ -223,6 +297,19 @@ class YouTubeNotificationService {
         }
 
         return results;
+    }
+
+    /**
+     * Fetch recent messages from a channel for dedup, returning null on failure
+     */
+    private async fetchRecentMessages(channel: TextChannel): Promise<string[] | null> {
+        try {
+            const messages = await channel.messages.fetch({ limit: YOUTUBE_CONFIG.CHANNEL_DEDUP_MESSAGE_LIMIT });
+            return messages.map(msg => msg.content);
+        } catch {
+            logger.debug`[YouTube] Could not fetch messages for dedup in #${channel.name}, proceeding`;
+            return null;
+        }
     }
 
     /**
@@ -260,9 +347,17 @@ class YouTubeNotificationService {
             }
             const channel = fetched as TextChannel;
 
+            // Fetch messages once per channel for dedup
+            const recentMessages = await this.fetchRecentMessages(channel);
+
             for (const { videos, channelConfig } of newVideoGroups) {
                 for (const video of videos) {
                     try {
+                        if (recentMessages?.some(content => content.includes(video.videoUrl) || content.includes(video.videoId))) {
+                            logger.debug`[YouTube] Skipping ${video.videoId} in ${guild.name}#${channel.name} — already posted`;
+                            continue;
+                        }
+
                         const phrase = this.getRandomAnnouncementPhrase(channelConfig.discordUserId);
                         await channel.send({ content: `@everyone\n${phrase}\n${video.videoUrl}` });
                         notified++;
@@ -278,12 +373,18 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Main entry point: poll RSS feeds and post notifications for new videos
+     * Main entry point: poll YouTube API and post notifications for new videos
      */
     public async pollAndNotify(bot: Client): Promise<{ notified: number; errors: number }> {
+        if (!process.env.YOUTUBE_API_KEY) {
+            logger.error`[YouTube] YOUTUBE_API_KEY not set, skipping poll`;
+            return { notified: 0, errors: 0 };
+        }
+
         const newVideoGroups = await this.checkForNewVideos();
 
         if (newVideoGroups.length === 0) {
+            logger.debug`[YouTube] Poll complete, no new videos found`;
             return { notified: 0, errors: 0 };
         }
 
@@ -294,55 +395,12 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Create a rich embed for a YouTube video
-     */
-    private createVideoEmbed(video: YouTubeVideoEntry): EmbedBuilder {
-        return new EmbedBuilder()
-            .setColor(YOUTUBE_CONFIG.EMBED_COLOR)
-            .setTitle(video.title)
-            .setURL(video.videoUrl)
-            .setAuthor({ name: video.channelName })
-            .setImage(video.thumbnailUrl)
-            .setTimestamp(new Date(video.publishedAt));
-    }
-
-    /**
      * Get a random Rapi-themed announcement phrase with the user mention inserted
      */
     private getRandomAnnouncementPhrase(discordUserId: string): string {
         const phrases = YOUTUBE_CONFIG.ANNOUNCEMENT_PHRASES;
         const phrase = phrases[Math.floor(Math.random() * phrases.length)];
         return phrase.replace('{user}', `<@${discordUserId}>`);
-    }
-
-    /**
-     * Detect live streams by comparing published vs updated timestamps.
-     * Uploads have nearly identical timestamps; live streams diverge as the stream continues.
-     */
-    private isLikelyLiveStream(publishedAt: string, updatedAt: string): boolean {
-        if (!publishedAt || !updatedAt) return false;
-        const published = new Date(publishedAt).getTime();
-        const updated = new Date(updatedAt).getTime();
-        if (isNaN(published) || isNaN(updated)) return false;
-        const diffSeconds = Math.abs(updated - published) / 1000;
-        return diffSeconds > YOUTUBE_CONFIG.LIVE_STREAM_THRESHOLD_SECONDS;
-    }
-
-    private extractTag(xml: string, tagName: string): string | null {
-        const regex = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`);
-        const match = regex.exec(xml);
-        return match ? match[1].trim() : null;
-    }
-
-    private decodeHtmlEntities(text: string): string {
-        return text
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&#x27;/g, "'")
-            .replace(/&#x2F;/g, '/');
     }
 
     private getDefaultData(): YouTubeNotificationData {

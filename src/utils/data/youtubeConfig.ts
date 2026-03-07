@@ -4,13 +4,14 @@
 
 export const YOUTUBE_CONFIG = {
     DATA_PATH: 'data/youtube-notifications',
-    RSS_FEED_BASE_URL: 'https://www.youtube.com/feeds/videos.xml?channel_id=',
+    PLAYLIST_API_URL: 'https://www.googleapis.com/youtube/v3/playlistItems',
+    VIDEOS_API_URL: 'https://www.googleapis.com/youtube/v3/videos',
+    API_MAX_RESULTS: 10,
     FETCH_TIMEOUT_MS: 10000,
-    VIDEOS_CHANNEL_NAME: 'videos',
-    EMBED_COLOR: 0xFF0000, // YouTube red
+    FETCH_MAX_RETRIES: 3,
+    FETCH_RETRY_DELAY_MS: 2000,
     CACHE_TTL: 5 * 60 * 1000, // 5 minutes
-    /** Max seconds between published and updated timestamps to consider a video an upload (not a live stream) */
-    LIVE_STREAM_THRESHOLD_SECONDS: 60,
+    CHANNEL_DEDUP_MESSAGE_LIMIT: 10,
     ANNOUNCEMENT_PHRASES: [
         'Commander, {user} just uploaded a new video! You should watch it immediately.',
         'Attention Commander! {user} has posted new content. I recommend watching it right away.',
