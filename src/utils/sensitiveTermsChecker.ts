@@ -53,10 +53,11 @@ const HOMOGLYPH_MAP: Record<string, string> = {
     '\u041D': 'h', '\u0406': 'i', '\u041A': 'k', '\u041C': 'm',
     '\u041E': 'o', '\u0420': 'p', '\u0422': 't', '\u0425': 'x',
     '\u0423': 'y',
-    // Cyrillic lowercase
-    '\u0430': 'a', '\u0435': 'e', '\u043E': 'o', '\u0440': 'p',
-    '\u0441': 'c', '\u0443': 'y', '\u0445': 'x', '\u0456': 'i',
-    '\u043A': 'k',
+    // Cyrillic lowercase (critical — preprocessMessage lowercases first)
+    '\u0430': 'a', '\u0432': 'b', '\u0441': 'c', '\u0435': 'e',
+    '\u043D': 'h', '\u0456': 'i', '\u043A': 'k', '\u043C': 'm',
+    '\u043E': 'o', '\u0440': 'p', '\u0442': 't', '\u0445': 'x',
+    '\u0443': 'y',
 };
 
 const HOMOGLYPH_REGEX = new RegExp(`[${Object.keys(HOMOGLYPH_MAP).join('')}]`, 'g');
