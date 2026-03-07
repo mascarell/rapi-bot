@@ -263,21 +263,71 @@ describe('YouTubeNotificationService', () => {
             );
         });
 
-        it('should return empty array on network error', async () => {
-            vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
+        it('should retry on transient 404 and succeed', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: false, status: 404 } as Response)
+                .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve(SAMPLE_RSS) } as Response);
 
-            const entries = await service.fetchRssFeed('UC_test');
-            expect(entries).toHaveLength(0);
+            const promise = service.fetchRssFeed('UC_test');
+            await vi.advanceTimersByTimeAsync(10000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(3);
+            expect(global.fetch).toHaveBeenCalledTimes(2);
+            vi.useRealTimers();
         });
 
-        it('should return empty array on non-200 response', async () => {
-            vi.mocked(global.fetch).mockResolvedValueOnce({
-                ok: false,
-                status: 404,
-            } as Response);
+        it('should retry on 500 and succeed', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
+                .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve(SAMPLE_RSS) } as Response);
+
+            const promise = service.fetchRssFeed('UC_test');
+            await vi.advanceTimersByTimeAsync(10000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(3);
+            vi.useRealTimers();
+        });
+
+        it('should return empty after all retries exhausted', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockResolvedValueOnce({ ok: false, status: 404 } as Response)
+                .mockResolvedValueOnce({ ok: false, status: 404 } as Response)
+                .mockResolvedValueOnce({ ok: false, status: 404 } as Response);
+
+            const promise = service.fetchRssFeed('UC_test');
+            await vi.advanceTimersByTimeAsync(30000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(0);
+            expect(global.fetch).toHaveBeenCalledTimes(3);
+            vi.useRealTimers();
+        });
+
+        it('should not retry on non-transient client errors', async () => {
+            vi.mocked(global.fetch).mockResolvedValueOnce({ ok: false, status: 403 } as Response);
 
             const entries = await service.fetchRssFeed('UC_test');
             expect(entries).toHaveLength(0);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('should retry on network error and succeed', async () => {
+            vi.useFakeTimers();
+            vi.mocked(global.fetch)
+                .mockRejectedValueOnce(new Error('Network error'))
+                .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve(SAMPLE_RSS) } as Response);
+
+            const promise = service.fetchRssFeed('UC_test');
+            await vi.advanceTimersByTimeAsync(10000);
+            const entries = await promise;
+
+            expect(entries).toHaveLength(3);
+            vi.useRealTimers();
         });
     });
 
@@ -409,7 +459,7 @@ describe('YouTubeNotificationService', () => {
             expect(results).toHaveLength(0);
         });
 
-        it('should re-seed when lastSeenVideoId is not found in feed (deleted video)', async () => {
+        it('should post newest video and re-seed when lastSeenVideoId is not found in feed', async () => {
             const data = createMockS3Data({
                 lastSeenVideoIds: { 'UC_test_channel': 'deleted_video_id' },
             });
@@ -425,8 +475,10 @@ describe('YouTubeNotificationService', () => {
 
             const results = await service.checkForNewVideos();
 
-            // Should re-seed instead of treating all 15 as new
-            expect(results).toHaveLength(0);
+            // Should post newest video instead of silently re-seeding
+            expect(results).toHaveLength(1);
+            expect(results[0].videos).toHaveLength(1);
+            expect(results[0].videos[0].videoId).toBe('video_newest');
             // Should still save the re-seeded ID
             expect(s3Client.send).toHaveBeenCalledTimes(2);
         });

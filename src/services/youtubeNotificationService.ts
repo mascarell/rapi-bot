@@ -105,23 +105,37 @@ class YouTubeNotificationService {
      * Fetch and parse YouTube RSS feed for a channel
      */
     public async fetchRssFeed(channelId: string): Promise<YouTubeVideoEntry[]> {
-        try {
-            const url = `${YOUTUBE_CONFIG.RSS_FEED_BASE_URL}${channelId}`;
-            const response = await fetch(url, {
-                signal: AbortSignal.timeout(YOUTUBE_CONFIG.FETCH_TIMEOUT_MS),
-            });
+        const url = `${YOUTUBE_CONFIG.RSS_FEED_BASE_URL}${channelId}`;
 
-            if (!response.ok) {
-                logger.warning`[YouTube] RSS feed returned ${response.status} for channel ${channelId}`;
-                return [];
+        for (let attempt = 1; attempt <= YOUTUBE_CONFIG.FETCH_MAX_RETRIES; attempt++) {
+            try {
+                const response = await fetch(url, {
+                    signal: AbortSignal.timeout(YOUTUBE_CONFIG.FETCH_TIMEOUT_MS),
+                });
+
+                if (response.ok) {
+                    const xml = await response.text();
+                    return this.parseRssXml(xml, channelId);
+                }
+
+                // Don't retry client errors other than 404 (which YouTube returns transiently)
+                if (response.status >= 400 && response.status < 500 && response.status !== 404) {
+                    logger.warning`[YouTube] RSS feed returned ${response.status} for channel ${channelId}`;
+                    return [];
+                }
+
+                logger.debug`[YouTube] RSS feed returned ${response.status} for channel ${channelId} (attempt ${attempt}/${YOUTUBE_CONFIG.FETCH_MAX_RETRIES})`;
+            } catch (error: any) {
+                logger.debug`[YouTube] Fetch error for ${channelId} (attempt ${attempt}/${YOUTUBE_CONFIG.FETCH_MAX_RETRIES}): ${error.message}`;
             }
 
-            const xml = await response.text();
-            return this.parseRssXml(xml, channelId);
-        } catch (error: any) {
-            logger.warning`[YouTube] Failed to fetch RSS for channel ${channelId}: ${error.message}`;
-            return [];
+            if (attempt < YOUTUBE_CONFIG.FETCH_MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, YOUTUBE_CONFIG.FETCH_RETRY_DELAY_MS * attempt));
+            }
         }
+
+        logger.warning`[YouTube] RSS feed failed after ${YOUTUBE_CONFIG.FETCH_MAX_RETRIES} retries for channel ${channelId}`;
+        return [];
     }
 
     /**
@@ -197,10 +211,11 @@ class YouTubeNotificationService {
 
             if (newVideos.length > 0) {
                 // If we walked the entire feed without finding lastSeenId, the tracked video
-                // was likely deleted or the feed changed significantly. Re-seed to avoid
-                // flooding with up to 15 old videos.
+                // was likely deleted or fell off the feed during an outage.
+                // Post only the newest video to avoid flooding, but don't silently skip.
                 if (newVideos.length === entries.length) {
-                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelId}, re-seeding`;
+                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelId}, posting latest and re-seeding`;
+                    results.push({ videos: [entries[0]], channelConfig });
                     data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
                     dataChanged = true;
                     continue;
