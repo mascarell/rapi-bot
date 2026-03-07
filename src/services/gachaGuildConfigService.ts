@@ -21,6 +21,16 @@ export interface ChannelMonitorConfig {
 }
 
 /**
+ * Per-guild YouTube notification target
+ */
+export interface YouTubeGuildNotification {
+    /** Discord guild/server ID */
+    guildId: string;
+    /** Discord channel ID to post notifications to */
+    channelId: string;
+}
+
+/**
  * Guild configuration for the gacha coupon system
  * Stored in S3 to keep server IDs private (not in open source code)
  */
@@ -29,6 +39,8 @@ export interface GachaGuildConfig {
     allowedGuildIds: string[];
     /** Channel monitoring configurations keyed by game ID */
     channelMonitors?: Record<string, ChannelMonitorConfig>;
+    /** YouTube notification settings — only guilds with entries here receive notifications */
+    youtubeNotifications?: YouTubeGuildNotification[];
     /** Rules message configuration for primary server */
     rulesConfig?: {
         /** Discord guild/server ID where rules message is managed */
