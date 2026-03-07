@@ -271,6 +271,7 @@ await pagination.send(interaction);
 ```
 WAIFUTOKEN, CLIENTID, CDN_DOMAIN_URL
 AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET
+YOUTUBE_API_KEY
 ```
 
 ## Cron Jobs (index.ts)
