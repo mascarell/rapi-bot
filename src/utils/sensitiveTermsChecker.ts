@@ -44,6 +44,24 @@ const SENSITIVE_TERMS: SensitiveTerm[] = [
 ];
 
 /**
+ * Cyrillic/Greek homoglyphs that visually mimic Latin characters.
+ * Maps Unicode codepoints to their Latin equivalents for normalization.
+ */
+const HOMOGLYPH_MAP: Record<string, string> = {
+    // Cyrillic uppercase
+    '\u0410': 'a', '\u0412': 'b', '\u0421': 'c', '\u0415': 'e',
+    '\u041D': 'h', '\u0406': 'i', '\u041A': 'k', '\u041C': 'm',
+    '\u041E': 'o', '\u0420': 'p', '\u0422': 't', '\u0425': 'x',
+    '\u0423': 'y',
+    // Cyrillic lowercase
+    '\u0430': 'a', '\u0435': 'e', '\u043E': 'o', '\u0440': 'p',
+    '\u0441': 'c', '\u0443': 'y', '\u0445': 'x', '\u0456': 'i',
+    '\u043A': 'k',
+};
+
+const HOMOGLYPH_REGEX = new RegExp(`[${Object.keys(HOMOGLYPH_MAP).join('')}]`, 'g');
+
+/**
  * Message preprocessing options
  */
 const MESSAGE_CLEANUP_PATTERNS = [
@@ -105,6 +123,9 @@ export async function checkSensitiveTerms(message: Message): Promise<void> {
  */
 function preprocessMessage(content: string): string {
     let processed = content.toLowerCase();
+
+    // Normalize Cyrillic/Greek homoglyphs to Latin equivalents
+    processed = processed.replace(HOMOGLYPH_REGEX, char => HOMOGLYPH_MAP[char] || char);
 
     MESSAGE_CLEANUP_PATTERNS.forEach(({ pattern, replacement }) => {
         processed = processed.replace(pattern, replacement);
