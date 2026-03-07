@@ -169,8 +169,9 @@ class YouTubeNotificationService {
             const snippet = item?.snippet;
             if (!snippet) continue;
 
-            // Filter out live streams and premieres
-            if (snippet.liveBroadcastContent !== 'none') continue;
+            // Filter out live streams and premieres (field may be absent on playlistItems)
+            const broadcastContent = snippet.liveBroadcastContent;
+            if (broadcastContent === 'live' || broadcastContent === 'upcoming') continue;
 
             const videoId = snippet.resourceId?.videoId;
             if (!videoId) continue;

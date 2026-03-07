@@ -90,6 +90,15 @@ const SAMPLE_API_WITH_LIVE = {
                 liveBroadcastContent: 'none',
             },
         },
+        {
+            snippet: {
+                resourceId: { videoId: 'upload_no_field' },
+                title: 'Upload Without Broadcast Field',
+                videoOwnerChannelTitle: 'Test Channel',
+                publishedAt: '2026-03-05T10:00:00Z',
+                // No liveBroadcastContent — real playlistItems API omits this field
+            },
+        },
     ],
 };
 
@@ -228,8 +237,9 @@ describe('YouTubeNotificationService', () => {
             mockApiResponse(SAMPLE_API_WITH_LIVE);
 
             const entries = await service.fetchPlaylistItems('UC_test');
-            expect(entries).toHaveLength(1);
+            expect(entries).toHaveLength(2);
             expect(entries[0].videoId).toBe('upload_1');
+            expect(entries[1].videoId).toBe('upload_no_field');
         });
 
         it('should return empty array for empty response', async () => {
