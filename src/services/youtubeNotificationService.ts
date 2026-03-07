@@ -13,8 +13,6 @@ const CONFIG_KEY = isDevelopment
 export interface YouTubeChannelConfig {
     /** YouTube channel ID (e.g., "UCxxxxxxxx") */
     channelId: string;
-    /** Human-readable label for logging */
-    channelName: string;
     /** Discord user ID of the content creator to mention in notifications */
     discordUserId: string;
 }
@@ -141,8 +139,14 @@ class YouTubeNotificationService {
             const title = this.decodeHtmlEntities(this.extractTag(entryXml, 'title') || '');
             const channelName = this.extractTag(entryXml, 'name') || '';
             const publishedAt = this.extractTag(entryXml, 'published') || '';
+            const updatedAt = this.extractTag(entryXml, 'updated') || '';
 
             if (videoId) {
+                // Filter out live streams: they have a large gap between published and updated
+                if (this.isLikelyLiveStream(publishedAt, updatedAt)) {
+                    continue;
+                }
+
                 entries.push({
                     videoId,
                     title,
@@ -176,10 +180,11 @@ class YouTubeNotificationService {
             const lastSeenId = data.lastSeenVideoIds[channelConfig.channelId];
 
             if (!lastSeenId) {
-                // First run: seed with newest video ID, don't post anything
+                // First run: post only the most recent video, then seed
+                results.push({ videos: [entries[0]], channelConfig });
                 data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
                 dataChanged = true;
-                logger.debug`[YouTube] Seeded lastSeenVideoId for ${channelConfig.channelName}: ${entries[0].videoId}`;
+                logger.debug`[YouTube] First run for ${channelConfig.channelId}, posting latest: ${entries[0].videoId}`;
                 continue;
             }
 
@@ -195,7 +200,7 @@ class YouTubeNotificationService {
                 // was likely deleted or the feed changed significantly. Re-seed to avoid
                 // flooding with up to 15 old videos.
                 if (newVideos.length === entries.length) {
-                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelName}, re-seeding`;
+                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelId}, re-seeding`;
                     data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
                     dataChanged = true;
                     continue;
@@ -309,6 +314,19 @@ class YouTubeNotificationService {
         const phrases = YOUTUBE_CONFIG.ANNOUNCEMENT_PHRASES;
         const phrase = phrases[Math.floor(Math.random() * phrases.length)];
         return phrase.replace('{user}', `<@${discordUserId}>`);
+    }
+
+    /**
+     * Detect live streams by comparing published vs updated timestamps.
+     * Uploads have nearly identical timestamps; live streams diverge as the stream continues.
+     */
+    private isLikelyLiveStream(publishedAt: string, updatedAt: string): boolean {
+        if (!publishedAt || !updatedAt) return false;
+        const published = new Date(publishedAt).getTime();
+        const updated = new Date(updatedAt).getTime();
+        if (isNaN(published) || isNaN(updated)) return false;
+        const diffSeconds = Math.abs(updated - published) / 1000;
+        return diffSeconds > YOUTUBE_CONFIG.LIVE_STREAM_THRESHOLD_SECONDS;
     }
 
     private extractTag(xml: string, tagName: string): string | null {

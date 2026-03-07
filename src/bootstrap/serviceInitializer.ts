@@ -55,7 +55,7 @@ export async function initializeServices(bot: Client): Promise<void> {
 
         // Initialize YouTube upload notification scheduler
         const youtubeScheduler = new YouTubeNotificationScheduler(bot);
-        youtubeScheduler.initializeSchedules();
+        await youtubeScheduler.initializeSchedules();
         logger.info`YouTube notification scheduler initialized`;
 
         logger.info`All services initialized successfully`;

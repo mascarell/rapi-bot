@@ -56,18 +56,21 @@ const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
     <title>Newest Video Title</title>
     <author><name>Test Channel</name></author>
     <published>2026-03-05T12:00:00+00:00</published>
+    <updated>2026-03-05T12:00:01+00:00</updated>
   </entry>
   <entry>
     <yt:videoId>video_middle</yt:videoId>
     <title>Middle Video Title</title>
     <author><name>Test Channel</name></author>
     <published>2026-03-04T12:00:00+00:00</published>
+    <updated>2026-03-04T12:00:01+00:00</updated>
   </entry>
   <entry>
     <yt:videoId>video_oldest</yt:videoId>
     <title>Oldest Video Title</title>
     <author><name>Test Channel</name></author>
     <published>2026-03-03T12:00:00+00:00</published>
+    <updated>2026-03-03T12:00:01+00:00</updated>
   </entry>
 </feed>`;
 
@@ -81,6 +84,24 @@ const SAMPLE_RSS_WITH_ENTITIES = `<?xml version="1.0" encoding="UTF-8"?>
   </entry>
 </feed>`;
 
+const SAMPLE_RSS_WITH_LIVE = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>live_stream_1</yt:videoId>
+    <title>🔴LIVE — Playing games</title>
+    <author><name>Test Channel</name></author>
+    <published>2026-03-05T20:00:00+00:00</published>
+    <updated>2026-03-05T23:30:00+00:00</updated>
+  </entry>
+  <entry>
+    <yt:videoId>upload_1</yt:videoId>
+    <title>Regular Upload Video</title>
+    <author><name>Test Channel</name></author>
+    <published>2026-03-05T14:00:00+00:00</published>
+    <updated>2026-03-05T14:00:01+00:00</updated>
+  </entry>
+</feed>`;
+
 const EMPTY_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
   <title>Empty Channel</title>
@@ -89,7 +110,7 @@ const EMPTY_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 function createMockS3Data(overrides: Partial<YouTubeNotificationData> = {}): YouTubeNotificationData {
     return {
         monitoredChannels: [
-            { channelId: 'UC_test_channel', channelName: 'Test Channel', discordUserId: '118451485221715977' },
+            { channelId: 'UC_test_channel', discordUserId: '118451485221715977' },
         ],
         lastSeenVideoIds: {},
         lastPolledAt: null,
@@ -204,6 +225,27 @@ describe('YouTubeNotificationService', () => {
             const entries = service.parseRssXml(SAMPLE_RSS_WITH_ENTITIES, 'UC_test');
             expect(entries[0].title).toBe('Tom & Jerry\'s "Adventure"');
         });
+
+        it('should filter out live streams based on published/updated gap', () => {
+            const entries = service.parseRssXml(SAMPLE_RSS_WITH_LIVE, 'UC_test');
+            expect(entries).toHaveLength(1);
+            expect(entries[0].videoId).toBe('upload_1');
+        });
+
+        it('should keep entries without updated tag (treated as uploads)', () => {
+            const rssNoUpdated = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+  <entry>
+    <yt:videoId>no_updated</yt:videoId>
+    <title>No Updated Tag</title>
+    <author><name>TC</name></author>
+    <published>2026-03-05T12:00:00+00:00</published>
+  </entry>
+</feed>`;
+            const entries = service.parseRssXml(rssNoUpdated, 'UC_test');
+            expect(entries).toHaveLength(1);
+            expect(entries[0].videoId).toBe('no_updated');
+        });
     });
 
     describe('fetchRssFeed', () => {
@@ -263,7 +305,7 @@ describe('YouTubeNotificationService', () => {
             expect(results[0].videos[1].videoId).toBe('video_newest');
         });
 
-        it('should seed lastSeenVideoId and return empty array on first run', async () => {
+        it('should post only the most recent video and seed on first run', async () => {
             const data = createMockS3Data({
                 lastSeenVideoIds: {}, // No prior state
             });
@@ -279,7 +321,9 @@ describe('YouTubeNotificationService', () => {
 
             const results = await service.checkForNewVideos();
 
-            expect(results).toHaveLength(0); // No videos to post
+            expect(results).toHaveLength(1);
+            expect(results[0].videos).toHaveLength(1);
+            expect(results[0].videos[0].videoId).toBe('video_newest');
             // Should have saved the seeded ID
             expect(s3Client.send).toHaveBeenCalledTimes(2); // getData + saveData
         });
@@ -287,8 +331,8 @@ describe('YouTubeNotificationService', () => {
         it('should handle multiple monitored channels independently', async () => {
             const data = createMockS3Data({
                 monitoredChannels: [
-                    { channelId: 'UC_channel1', channelName: 'Channel 1', discordUserId: '111' },
-                    { channelId: 'UC_channel2', channelName: 'Channel 2', discordUserId: '222' },
+                    { channelId: 'UC_channel1', discordUserId: '111' },
+                    { channelId: 'UC_channel2', discordUserId: '222' },
                 ],
                 lastSeenVideoIds: {
                     'UC_channel1': 'video_oldest',
@@ -421,7 +465,6 @@ describe('YouTubeNotificationService', () => {
             }] as YouTubeVideoEntry[],
             channelConfig: {
                 channelId: 'UC_test',
-                channelName: 'Test Channel',
                 discordUserId: '118451485221715977',
             } as YouTubeChannelConfig,
         }];
@@ -541,7 +584,7 @@ describe('YouTubeNotificationService', () => {
                         videoUrl: 'https://www.youtube.com/watch?v=vid2',
                     },
                 ] as YouTubeVideoEntry[],
-                channelConfig: { channelId: 'UC_test', channelName: 'TC', discordUserId: '123' } as YouTubeChannelConfig,
+                channelConfig: { channelId: 'UC_test', discordUserId: '123' } as YouTubeChannelConfig,
             }];
 
             const result = await service.postNotifications(mockBot as Client, videoGroups);

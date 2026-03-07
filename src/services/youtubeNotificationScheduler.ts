@@ -17,8 +17,21 @@ export class YouTubeNotificationScheduler {
         this.isDevelopment = process.env.NODE_ENV === 'development';
     }
 
-    public initializeSchedules(): void {
+    public async initializeSchedules(): Promise<void> {
+        await this.runPollOnce();
         this.scheduleYouTubePoll();
+    }
+
+    private async runPollOnce(): Promise<void> {
+        try {
+            const service = getYouTubeNotificationService();
+            const result = await service.pollAndNotify(this.bot);
+            if (result.notified > 0) {
+                logger.info`[YouTube] Startup poll: notified ${result.notified} new video(s), ${result.errors} error(s)`;
+            }
+        } catch (error) {
+            logger.error`[YouTube] Startup poll error: ${error}`;
+        }
     }
 
     private scheduleYouTubePoll(): void {

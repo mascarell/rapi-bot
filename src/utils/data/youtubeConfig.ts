@@ -9,6 +9,8 @@ export const YOUTUBE_CONFIG = {
     VIDEOS_CHANNEL_NAME: 'videos',
     EMBED_COLOR: 0xFF0000, // YouTube red
     CACHE_TTL: 5 * 60 * 1000, // 5 minutes
+    /** Max seconds between published and updated timestamps to consider a video an upload (not a live stream) */
+    LIVE_STREAM_THRESHOLD_SECONDS: 60,
     ANNOUNCEMENT_PHRASES: [
         'Commander, {user} just uploaded a new video! You should watch it immediately.',
         'Attention Commander! {user} has posted new content. I recommend watching it right away.',
