@@ -62,6 +62,7 @@ jobs:
             CDN_DOMAIN_URL=${{ secrets.CDN_DOMAIN_URL }}
             TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
             TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
+            YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
             EOF
             
             echo "Running the new container..."
