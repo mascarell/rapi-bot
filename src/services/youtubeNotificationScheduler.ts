@@ -37,7 +37,7 @@ export class YouTubeNotificationScheduler {
     private scheduleYouTubePoll(): void {
         const cronExpression = this.isDevelopment
             ? '*/3 * * * *'     // Every 3 minutes in dev
-            : '*/20 * * * *';   // Every 20 minutes in prod
+            : '*/10 * * * *';   // Every 10 minutes in prod
 
         const taskName = 'youtube-poll';
         const job = schedule.scheduleJob(cronExpression, async () => {
