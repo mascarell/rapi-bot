@@ -1,4 +1,4 @@
-import { Client, TextChannel, Collection, Message } from 'discord.js';
+import { Client, TextChannel } from 'discord.js';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, S3_BUCKET } from '../utils/cdn/config.js';
 import { YOUTUBE_CONFIG } from '../utils/data/youtubeConfig.js';
@@ -251,16 +251,15 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Check if a video was already posted in the Discord channel (by bot or any user)
+     * Fetch recent messages from a channel for dedup, returning null on failure
      */
-    private async isVideoAlreadyPosted(channel: TextChannel, videoId: string, videoUrl: string): Promise<boolean> {
+    private async fetchRecentMessages(channel: TextChannel): Promise<string[] | null> {
         try {
             const messages = await channel.messages.fetch({ limit: YOUTUBE_CONFIG.CHANNEL_DEDUP_MESSAGE_LIMIT });
-            return messages.some(msg => msg.content.includes(videoUrl) || msg.content.includes(videoId));
+            return messages.map(msg => msg.content);
         } catch {
-            // If we can't fetch messages (e.g. missing permissions), proceed with posting
             logger.debug`[YouTube] Could not fetch messages for dedup in #${channel.name}, proceeding`;
-            return false;
+            return null;
         }
     }
 
@@ -299,11 +298,13 @@ class YouTubeNotificationService {
             }
             const channel = fetched as TextChannel;
 
+            // Fetch messages once per channel for dedup
+            const recentMessages = await this.fetchRecentMessages(channel);
+
             for (const { videos, channelConfig } of newVideoGroups) {
                 for (const video of videos) {
                     try {
-                        const alreadyPosted = await this.isVideoAlreadyPosted(channel, video.videoId, video.videoUrl);
-                        if (alreadyPosted) {
+                        if (recentMessages?.some(content => content.includes(video.videoUrl) || content.includes(video.videoId))) {
                             logger.debug`[YouTube] Skipping ${video.videoId} in ${guild.name}#${channel.name} — already posted`;
                             continue;
                         }

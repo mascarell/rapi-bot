@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Client, Guild, TextChannel, ChannelType, Collection, Message } from 'discord.js';
+import { Client, Guild, TextChannel, ChannelType, Collection } from 'discord.js';
 
 // Set environment variable before any imports
 vi.stubEnv('CDN_DOMAIN_URL', 'https://cdn.example.com');
@@ -124,7 +124,9 @@ function mockApiResponse(response: any) {
 }
 
 function createEmptyMessageCollection() {
-    return new Collection<string, Message>();
+    const col = new Collection<string, any>();
+    // Give it a map() that returns string[] like the service expects
+    return col;
 }
 
 describe('YouTubeNotificationService', () => {
@@ -464,10 +466,10 @@ describe('YouTubeNotificationService', () => {
         });
 
         it('should skip video if already posted in channel', async () => {
-            const existingMessages = new Collection<string, Message>();
+            const existingMessages = new Collection<string, any>();
             existingMessages.set('msg1', {
                 content: 'Check out https://www.youtube.com/watch?v=vid1',
-            } as Message);
+            });
             mockChannel.messages.fetch.mockResolvedValueOnce(existingMessages);
 
             const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
@@ -477,10 +479,10 @@ describe('YouTubeNotificationService', () => {
         });
 
         it('should skip video if video ID found in channel messages', async () => {
-            const existingMessages = new Collection<string, Message>();
+            const existingMessages = new Collection<string, any>();
             existingMessages.set('msg1', {
                 content: 'Great video vid1 by the creator',
-            } as Message);
+            });
             mockChannel.messages.fetch.mockResolvedValueOnce(existingMessages);
 
             const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
