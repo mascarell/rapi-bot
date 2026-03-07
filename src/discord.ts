@@ -250,6 +250,11 @@ function setBotActivity() {
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
+        {
+            name: "Umamusume: Pretty Derby",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
     ];
 
     updateBotActivity(activities);
