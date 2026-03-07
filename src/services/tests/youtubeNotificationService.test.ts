@@ -37,11 +37,6 @@ vi.mock('../gachaGuildConfigService', () => ({
     getGachaGuildConfigService: vi.fn(),
 }));
 
-// Mock util
-vi.mock('../../utils/util', () => ({
-    findChannelByName: vi.fn(),
-}));
-
 import {
     getYouTubeNotificationService,
     _testResetYouTubeService,
@@ -51,7 +46,6 @@ import {
 } from '../youtubeNotificationService';
 import { s3Client } from '../../utils/cdn/config';
 import { getGachaGuildConfigService } from '../gachaGuildConfigService';
-import { findChannelByName } from '../../utils/util';
 
 // Sample RSS XML for testing
 const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
@@ -128,6 +122,7 @@ describe('YouTubeNotificationService', () => {
         mockChannel = {
             name: 'videos',
             type: ChannelType.GuildText,
+            isTextBased: vi.fn().mockReturnValue(true),
             send: vi.fn().mockResolvedValue({}),
         };
 
@@ -136,7 +131,7 @@ describe('YouTubeNotificationService', () => {
             name: 'Test Guild',
             channels: {
                 cache: {
-                    find: vi.fn().mockReturnValue(mockChannel),
+                    get: vi.fn().mockReturnValue(mockChannel),
                 },
             },
         };
@@ -148,16 +143,17 @@ describe('YouTubeNotificationService', () => {
         };
 
         mockGuildConfigService = {
-            getAllowedGuildIds: vi.fn().mockResolvedValue(['guild_123']),
             getConfig: vi.fn().mockResolvedValue({
                 allowedGuildIds: ['guild_123'],
+                youtubeNotifications: [
+                    { guildId: 'guild_123', channelId: 'channel_videos_123' },
+                ],
                 lastUpdated: new Date().toISOString(),
                 schemaVersion: 1,
             }),
         };
 
         vi.mocked(getGachaGuildConfigService).mockReturnValue(mockGuildConfigService);
-        vi.mocked(findChannelByName).mockReturnValue(mockChannel as any);
 
         global.fetch = vi.fn();
     });
@@ -413,29 +409,30 @@ describe('YouTubeNotificationService', () => {
     });
 
     describe('postNotifications', () => {
-        it('should post embed to #videos channel in each allowed guild', async () => {
-            const videoGroups = [{
-                videos: [{
-                    videoId: 'vid1',
-                    title: 'Test Video',
-                    channelName: 'Test Channel',
-                    channelId: 'UC_test',
-                    publishedAt: '2026-03-05T12:00:00+00:00',
-                    thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
-                    videoUrl: 'https://www.youtube.com/watch?v=vid1',
-                }] as YouTubeVideoEntry[],
-                channelConfig: {
-                    channelId: 'UC_test',
-                    channelName: 'Test Channel',
-                    discordUserId: '118451485221715977',
-                } as YouTubeChannelConfig,
-            }];
+        const sampleVideoGroups = [{
+            videos: [{
+                videoId: 'vid1',
+                title: 'Test Video',
+                channelName: 'Test Channel',
+                channelId: 'UC_test',
+                publishedAt: '2026-03-05T12:00:00+00:00',
+                thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
+                videoUrl: 'https://www.youtube.com/watch?v=vid1',
+            }] as YouTubeVideoEntry[],
+            channelConfig: {
+                channelId: 'UC_test',
+                channelName: 'Test Channel',
+                discordUserId: '118451485221715977',
+            } as YouTubeChannelConfig,
+        }];
 
-            const result = await service.postNotifications(mockBot as Client, videoGroups);
+        it('should post embed to configured channel in each target guild', async () => {
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
             expect(result.notified).toBe(1);
             expect(result.errors).toBe(0);
             expect(mockChannel.send).toHaveBeenCalledTimes(1);
+            expect(mockGuild.channels.cache.get).toHaveBeenCalledWith('channel_videos_123');
 
             const sendCall = mockChannel.send.mock.calls[0][0];
             expect(sendCall.content).toContain('@everyone');
@@ -443,20 +440,21 @@ describe('YouTubeNotificationService', () => {
             expect(sendCall.embeds).toHaveLength(1);
         });
 
-        it('should skip guilds where #videos channel does not exist', async () => {
-            vi.mocked(findChannelByName).mockReturnValueOnce(undefined);
+        it('should skip targets where channel does not exist', async () => {
+            mockGuild.channels.cache.get.mockReturnValueOnce(undefined);
 
-            const videoGroups = [{
-                videos: [{
-                    videoId: 'vid1', title: 'Test', channelName: 'TC', channelId: 'UC_test',
-                    publishedAt: '2026-03-05T12:00:00Z',
-                    thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
-                    videoUrl: 'https://www.youtube.com/watch?v=vid1',
-                }] as YouTubeVideoEntry[],
-                channelConfig: { channelId: 'UC_test', channelName: 'TC', discordUserId: '123' } as YouTubeChannelConfig,
-            }];
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
-            const result = await service.postNotifications(mockBot as Client, videoGroups);
+            expect(result.notified).toBe(0);
+            expect(mockChannel.send).not.toHaveBeenCalled();
+        });
+
+        it('should skip targets where channel is not text-based', async () => {
+            mockGuild.channels.cache.get.mockReturnValueOnce({
+                isTextBased: vi.fn().mockReturnValue(false),
+            });
+
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
             expect(result.notified).toBe(0);
             expect(mockChannel.send).not.toHaveBeenCalled();
@@ -465,17 +463,7 @@ describe('YouTubeNotificationService', () => {
         it('should skip guilds the bot is not a member of', async () => {
             mockBot.guilds.fetch.mockRejectedValueOnce(new Error('Unknown Guild'));
 
-            const videoGroups = [{
-                videos: [{
-                    videoId: 'vid1', title: 'Test', channelName: 'TC', channelId: 'UC_test',
-                    publishedAt: '2026-03-05T12:00:00Z',
-                    thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
-                    videoUrl: 'https://www.youtube.com/watch?v=vid1',
-                }] as YouTubeVideoEntry[],
-                channelConfig: { channelId: 'UC_test', channelName: 'TC', discordUserId: '123' } as YouTubeChannelConfig,
-            }];
-
-            const result = await service.postNotifications(mockBot as Client, videoGroups);
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
             expect(result.notified).toBe(0);
             expect(mockChannel.send).not.toHaveBeenCalled();
@@ -484,44 +472,57 @@ describe('YouTubeNotificationService', () => {
         it('should handle channel.send() failure gracefully', async () => {
             mockChannel.send.mockRejectedValueOnce(new Error('Missing Permissions'));
 
-            const videoGroups = [{
-                videos: [{
-                    videoId: 'vid1', title: 'Test', channelName: 'TC', channelId: 'UC_test',
-                    publishedAt: '2026-03-05T12:00:00Z',
-                    thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
-                    videoUrl: 'https://www.youtube.com/watch?v=vid1',
-                }] as YouTubeVideoEntry[],
-                channelConfig: { channelId: 'UC_test', channelName: 'TC', discordUserId: '123' } as YouTubeChannelConfig,
-            }];
-
-            const result = await service.postNotifications(mockBot as Client, videoGroups);
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
             expect(result.errors).toBe(1);
             expect(result.notified).toBe(0);
         });
 
-        it('should skip all guilds when youtubeConfig.enabled is false', async () => {
+        it('should skip when no youtubeNotifications configured', async () => {
             mockGuildConfigService.getConfig.mockResolvedValueOnce({
                 allowedGuildIds: ['guild_123'],
-                youtubeConfig: { enabled: false },
                 lastUpdated: new Date().toISOString(),
                 schemaVersion: 1,
             });
 
-            const videoGroups = [{
-                videos: [{
-                    videoId: 'vid1', title: 'Test', channelName: 'TC', channelId: 'UC_test',
-                    publishedAt: '2026-03-05T12:00:00Z',
-                    thumbnailUrl: 'https://i.ytimg.com/vi/vid1/hqdefault.jpg',
-                    videoUrl: 'https://www.youtube.com/watch?v=vid1',
-                }] as YouTubeVideoEntry[],
-                channelConfig: { channelId: 'UC_test', channelName: 'TC', discordUserId: '123' } as YouTubeChannelConfig,
-            }];
-
-            const result = await service.postNotifications(mockBot as Client, videoGroups);
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
 
             expect(result.notified).toBe(0);
+            expect(result.errors).toBe(0);
             expect(mockChannel.send).not.toHaveBeenCalled();
+        });
+
+        it('should post to multiple target guilds', async () => {
+            const mockChannel2 = {
+                name: 'videos',
+                isTextBased: vi.fn().mockReturnValue(true),
+                send: vi.fn().mockResolvedValue({}),
+            };
+            const mockGuild2 = {
+                id: 'guild_456',
+                name: 'Test Guild 2',
+                channels: { cache: { get: vi.fn().mockReturnValue(mockChannel2) } },
+            };
+
+            mockGuildConfigService.getConfig.mockResolvedValueOnce({
+                allowedGuildIds: ['guild_123', 'guild_456'],
+                youtubeNotifications: [
+                    { guildId: 'guild_123', channelId: 'channel_videos_123' },
+                    { guildId: 'guild_456', channelId: 'channel_videos_456' },
+                ],
+                lastUpdated: new Date().toISOString(),
+                schemaVersion: 1,
+            });
+
+            mockBot.guilds.fetch
+                .mockResolvedValueOnce(mockGuild)
+                .mockResolvedValueOnce(mockGuild2);
+
+            const result = await service.postNotifications(mockBot as Client, sampleVideoGroups);
+
+            expect(result.notified).toBe(2);
+            expect(mockChannel.send).toHaveBeenCalledTimes(1);
+            expect(mockChannel2.send).toHaveBeenCalledTimes(1);
         });
 
         it('should post multiple videos for a channel in order', async () => {

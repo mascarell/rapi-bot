@@ -1,9 +1,8 @@
-import { Client, EmbedBuilder } from 'discord.js';
+import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, S3_BUCKET } from '../utils/cdn/config.js';
 import { YOUTUBE_CONFIG } from '../utils/data/youtubeConfig.js';
 import { getGachaGuildConfigService } from './gachaGuildConfigService.js';
-import { findChannelByName } from '../utils/util.js';
 import { logger } from '../utils/logger.js';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -222,38 +221,39 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Post new video notifications to #videos in all enabled guilds
+     * Post new video notifications only to explicitly configured guild+channel pairs
      */
     public async postNotifications(
         bot: Client,
         newVideoGroups: { videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[]
     ): Promise<{ notified: number; errors: number }> {
         const guildConfigService = getGachaGuildConfigService();
-        const config = await guildConfigService.getConfig();
-        const allowedGuildIds = config.allowedGuildIds;
+        const guildConfig = await guildConfigService.getConfig();
+        const targets = guildConfig.youtubeNotifications || [];
 
-        // Skip if YouTube notifications are explicitly disabled
-        if (config.youtubeConfig?.enabled === false) {
+        if (targets.length === 0) {
+            logger.debug`[YouTube] No youtubeNotifications configured, skipping`;
             return { notified: 0, errors: 0 };
         }
 
         let notified = 0;
         let errors = 0;
 
-        for (const guildId of allowedGuildIds) {
+        for (const target of targets) {
             let guild;
             try {
-                guild = await bot.guilds.fetch(guildId);
+                guild = await bot.guilds.fetch(target.guildId);
             } catch {
-                logger.warning`[YouTube] Bot not in guild ${guildId}, skipping`;
+                logger.warning`[YouTube] Bot not in guild ${target.guildId}, skipping`;
                 continue;
             }
 
-            const channel = findChannelByName(guild, YOUTUBE_CONFIG.VIDEOS_CHANNEL_NAME);
-            if (!channel) {
-                logger.warning`[YouTube] #${YOUTUBE_CONFIG.VIDEOS_CHANNEL_NAME} channel not found in ${guild.name}`;
+            const fetched = guild.channels.cache.get(target.channelId);
+            if (!fetched?.isTextBased()) {
+                logger.warning`[YouTube] Channel ${target.channelId} not found in ${guild.name}`;
                 continue;
             }
+            const channel = fetched as TextChannel;
 
             for (const { videos, channelConfig } of newVideoGroups) {
                 for (const video of videos) {
@@ -263,7 +263,7 @@ class YouTubeNotificationService {
                         await channel.send({ content: `@everyone\n${phrase}`, embeds: [embed] });
                         notified++;
                     } catch (error: any) {
-                        logger.error`[YouTube] Failed to post in ${guild.name}#${YOUTUBE_CONFIG.VIDEOS_CHANNEL_NAME}: ${error.message}`;
+                        logger.error`[YouTube] Failed to post in ${guild.name}#${channel.name}: ${error.message}`;
                         errors++;
                     }
                 }
