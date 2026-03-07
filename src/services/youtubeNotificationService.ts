@@ -132,7 +132,9 @@ class YouTubeNotificationService {
 
                 if (response.ok) {
                     const data = await response.json() as any;
-                    return this.parseApiResponse(data, channelId);
+                    const entries = this.parseApiResponse(data, channelId);
+                    logger.debug`[YouTube] Fetched ${entries.length} video(s) for ${channelId}`;
+                    return entries;
                 }
 
                 // 403 = quota exceeded or forbidden, don't retry
@@ -198,9 +200,14 @@ class YouTubeNotificationService {
         const results: { videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[] = [];
         let dataChanged = false;
 
+        logger.debug`[YouTube] Checking ${data.monitoredChannels.length} monitored channel(s)`;
+
         for (const channelConfig of data.monitoredChannels) {
             const entries = await this.fetchPlaylistItems(channelConfig.channelId);
-            if (entries.length === 0) continue;
+            if (entries.length === 0) {
+                logger.debug`[YouTube] No entries returned for ${channelConfig.channelId}, skipping`;
+                continue;
+            }
 
             const lastSeenId = data.lastSeenVideoIds[channelConfig.channelId];
 
@@ -218,6 +225,10 @@ class YouTubeNotificationService {
             for (const entry of entries) {
                 if (entry.videoId === lastSeenId) break;
                 newVideos.push(entry);
+            }
+
+            if (newVideos.length === 0) {
+                logger.debug`[YouTube] No new videos for ${channelConfig.channelId}, last seen ${lastSeenId} is current`;
             }
 
             if (newVideos.length > 0) {
@@ -335,6 +346,7 @@ class YouTubeNotificationService {
         const newVideoGroups = await this.checkForNewVideos();
 
         if (newVideoGroups.length === 0) {
+            logger.debug`[YouTube] Poll complete, no new videos found`;
             return { notified: 0, errors: 0 };
         }
 
