@@ -263,9 +263,8 @@ class YouTubeNotificationService {
             for (const { videos, channelConfig } of newVideoGroups) {
                 for (const video of videos) {
                     try {
-                        const embed = this.createVideoEmbed(video);
                         const phrase = this.getRandomAnnouncementPhrase(channelConfig.discordUserId);
-                        await channel.send({ content: `@everyone\n${phrase}`, embeds: [embed] });
+                        await channel.send({ content: `@everyone\n${phrase}\n${video.videoUrl}` });
                         notified++;
                     } catch (error: any) {
                         logger.error`[YouTube] Failed to post in ${guild.name}#${channel.name}: ${error.message}`;
