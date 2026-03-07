@@ -122,7 +122,7 @@ class YouTubeNotificationService {
         }
 
         const playlistId = this.channelIdToPlaylistId(channelId);
-        const url = `${YOUTUBE_CONFIG.API_BASE_URL}?part=snippet&playlistId=${playlistId}&maxResults=${YOUTUBE_CONFIG.API_MAX_RESULTS}&key=${apiKey}`;
+        const url = `${YOUTUBE_CONFIG.PLAYLIST_API_URL}?part=snippet&playlistId=${playlistId}&maxResults=${YOUTUBE_CONFIG.API_MAX_RESULTS}&key=${apiKey}`;
 
         for (let attempt = 1; attempt <= YOUTUBE_CONFIG.FETCH_MAX_RETRIES; attempt++) {
             try {
@@ -133,8 +133,9 @@ class YouTubeNotificationService {
                 if (response.ok) {
                     const data = await response.json() as any;
                     const entries = this.parseApiResponse(data, channelId);
-                    logger.debug`[YouTube] Fetched ${entries.length} video(s) for ${channelId}`;
-                    return entries;
+                    const filtered = await this.filterLiveStreams(entries, apiKey);
+                    logger.debug`[YouTube] Fetched ${entries.length} video(s), ${filtered.length} upload(s) for ${channelId}`;
+                    return filtered;
                 }
 
                 // 403 = quota exceeded or forbidden, don't retry
@@ -158,7 +159,7 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Parse YouTube Data API response into video entries, filtering out live streams
+     * Parse YouTube Data API playlistItems response into video entries
      */
     private parseApiResponse(data: any, channelId: string): YouTubeVideoEntry[] {
         const items = data?.items;
@@ -168,10 +169,6 @@ class YouTubeNotificationService {
         for (const item of items) {
             const snippet = item?.snippet;
             if (!snippet) continue;
-
-            // Filter out live streams and premieres (field may be absent on playlistItems)
-            const broadcastContent = snippet.liveBroadcastContent;
-            if (broadcastContent === 'live' || broadcastContent === 'upcoming') continue;
 
             const videoId = snippet.resourceId?.videoId;
             if (!videoId) continue;
@@ -188,6 +185,46 @@ class YouTubeNotificationService {
         }
 
         return entries;
+    }
+
+    /**
+     * Filter out live streams/premieres using videos.list with liveStreamingDetails.
+     * Videos with liveStreamingDetails are live streams; those without are regular uploads.
+     */
+    private async filterLiveStreams(entries: YouTubeVideoEntry[], apiKey: string): Promise<YouTubeVideoEntry[]> {
+        if (entries.length === 0) return [];
+
+        const ids = entries.map(e => e.videoId).join(',');
+        const url = `${YOUTUBE_CONFIG.VIDEOS_API_URL}?part=liveStreamingDetails&id=${ids}&key=${apiKey}`;
+
+        try {
+            const response = await fetch(url, {
+                signal: AbortSignal.timeout(YOUTUBE_CONFIG.FETCH_TIMEOUT_MS),
+            });
+
+            if (!response.ok) {
+                logger.warning`[YouTube] videos.list returned ${response.status}, skipping live stream filter`;
+                return entries;
+            }
+
+            const data = await response.json() as any;
+            const liveVideoIds = new Set<string>();
+
+            for (const item of data?.items || []) {
+                if (item.liveStreamingDetails) {
+                    liveVideoIds.add(item.id);
+                }
+            }
+
+            if (liveVideoIds.size > 0) {
+                logger.debug`[YouTube] Filtered out ${liveVideoIds.size} live stream(s)`;
+            }
+
+            return entries.filter(e => !liveVideoIds.has(e.videoId));
+        } catch (error: any) {
+            logger.warning`[YouTube] Failed to check live stream status: ${error.message}`;
+            return entries;
+        }
     }
 
     /**
