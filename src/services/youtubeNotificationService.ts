@@ -313,7 +313,9 @@ class YouTubeNotificationService {
     }
 
     /**
-     * Post new video notifications only to explicitly configured guild+channel pairs
+     * Post new video notifications only to explicitly configured guild+channel pairs.
+     * Checks last 20 Discord channel messages to prevent duplicate notifications
+     * (e.g., when a video is deleted and re-uploaded, causing a re-seed).
      */
     public async postNotifications(
         bot: Client,
@@ -347,14 +349,14 @@ class YouTubeNotificationService {
             }
             const channel = fetched as TextChannel;
 
-            // Fetch messages once per channel for dedup
+            // Fetch recent messages once per channel for dedup
             const recentMessages = await this.fetchRecentMessages(channel);
 
             for (const { videos, channelConfig } of newVideoGroups) {
                 for (const video of videos) {
                     try {
                         if (recentMessages?.some(content => content.includes(video.videoUrl) || content.includes(video.videoId))) {
-                            logger.debug`[YouTube] Skipping ${video.videoId} in ${guild.name}#${channel.name} — already posted`;
+                            logger.debug`[YouTube] Skipping ${video.videoId} in ${guild.name}#${channel.name} — already posted in recent messages`;
                             continue;
                         }
 
