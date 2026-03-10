@@ -235,6 +235,7 @@ describe('dateHelpers.ts', () => {
     it('should handle singular vs plural correctly', () => {
       const oneDayFuture = new Date();
       oneDayFuture.setDate(oneDayFuture.getDate() + 1);
+      oneDayFuture.setMinutes(oneDayFuture.getMinutes() + 1); // Buffer to ensure > 24h
 
       const result = getTimeRemaining(oneDayFuture.toISOString());
       expect(result).toContain('1 day');

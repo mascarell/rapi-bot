@@ -11,7 +11,7 @@ export const YOUTUBE_CONFIG = {
     FETCH_MAX_RETRIES: 3,
     FETCH_RETRY_DELAY_MS: 2000,
     CACHE_TTL: 5 * 60 * 1000, // 5 minutes
-    CHANNEL_DEDUP_MESSAGE_LIMIT: 10,
+    CHANNEL_DEDUP_MESSAGE_LIMIT: 20,
     ANNOUNCEMENT_PHRASES: [
         'Commander, {user} just uploaded a new video! You should watch it immediately.',
         'Attention Commander! {user} has posted new content. I recommend watching it right away.',

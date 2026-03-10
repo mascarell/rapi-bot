@@ -446,7 +446,7 @@ describe('YouTubeNotificationService', () => {
             expect(results).toHaveLength(0);
         });
 
-        it('should post newest video and re-seed when lastSeenVideoId is not found', async () => {
+        it('should post newest video and re-seed when lastSeenVideoId is not found and no recentVideoIds', async () => {
             const data = createMockS3Data({
                 lastSeenVideoIds: { 'UC_test_channel': 'deleted_video_id' },
             });
@@ -456,10 +456,42 @@ describe('YouTubeNotificationService', () => {
 
             const results = await service.checkForNewVideos();
 
+            // With no recentVideoIds history, all feed entries are genuinely new
+            expect(results).toHaveLength(1);
+            expect(results[0].videos).toHaveLength(3);
+            expect(s3Client.send).toHaveBeenCalledTimes(2);
+        });
+
+        it('should skip already-known videos on re-seed using recentVideoIds', async () => {
+            const data = createMockS3Data({
+                lastSeenVideoIds: { 'UC_test_channel': 'deleted_video_id' },
+                recentVideoIds: { 'UC_test_channel': ['video_middle', 'video_oldest'] },
+            });
+            mockS3GetResponse(data);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
+            vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
+
+            const results = await service.checkForNewVideos();
+
+            // Only video_newest is genuinely new — middle and oldest are in history
             expect(results).toHaveLength(1);
             expect(results[0].videos).toHaveLength(1);
             expect(results[0].videos[0].videoId).toBe('video_newest');
-            expect(s3Client.send).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not post anything on re-seed when all videos are already known', async () => {
+            const data = createMockS3Data({
+                lastSeenVideoIds: { 'UC_test_channel': 'deleted_video_id' },
+                recentVideoIds: { 'UC_test_channel': ['video_newest', 'video_middle', 'video_oldest'] },
+            });
+            mockS3GetResponse(data);
+            mockPlaylistAndVideos(SAMPLE_API_RESPONSE, VIDEOS_NO_LIVE);
+            vi.mocked(s3Client.send).mockResolvedValueOnce({} as any);
+
+            const results = await service.checkForNewVideos();
+
+            // All videos are already known — nothing to post
+            expect(results).toHaveLength(0);
         });
 
         it('should persist seeded IDs to S3 even when posting first-run video', async () => {
