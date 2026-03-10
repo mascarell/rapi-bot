@@ -21,6 +21,8 @@ export interface YouTubeNotificationData {
     monitoredChannels: YouTubeChannelConfig[];
     /** Last seen video ID per YouTube channel */
     lastSeenVideoIds: Record<string, string>;
+    /** Last N seen video IDs per channel for resilient dedup (survives deletions) */
+    recentVideoIds?: Record<string, string[]>;
     lastPolledAt: string | null;
     lastUpdated: string;
     schemaVersion: number;
@@ -238,6 +240,11 @@ class YouTubeNotificationService {
         const results: { videos: YouTubeVideoEntry[]; channelConfig: YouTubeChannelConfig }[] = [];
         let dataChanged = false;
 
+        // Initialize recentVideoIds if missing (backward compat)
+        if (!data.recentVideoIds) {
+            data.recentVideoIds = {};
+        }
+
         logger.debug`[YouTube] Checking ${data.monitoredChannels.length} monitored channel(s)`;
 
         for (const channelConfig of data.monitoredChannels) {
@@ -248,11 +255,13 @@ class YouTubeNotificationService {
             }
 
             const lastSeenId = data.lastSeenVideoIds[channelConfig.channelId];
+            const knownIds = new Set(data.recentVideoIds[channelConfig.channelId] || []);
 
             if (!lastSeenId) {
                 // First run: post only the most recent video, then seed
                 results.push({ videos: [entries[0]], channelConfig });
                 data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
+                data.recentVideoIds[channelConfig.channelId] = entries.map(e => e.videoId);
                 dataChanged = true;
                 logger.debug`[YouTube] First run for ${channelConfig.channelId}, posting latest: ${entries[0].videoId}`;
                 continue;
@@ -270,12 +279,22 @@ class YouTubeNotificationService {
             }
 
             if (newVideos.length > 0) {
-                // If we walked the entire feed without finding lastSeenId, the tracked video
-                // was likely deleted or fell off. Post only the newest to avoid flooding.
                 if (newVideos.length === entries.length) {
-                    logger.warning`[YouTube] lastSeenVideoId not found in feed for ${channelConfig.channelId}, posting latest and re-seeding`;
-                    results.push({ videos: [entries[0]], channelConfig });
+                    // lastSeenVideoId not found in feed — video was likely deleted.
+                    // Use recentVideoIds to find a fallback reference point and only
+                    // return genuinely new videos (ones we haven't seen before).
+                    const genuinelyNew = entries.filter(e => !knownIds.has(e.videoId));
+
+                    if (genuinelyNew.length > 0) {
+                        logger.warning`[YouTube] lastSeenVideoId not found for ${channelConfig.channelId}, posting ${genuinelyNew.length} new video(s) using history`;
+                        genuinelyNew.reverse();
+                        results.push({ videos: genuinelyNew, channelConfig });
+                    } else {
+                        logger.debug`[YouTube] lastSeenVideoId not found for ${channelConfig.channelId}, but all videos already known — re-seeding only`;
+                    }
+
                     data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
+                    data.recentVideoIds[channelConfig.channelId] = entries.map(e => e.videoId);
                     dataChanged = true;
                     continue;
                 }
@@ -288,6 +307,10 @@ class YouTubeNotificationService {
                 data.lastSeenVideoIds[channelConfig.channelId] = entries[0].videoId;
                 dataChanged = true;
             }
+
+            // Always update recentVideoIds with the current feed snapshot
+            data.recentVideoIds[channelConfig.channelId] = entries.map(e => e.videoId);
+            dataChanged = true;
         }
 
         // Persist seeded IDs or updated last seen IDs
