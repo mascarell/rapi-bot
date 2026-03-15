@@ -127,14 +127,52 @@ export class PvpReminderService {
     }
 
     /**
+     * Compute the Unix timestamp (seconds) for the next occurrence of the season end.
+     * Used to generate Discord dynamic timestamps like <t:1234567890:F>.
+     */
+    public getNextSeasonEndTimestamp(event: PvpEventConfig): number {
+        const now = new Date();
+        const { dayOfWeek, hour, minute } = event.seasonEnd;
+
+        // Start from today, find next matching day of week
+        const target = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            hour,
+            minute,
+            0
+        ));
+
+        // Adjust to the correct day of week
+        const currentDay = target.getUTCDay();
+        let daysUntil = dayOfWeek - currentDay;
+        if (daysUntil < 0) daysUntil += 7;
+        if (daysUntil === 0 && target.getTime() <= now.getTime()) daysUntil = 7;
+        target.setUTCDate(target.getUTCDate() + daysUntil);
+
+        return Math.floor(target.getTime() / 1000);
+    }
+
+    /**
      * Build an embed for a PVP warning message
      */
     private async buildWarningEmbed(guild: Guild, event: PvpEventConfig, warning: PvpWarningConfig): Promise<EmbedBuilder> {
         const { embedConfig } = warning;
+        const seasonEndTs = this.getNextSeasonEndTimestamp(event);
+
+        // Resolve dynamic description and fields
+        const description = typeof embedConfig.description === 'function'
+            ? embedConfig.description(seasonEndTs)
+            : embedConfig.description;
+
+        const fields = typeof embedConfig.fields === 'function'
+            ? embedConfig.fields(seasonEndTs)
+            : embedConfig.fields;
 
         const embed = new EmbedBuilder()
             .setTitle(embedConfig.title)
-            .setDescription(embedConfig.description)
+            .setDescription(description)
             .setColor(embedConfig.color)
             .setTimestamp()
             .setFooter({
@@ -153,8 +191,8 @@ export class PvpReminderService {
             embed.setThumbnail(embedConfig.thumbnail);
         }
 
-        if (embedConfig.fields) {
-            for (const field of embedConfig.fields) {
+        if (fields) {
+            for (const field of fields) {
                 embed.addFields({
                     name: field.name,
                     value: field.value,

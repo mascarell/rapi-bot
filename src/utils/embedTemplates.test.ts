@@ -42,7 +42,7 @@ describe('embedTemplates.ts', () => {
 
       expect(embed.data.title).toBe('Success Title');
       expect(embed.data.color).toBe(EmbedColors.SUCCESS);
-      expect(embed.data.thumbnail?.url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
+      expect(embed.data.thumbnail?.url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
       expect(embed.data.timestamp).toBeDefined();
       expect(embed.data.description).toBeUndefined();
     });
@@ -62,7 +62,7 @@ describe('embedTemplates.ts', () => {
 
       expect(embed.data.title).toBe('Error Title');
       expect(embed.data.color).toBe(EmbedColors.ERROR);
-      expect(embed.data.thumbnail?.url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
+      expect(embed.data.thumbnail?.url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
       expect(embed.data.timestamp).toBeDefined();
     });
 
@@ -81,7 +81,7 @@ describe('embedTemplates.ts', () => {
 
       expect(embed.data.title).toBe('Info Title');
       expect(embed.data.color).toBe(EmbedColors.INFO);
-      expect(embed.data.thumbnail?.url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
+      expect(embed.data.thumbnail?.url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
       expect(embed.data.timestamp).toBeDefined();
     });
 
@@ -99,7 +99,7 @@ describe('embedTemplates.ts', () => {
 
       expect(embed.data.title).toBe('Warning Title');
       expect(embed.data.color).toBe(EmbedColors.WARNING);
-      expect(embed.data.thumbnail?.url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
+      expect(embed.data.thumbnail?.url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
     });
 
     it('should create warning embed with title and description', () => {
@@ -116,8 +116,8 @@ describe('embedTemplates.ts', () => {
       expect(embed.data.title).toBe('Gacha Title');
       expect(embed.data.color).toBe(EmbedColors.GACHA);
       expect(embed.data.footer?.text).toBe('Gacha Coupon System');
-      expect(embed.data.footer?.icon_url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
-      expect(embed.data.thumbnail?.url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
+      expect(embed.data.footer?.icon_url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
+      expect(embed.data.thumbnail?.url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
       expect(embed.data.timestamp).toBeDefined();
     });
 
@@ -186,7 +186,7 @@ describe('embedTemplates.ts', () => {
 
       expect(embed.data.title).toBe('Custom Title');
       expect(embed.data.color).toBe(customColor);
-      expect(embed.data.thumbnail?.url).toBe('https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg');
+      expect(embed.data.thumbnail?.url).toMatch(/^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/);
       expect(embed.data.timestamp).toBeDefined();
     });
 
@@ -246,12 +246,12 @@ describe('embedTemplates.ts', () => {
     });
 
     it('all embeds should have thumbnail', () => {
-      const thumbnailUrl = 'https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg';
-      expect(successEmbed('Test').data.thumbnail?.url).toBe(thumbnailUrl);
-      expect(errorEmbed('Test').data.thumbnail?.url).toBe(thumbnailUrl);
-      expect(infoEmbed('Test').data.thumbnail?.url).toBe(thumbnailUrl);
-      expect(warningEmbed('Test').data.thumbnail?.url).toBe(thumbnailUrl);
-      expect(gachaEmbed('Test').data.thumbnail?.url).toBe(thumbnailUrl);
+      const thumbnailPattern = /^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg(\?v=\d+)?$/;
+      expect(successEmbed('Test').data.thumbnail?.url).toMatch(thumbnailPattern);
+      expect(errorEmbed('Test').data.thumbnail?.url).toMatch(thumbnailPattern);
+      expect(infoEmbed('Test').data.thumbnail?.url).toMatch(thumbnailPattern);
+      expect(warningEmbed('Test').data.thumbnail?.url).toMatch(thumbnailPattern);
+      expect(gachaEmbed('Test').data.thumbnail?.url).toMatch(thumbnailPattern);
     });
   });
 

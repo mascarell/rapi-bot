@@ -393,6 +393,90 @@ describe('PvpReminderService', () => {
         });
     });
 
+    describe('Dynamic Descriptions and Discord Timestamps', () => {
+        it('should resolve function-based description with season end timestamp', async () => {
+            const dynamicEvent: PvpEventConfig = {
+                ...testEvent,
+                warnings: [{
+                    ...testEvent.warnings[0],
+                    embedConfig: {
+                        ...testEvent.warnings[0].embedConfig,
+                        description: (ts) => `Season ends <t:${ts}:F>`,
+                    }
+                }]
+            };
+
+            const service = new PvpReminderService(mockBot, testConfig);
+            const buildWarningEmbed = (service as any).buildWarningEmbed;
+
+            const embed = await buildWarningEmbed.call(service, mockGuild, dynamicEvent, dynamicEvent.warnings[0]);
+
+            expect(embed.data.description).toMatch(/Season ends <t:\d+:F>/);
+        });
+
+        it('should resolve function-based fields with season end timestamp', async () => {
+            const dynamicEvent: PvpEventConfig = {
+                ...testEvent,
+                warnings: [{
+                    ...testEvent.warnings[0],
+                    embedConfig: {
+                        ...testEvent.warnings[0].embedConfig,
+                        fields: (ts) => [
+                            { name: 'Ends', value: `<t:${ts}:R>`, inline: true }
+                        ],
+                    }
+                }]
+            };
+
+            const service = new PvpReminderService(mockBot, testConfig);
+            const buildWarningEmbed = (service as any).buildWarningEmbed;
+
+            const embed = await buildWarningEmbed.call(service, mockGuild, dynamicEvent, dynamicEvent.warnings[0]);
+
+            expect(embed.data.fields).toHaveLength(1);
+            expect(embed.data.fields?.[0].value).toMatch(/<t:\d+:R>/);
+        });
+
+        it('should still support static description strings', async () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const buildWarningEmbed = (service as any).buildWarningEmbed;
+
+            const embed = await buildWarningEmbed.call(service, mockGuild, testEvent, testEvent.warnings[0]);
+
+            expect(embed.data.description).toBe('Season ends tomorrow.');
+        });
+    });
+
+    describe('getNextSeasonEndTimestamp', () => {
+        it('should return a Unix timestamp in the future', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const ts = service.getNextSeasonEndTimestamp(testEvent);
+
+            const now = Math.floor(Date.now() / 1000);
+            expect(ts).toBeGreaterThan(now);
+        });
+
+        it('should return a timestamp on the correct day of week', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const ts = service.getNextSeasonEndTimestamp(testEvent);
+
+            const date = new Date(ts * 1000);
+            expect(date.getUTCDay()).toBe(0); // Sunday
+            expect(date.getUTCHours()).toBe(14);
+            expect(date.getUTCMinutes()).toBe(59);
+        });
+
+        it('should be within the next 7 days', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const ts = service.getNextSeasonEndTimestamp(testEvent);
+
+            const now = Math.floor(Date.now() / 1000);
+            const sevenDays = 7 * 24 * 60 * 60;
+            expect(ts - now).toBeLessThanOrEqual(sevenDays);
+            expect(ts - now).toBeGreaterThan(0);
+        });
+    });
+
     describe('Config Validation', () => {
         it('should use actual BD2 Mirror Wars config values', async () => {
             // Import the real config to validate it

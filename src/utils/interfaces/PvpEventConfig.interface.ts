@@ -17,7 +17,8 @@ export interface WeeklyTime {
  */
 export interface PvpEmbedConfig {
     title: string;
-    description: string;
+    /** Static string or function that receives the season end Unix timestamp (seconds) */
+    description: string | ((seasonEndTimestamp: number) => string);
     color: number;
     footer: {
         text: string;
@@ -28,7 +29,8 @@ export interface PvpEmbedConfig {
         name: string;
         iconURL?: string;
     };
-    fields?: Array<{ name: string; value: string; inline?: boolean }>;
+    /** Static fields or function that receives the season end Unix timestamp (seconds) */
+    fields?: Array<{ name: string; value: string; inline?: boolean }> | ((seasonEndTimestamp: number) => Array<{ name: string; value: string; inline?: boolean }>);
 }
 
 /**
