@@ -16,6 +16,10 @@ jobs:
         with:
           ref: master
 
+      - name: Get version from package.json
+        id: version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3.1.0
         with:
@@ -28,7 +32,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+            ${{ secrets.DOCKER_USERNAME }}/rapi-bot:v${{ steps.version.outputs.VERSION }}
 
   deploy:
     runs-on: ubuntu-latest
