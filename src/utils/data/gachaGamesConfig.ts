@@ -1,4 +1,5 @@
 import { GachaGameConfig, GachaGameId } from '../interfaces/GachaCoupon.interface';
+import { cacheBust } from '../../config/assets.js';
 
 const cdnDomainUrl = process.env.CDN_DOMAIN_URL || '';
 
@@ -22,7 +23,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         },
         manualRedeemUrl: 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-US',
         supportsAutoRedeem: true,
-        logoPath: `${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`,
+        logoPath: cacheBust(`${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`),
         embedColor: 0x8B4513,
         maxNicknameLength: 24,
         maxCodeLength: 30,
@@ -36,7 +37,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         // Lost Sword uses in-game redemption only (Settings > Account > Redeem Coupon)
         manualRedeemUrl: undefined,
         supportsAutoRedeem: false,
-        logoPath: `${cdnDomainUrl}/assets/logos/lost-sword-logo.png`,
+        logoPath: cacheBust(`${cdnDomainUrl}/assets/logos/lost-sword-logo.png`),
         embedColor: 0x8B4513, // Brown/sword color
         maxNicknameLength: 20,
         maxCodeLength: 20,
@@ -62,7 +63,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
     //     // NIKKE uses in-game redemption only (no web API)
     //     manualRedeemUrl: undefined,
     //     supportsAutoRedeem: false,
-    //     logoPath: `${cdnDomainUrl}/assets/logos/nikke-logo.png`,
+    //     logoPath: cacheBust(`${cdnDomainUrl}/assets/logos/nikke-logo.png`),
     //     embedColor: 0x3498DB,
     //     maxNicknameLength: 20,
     //     maxCodeLength: 30,
@@ -76,7 +77,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
     //     // Blue Archive uses in-game redemption only
     //     manualRedeemUrl: undefined,
     //     supportsAutoRedeem: false,
-    //     logoPath: `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`,
+    //     logoPath: cacheBust(`${cdnDomainUrl}/assets/logos/blue-archive-logo.png`),
     //     embedColor: 0x00BFFF,
     //     maxNicknameLength: 20,
     //     maxCodeLength: 30,
