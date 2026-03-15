@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/mascarell/rapi-bot/compare/v2.1.0...v2.2.0) (2026-03-15)
+
+
+### Features
+
+* show version and Discord timestamps in /age command ([d538fcb](https://github.com/mascarell/rapi-bot/commit/d538fcbc13c160e78aab72d56dafed61fd4a842b))
+
 # [2.1.0](https://github.com/mascarell/rapi-bot/compare/v2.0.0...v2.1.0) (2026-03-15)
 
 
