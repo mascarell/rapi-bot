@@ -3,6 +3,10 @@ import { getUptimeService } from '../services/uptimeService.js';
 import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { replyWithEmbed } from '../utils/interactionHelpers.js';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../../package.json');
 
 /**
  * Command export for Discord.js
@@ -12,7 +16,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('age')
         .setDescription('Show how long the bot has been running'),
-    
+
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const uptimeService = getUptimeService();
@@ -21,22 +25,23 @@ export default {
             const guildId = interaction.guildId;
             const serverCommands = guildId ? ChatCommandRateLimiter.getGuildCommandCount(guildId) : 0;
             const globalCommands = ChatCommandRateLimiter.getGlobalCommandCount();
-            const startedAt = new Date(deploymentInfo.startTime).toLocaleString();
-            
+            const startedTimestamp = Math.floor(deploymentInfo.startTime / 1000);
+
             const embed = new EmbedBuilder()
                 .setColor(0x00ff00)
                 .setTitle('System Uptime')
-                .setDescription(`I have been running for ${deploymentInfo.formattedUptime}!`)
+                .setDescription(`I have been running for **${deploymentInfo.formattedUptime}**!`)
                 .addFields(
-                    { name: '📅 Started At', value: startedAt, inline: true },
+                    { name: '📅 Started At', value: `<t:${startedTimestamp}:F>\n(<t:${startedTimestamp}:R>)`, inline: true },
                     { name: '⚡ Commands (Server)', value: `**${serverCommands.toLocaleString()}**`, inline: true },
-                    { name: '\u200B', value: '\u200B', inline: true }, // Blank field to force new row
+                    { name: '\u200B', value: '\u200B', inline: true },
                     { name: '🌐 Servers Connected', value: `**${serverCount}**`, inline: true },
-                    { name: '🌍 Commands (Global)', value: `**${globalCommands.toLocaleString()}**`, inline: true }
+                    { name: '🌍 Commands (Global)', value: `**${globalCommands.toLocaleString()}**`, inline: true },
+                    { name: '🏷️ Version', value: `\`v${version}\``, inline: true },
                 )
-                .setFooter({ 
-                    text: 'Stay safe on the surface, Commander!', 
-                    iconURL: interaction.client.user?.displayAvatarURL() 
+                .setFooter({
+                    text: 'Stay safe on the surface, Commander!',
+                    iconURL: interaction.client.user?.displayAvatarURL()
                 })
                 .setTimestamp();
 
