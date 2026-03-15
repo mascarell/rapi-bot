@@ -1,16 +1,24 @@
 name: Build, Push and Deploy Docker Image
 
 on:
-  push:
-    branches:
-      - master
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+    branches: [master]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Check Out Repo
         uses: actions/checkout@v4.1.1
+        with:
+          ref: master
+
+      - name: Get version from package.json
+        id: version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3.1.0
@@ -24,7 +32,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+            ${{ secrets.DOCKER_USERNAME }}/rapi-bot:v${{ steps.version.outputs.VERSION }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -39,17 +49,17 @@ jobs:
           script: |
             echo "Pulling the latest Docker image..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
-            
+
             echo "Checking if the container is already running..."
             if [ "$(docker ps -q -f name=rapibot)" ]; then
                 echo "Container is running. Stopping and removing..."
                 docker stop rapibot
                 docker rm rapibot
             fi
-            
+
             echo "Removing all unused images..."
             docker image prune -a -f
-            
+
             echo "Creating environment file..."
             cat << EOF > .env
             WAIFUPORT=${{ secrets.WAIFU_PORT }}
@@ -64,6 +74,6 @@ jobs:
             TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
             YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
             EOF
-            
+
             echo "Running the new container..."
             docker run -d --restart unless-stopped --name rapibot --env-file .env ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
