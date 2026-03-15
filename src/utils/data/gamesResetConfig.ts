@@ -12,7 +12,7 @@ const NIKKE_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/nikke-logo.png`);
 const BLUE_ARCHIVE_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/blue-archive-logo.png`);
 const TRICKCAL_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/trickcal-logo.png`);
 const CHAOS_ZERO_NIGHTMARE_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`);
-const LOST_SWORD_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/lost-sword-logo.webp`);
+const LOST_SWORD_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/lost-sword-logo.png`);
 const BROWN_DUST_2_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`);
 
 // Default extensions
