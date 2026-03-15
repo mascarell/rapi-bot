@@ -43,33 +43,33 @@ describe('assets.ts', () => {
   });
 
   describe('getAssetUrls', () => {
-    it('should construct full URLs for rapiBot assets', () => {
+    it('should construct full URLs for rapiBot assets with cache bust', () => {
       const urls = getAssetUrls();
-      expect(urls.rapiBot.thumbnail).toBe(
-        'https://test-cdn.example.com/assets/rapi-bot-thumbnail.jpg'
+      expect(urls.rapiBot.thumbnail).toMatch(
+        /^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-thumbnail\.jpg\?v=\d+$/
       );
-      expect(urls.rapiBot.icon).toBe(
-        'https://test-cdn.example.com/assets/rapi-bot-icon.png'
+      expect(urls.rapiBot.icon).toMatch(
+        /^https:\/\/test-cdn\.example\.com\/assets\/rapi-bot-icon\.png\?v=\d+$/
       );
     });
 
-    it('should construct full URLs for logos', () => {
+    it('should construct full URLs for logos with cache bust', () => {
       const urls = getAssetUrls();
-      expect(urls.logos.gfl2).toBe(
-        'https://test-cdn.example.com/assets/logos/gfl2-logo.png'
+      expect(urls.logos.gfl2).toMatch(
+        /^https:\/\/test-cdn\.example\.com\/assets\/logos\/gfl2-logo\.png\?v=\d+$/
       );
-      expect(urls.logos.nikke).toBe(
-        'https://test-cdn.example.com/assets/logos/nikke-logo.png'
+      expect(urls.logos.nikke).toMatch(
+        /^https:\/\/test-cdn\.example\.com\/assets\/logos\/nikke-logo\.png\?v=\d+$/
       );
-      expect(urls.logos.blueArchive).toBe(
-        'https://test-cdn.example.com/assets/logos/blue-archive-logo.png'
+      expect(urls.logos.blueArchive).toMatch(
+        /^https:\/\/test-cdn\.example\.com\/assets\/logos\/blue-archive-logo\.png\?v=\d+$/
       );
     });
 
     it('should return empty CDN domain when not set', () => {
       delete process.env.CDN_DOMAIN_URL;
       const urls = getAssetUrls();
-      expect(urls.rapiBot.thumbnail).toBe('/assets/rapi-bot-thumbnail.jpg');
+      expect(urls.rapiBot.thumbnail).toMatch(/^\/assets\/rapi-bot-thumbnail\.jpg\?v=\d+$/);
     });
   });
 

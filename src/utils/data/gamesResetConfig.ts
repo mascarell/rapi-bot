@@ -3,15 +3,17 @@ import { DailyResetConfig, DailyResetServiceConfig, EmbedField } from '../interf
 import { getBosses, getTribeTowerRotation, cdnDomainUrl } from '../util';
 import { getRandomCdnMediaUrl } from '../cdn/mediaManager';
 import { logError } from '../util';
+import { cacheBust } from '../../config/assets.js';
 
 // Asset URLs (shared across configurations)
-const RAPI_BOT_THUMBNAIL_URL = `${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`;
-const NIKKE_LOGO_URL = `${cdnDomainUrl}/assets/logos/nikke-logo.png`;
-const BLUE_ARCHIVE_LOGO_URL = `${cdnDomainUrl}/assets/logos/blue-archive-logo.png`;
-const TRICKCAL_LOGO_URL = `${cdnDomainUrl}/assets/logos/trickcal-logo.png`;
-const CHAOS_ZERO_NIGHTMARE_LOGO_URL = `${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`;
-const LOST_SWORD_LOGO_URL = `${cdnDomainUrl}/assets/logos/lost-sword-logo.webp`;
-const BROWN_DUST_2_LOGO_URL = `${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`;
+// cacheBust() appends ?v={startup_timestamp} to bypass Discord's image caching after deploys
+const RAPI_BOT_THUMBNAIL_URL = cacheBust(`${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`);
+const NIKKE_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/nikke-logo.png`);
+const BLUE_ARCHIVE_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/blue-archive-logo.png`);
+const TRICKCAL_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/trickcal-logo.png`);
+const CHAOS_ZERO_NIGHTMARE_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`);
+const LOST_SWORD_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/lost-sword-logo.webp`);
+const BROWN_DUST_2_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`);
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;

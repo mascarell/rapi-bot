@@ -1,9 +1,10 @@
 import { PvpEventConfig, PvpReminderServiceConfig } from '../interfaces/PvpEventConfig.interface.js';
 import { cdnDomainUrl } from '../util.js';
+import { cacheBust } from '../../config/assets.js';
 
 // Asset URLs (shared with gamesResetConfig.ts)
-const RAPI_BOT_THUMBNAIL_URL = `${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`;
-const BROWN_DUST_2_LOGO_URL = `${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`;
+const RAPI_BOT_THUMBNAIL_URL = cacheBust(`${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`);
+const BROWN_DUST_2_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`);
 
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'];
 
