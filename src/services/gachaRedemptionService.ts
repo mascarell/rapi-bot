@@ -14,6 +14,7 @@ import {
 import { getGameConfig, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GACHA_CONFIG } from '../utils/data/gachaConfig';
 import { logger } from '../utils/logger.js';
+import { sendDMSafe } from '../utils/dmSender.js';
 import { getAssetUrls } from '../config/assets.js';
 
 const RERUN_EMOJI = '🔁';
@@ -335,29 +336,17 @@ export class GachaRedemptionService {
         content: { embeds: EmbedBuilder[] },
         gameId?: GachaGameId
     ): Promise<Message | null> {
-        try {
-            const message = await user.send(content);
-            await new Promise(resolve => setTimeout(resolve, GACHA_CONFIG.DM_RATE_LIMIT_DELAY));
-
-            // Clear DM disabled status if previously marked
-            if (gameId) {
+        return sendDMSafe(user, content, {
+            rateLimitDelay: GACHA_CONFIG.DM_RATE_LIMIT_DELAY,
+            onDMDisabled: gameId ? async (userId) => {
                 const dataService = getGachaDataService();
-                await dataService.clearDMDisabled(user.id, gameId);
-            }
-            return message;
-        } catch (error: any) {
-            // Check if this is a "Cannot send messages to this user" error
-            if (error.code === 50007) {
-                logger.warning`Cannot send DM to ${user.id} - user has DMs disabled`;
-                if (gameId) {
-                    const dataService = getGachaDataService();
-                    await dataService.markDMDisabled(user.id, gameId);
-                }
-            } else {
-                logger.error`Failed to send DM to ${user.id}: ${error.message}`;
-            }
-            return null;
-        }
+                await dataService.markDMDisabled(userId, gameId);
+            } : undefined,
+            onDMSuccess: gameId ? async (userId) => {
+                const dataService = getGachaDataService();
+                await dataService.clearDMDisabled(userId, gameId);
+            } : undefined,
+        });
     }
 
     /**

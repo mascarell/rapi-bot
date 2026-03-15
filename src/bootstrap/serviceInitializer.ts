@@ -8,6 +8,7 @@ import { getRulesManagementService } from '../services/rulesManagementService.js
 import { YouTubeNotificationScheduler } from '../services/youtubeNotificationScheduler.js';
 import { PvpReminderService } from '../services/pvpReminderService.js';
 import { pvpReminderServiceConfig } from '../utils/data/pvpEventsConfig.js';
+import { getNotificationSubscriptionService } from '../services/notificationSubscriptionService.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -59,6 +60,17 @@ export async function initializeServices(bot: Client): Promise<void> {
         const youtubeScheduler = new YouTubeNotificationScheduler(bot);
         await youtubeScheduler.initializeSchedules();
         logger.info`YouTube notification scheduler initialized`;
+
+        // Initialize notification subscription service (DM opt-in via reactions)
+        const notificationService = getNotificationSubscriptionService();
+        notificationService.registerNotificationType({
+            type: 'pvp-warning:bd2-mirror-wars',
+            displayName: 'BD2 Mirror Wars PVP',
+            description: 'Weekly PVP season end reminders for Brown Dust 2',
+            embedColor: 0x8B4513,
+        });
+        notificationService.startListening(bot);
+        logger.info`Notification subscription service initialized`;
 
         // Initialize PVP reminder service (weekly event warnings)
         const pvpReminderService = new PvpReminderService(bot, pvpReminderServiceConfig);

@@ -24,6 +24,13 @@ vi.mock('../../utils/cdn/mediaManager', () => ({
     getRandomCdnMediaUrl: vi.fn().mockResolvedValue('https://cdn.example.com/test-image.png')
 }));
 
+vi.mock('../notificationSubscriptionService', () => ({
+    getNotificationSubscriptionService: () => ({
+        seedSubscribeReaction: vi.fn().mockResolvedValue(undefined),
+        sendNotification: vi.fn().mockResolvedValue({ sent: 0, failed: 0, dmDisabled: 0 }),
+    }),
+}));
+
 describe('PvpReminderService', () => {
     let mockBot: Client;
     let mockGuild: Guild;
