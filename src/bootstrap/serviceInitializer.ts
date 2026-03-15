@@ -6,6 +6,8 @@ import { getChannelMonitorService } from '../services/channelMonitorService.js';
 import { getReactionConfirmationService } from '../services/reactionConfirmationService.js';
 import { getRulesManagementService } from '../services/rulesManagementService.js';
 import { YouTubeNotificationScheduler } from '../services/youtubeNotificationScheduler.js';
+import { PvpReminderService } from '../services/pvpReminderService.js';
+import { pvpReminderServiceConfig } from '../utils/data/pvpEventsConfig.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -57,6 +59,11 @@ export async function initializeServices(bot: Client): Promise<void> {
         const youtubeScheduler = new YouTubeNotificationScheduler(bot);
         await youtubeScheduler.initializeSchedules();
         logger.info`YouTube notification scheduler initialized`;
+
+        // Initialize PVP reminder service (weekly event warnings)
+        const pvpReminderService = new PvpReminderService(bot, pvpReminderServiceConfig);
+        pvpReminderService.initializeSchedules();
+        logger.info`PVP reminder service initialized`;
 
         logger.info`All services initialized successfully`;
     } catch (error) {
