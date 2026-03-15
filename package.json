@@ -1,6 +1,6 @@
 {
   "name": "loot-and-waifus-bot",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "description": "A Discord bot for managing daily resets and other utilities for gacha games.",
   "main": "dist/index.js",
