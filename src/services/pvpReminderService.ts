@@ -3,6 +3,7 @@ import schedule from 'node-schedule';
 import { PvpEventConfig, PvpWarningConfig, PvpReminderServiceConfig } from '../utils/interfaces/PvpEventConfig.interface.js';
 import { findChannelByName, logError } from '../utils/util.js';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager.js';
+import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -116,7 +117,13 @@ export class PvpReminderService {
         }
 
         const embed = await this.buildWarningEmbed(guild, event, warning);
-        await channel.send({ embeds: [embed] });
+        const sentMessage = await channel.send({ embeds: [embed] });
+
+        // Seed subscribe reaction and send DM notifications
+        const notificationService = getNotificationSubscriptionService();
+        const notificationType = `pvp-warning:${event.id}`;
+        await notificationService.seedSubscribeReaction(sentMessage, notificationType);
+        await notificationService.sendNotification(this.bot, notificationType, EmbedBuilder.from(embed.data));
     }
 
     /**
