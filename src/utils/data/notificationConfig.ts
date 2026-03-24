@@ -5,9 +5,6 @@ export const NOTIFICATION_CONFIG = {
     /** Delay between DM sends to avoid Discord rate limits (ms) */
     DM_RATE_LIMIT_DELAY: 100,
 
-    /** Max concurrent DM sends */
-    CONCURRENT_DM_LIMIT: 5,
-
     /** S3 data path prefix */
     S3_DATA_PATH: 'data/notification-subscriptions',
 
@@ -26,6 +23,6 @@ export const NOTIFICATION_CONFIG = {
 
 /**
  * Regex to parse notification type from embed footer.
- * Format: "[type:some-notification-type]"
+ * Format: "[n:some-notification-type]" — short prefix to minimize footer clutter
  */
-export const NOTIFICATION_TYPE_FOOTER_REGEX = /\[type:([^\]]+)\]/;
+export const NOTIFICATION_TYPE_FOOTER_REGEX = /\[n:([^\]]+)\]/;

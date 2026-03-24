@@ -190,7 +190,7 @@ describe('NotificationSubscriptionService', () => {
             // Check the embed passed to sendDMSafe has the footer tag
             const call = vi.mocked(sendDMSafe).mock.calls[0];
             const sentEmbed = call[1].embeds[0];
-            expect(sentEmbed.data.footer?.text).toContain('[type:pvp-warning:bd2-mirror-wars]');
+            expect(sentEmbed.data.footer?.text).toContain('[n:pvp-warning:bd2-mirror-wars]');
             expect(sentEmbed.data.footer?.text).toContain('Original footer');
         });
 
@@ -244,7 +244,7 @@ describe('NotificationSubscriptionService', () => {
 
             const message = {
                 embeds: [{
-                    footer: { text: 'Some text | [type:pvp-warning:bd2-mirror-wars]' },
+                    footer: { text: 'Some text | [n:pvp-warning:bd2-mirror-wars]' },
                 }],
             } as any;
 

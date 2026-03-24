@@ -59,6 +59,7 @@ const bd2MirrorWarsConfig: PvpEventConfig = {
         {
             label: '1 hour',
             minutesBefore: 60, // Sunday ~1:59 PM UTC
+            sendDM: true, // Only the 1-hour warning sends DM notifications to subscribers
             embedConfig: {
                 title: '\uD83D\uDEA8 Mirror Wars Season Ending in 1 Hour!',
                 description: (ts) =>

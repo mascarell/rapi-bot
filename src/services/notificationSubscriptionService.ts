@@ -144,8 +144,8 @@ export class NotificationSubscriptionService {
         // Append footer tag for unsubscribe parsing
         const footerText = embed.data.footer?.text || '';
         const taggedFooter = footerText
-            ? `${footerText} | [type:${notificationType}]`
-            : `[type:${notificationType}]`;
+            ? `${footerText} | [n:${notificationType}]`
+            : `[n:${notificationType}]`;
         embed.setFooter({
             text: taggedFooter,
             iconURL: embed.data.footer?.icon_url,
@@ -298,19 +298,37 @@ export class NotificationSubscriptionService {
             const result = await this.subscribe(user.id, guildId, notificationType);
             const typeConfig = this.typeRegistry.get(notificationType);
 
-            // Send confirmation DM
+            // Send confirmation DM with unsubscribe option
             const fullUser = user.partial ? await bot.users.fetch(user.id) : user;
             const confirmEmbed = new EmbedBuilder()
                 .setTitle(result.success ? 'Subscribed!' : 'Already Subscribed')
                 .setDescription(result.message)
                 .setColor(result.success ? 0x00FF00 : 0xFFA500)
+                .setFooter({ text: `[n:${notificationType}]` })
                 .setTimestamp();
 
             if (typeConfig?.thumbnailUrl) {
                 confirmEmbed.setThumbnail(typeConfig.thumbnailUrl);
             }
 
-            await sendDMSafe(fullUser, { embeds: [confirmEmbed] });
+            if (result.success) {
+                confirmEmbed.addFields({
+                    name: '\u200B',
+                    value: `_React ${NOTIFICATION_CONFIG.UNSUBSCRIBE_EMOJI} to unsubscribe from ${typeConfig?.displayName || notificationType} DM notifications._`,
+                    inline: false,
+                });
+            }
+
+            const confirmMessage = await sendDMSafe(fullUser, { embeds: [confirmEmbed] });
+
+            // Add unsubscribe reaction so user can immediately unsubscribe
+            if (confirmMessage && result.success) {
+                try {
+                    await confirmMessage.react(NOTIFICATION_CONFIG.UNSUBSCRIBE_EMOJI);
+                } catch {
+                    // Non-critical — DM was still sent
+                }
+            }
         } catch (error) {
             logger.error`[Notifications] Subscribe reaction error for ${user.id}: ${error}`;
         } finally {

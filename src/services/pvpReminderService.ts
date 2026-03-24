@@ -103,6 +103,21 @@ export class PvpReminderService {
                 );
             }
         }
+
+        // Send DM notifications once (not per-guild) for warnings that opt in
+        if (warning.sendDM) {
+            try {
+                const firstGuild = this.bot.guilds.cache.values().next().value;
+                if (firstGuild) {
+                    const notificationService = getNotificationSubscriptionService();
+                    const notificationType = `pvp-warning:${event.id}`;
+                    const dmEmbed = await this.buildWarningEmbed(firstGuild, event, warning);
+                    await notificationService.sendNotification(this.bot, notificationType, dmEmbed);
+                }
+            } catch (error) {
+                logger.error`[PVP] Failed to send DM notifications for ${event.id} ${warning.label}: ${error}`;
+            }
+        }
     }
 
     /**
@@ -119,11 +134,10 @@ export class PvpReminderService {
         const embed = await this.buildWarningEmbed(guild, event, warning);
         const sentMessage = await channel.send({ embeds: [embed] });
 
-        // Seed subscribe reaction and send DM notifications
+        // Seed subscribe reaction on channel messages
         const notificationService = getNotificationSubscriptionService();
         const notificationType = `pvp-warning:${event.id}`;
         await notificationService.seedSubscribeReaction(sentMessage, notificationType);
-        await notificationService.sendNotification(this.bot, notificationType, EmbedBuilder.from(embed.data));
     }
 
     /**

@@ -24,11 +24,13 @@ vi.mock('../../utils/cdn/mediaManager', () => ({
     getRandomCdnMediaUrl: vi.fn().mockResolvedValue('https://cdn.example.com/test-image.png')
 }));
 
+const mockNotificationService = {
+    seedSubscribeReaction: vi.fn().mockResolvedValue(undefined),
+    sendNotification: vi.fn().mockResolvedValue({ sent: 0, failed: 0, dmDisabled: 0 }),
+};
+
 vi.mock('../notificationSubscriptionService', () => ({
-    getNotificationSubscriptionService: () => ({
-        seedSubscribeReaction: vi.fn().mockResolvedValue(undefined),
-        sendNotification: vi.fn().mockResolvedValue({ sent: 0, failed: 0, dmDisabled: 0 }),
-    }),
+    getNotificationSubscriptionService: () => mockNotificationService,
 }));
 
 describe('PvpReminderService', () => {
@@ -86,6 +88,7 @@ describe('PvpReminderService', () => {
                 {
                     label: '1 hour',
                     minutesBefore: 60,
+                    sendDM: true,
                     embedConfig: {
                         title: 'Mirror Wars Ending in 1 Hour!',
                         description: 'Final hour!',
@@ -260,6 +263,40 @@ describe('PvpReminderService', () => {
             ).resolves.not.toThrow();
 
             expect(util.logError).toHaveBeenCalled();
+        });
+    });
+
+    describe('DM Notification Sending', () => {
+        it('should send DM notifications once for warnings with sendDM: true', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            // Add a second guild to verify DMs aren't duplicated
+            const secondGuild = { ...mockGuild, id: 'guild-2', name: 'Guild 2' };
+            (mockBot.guilds.cache as any).set('guild-2', secondGuild);
+
+            const service = new PvpReminderService(mockBot, testConfig);
+            const sendWarningToAllGuilds = (service as any).sendWarningToAllGuilds;
+
+            // Use the 1-hour warning which has sendDM: true
+            await sendWarningToAllGuilds.call(service, testEvent, testEvent.warnings[1]);
+
+            // Channel messages sent to both guilds
+            expect(mockChannel.send).toHaveBeenCalledTimes(2);
+            // DM notification sent only once (not per-guild)
+            expect(mockNotificationService.sendNotification).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not send DM notifications for warnings without sendDM', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const service = new PvpReminderService(mockBot, testConfig);
+            const sendWarningToAllGuilds = (service as any).sendWarningToAllGuilds;
+
+            // Use the 1-day warning which does NOT have sendDM
+            await sendWarningToAllGuilds.call(service, testEvent, testEvent.warnings[0]);
+
+            expect(mockChannel.send).toHaveBeenCalledTimes(1);
+            expect(mockNotificationService.sendNotification).not.toHaveBeenCalled();
         });
     });
 
@@ -488,7 +525,9 @@ describe('PvpReminderService', () => {
             expect(mirrorWars.seasonEnd).toEqual({ dayOfWeek: 0, hour: 14, minute: 59 });
             expect(mirrorWars.warnings).toHaveLength(2);
             expect(mirrorWars.warnings[0].minutesBefore).toBe(24 * 60);
+            expect(mirrorWars.warnings[0].sendDM).toBeUndefined();
             expect(mirrorWars.warnings[1].minutesBefore).toBe(60);
+            expect(mirrorWars.warnings[1].sendDM).toBe(true);
         });
 
         it('should produce correct crons for actual BD2 config', async () => {
