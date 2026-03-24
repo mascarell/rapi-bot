@@ -3,6 +3,7 @@ import schedule from 'node-schedule';
 import { PvpEventConfig, PvpWarningConfig, PvpReminderServiceConfig } from '../utils/interfaces/PvpEventConfig.interface.js';
 import { findChannelByName, logError } from '../utils/util.js';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager.js';
+import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -102,6 +103,21 @@ export class PvpReminderService {
                 );
             }
         }
+
+        // Send DM notifications once (not per-guild) for warnings that opt in
+        if (warning.sendDM) {
+            try {
+                const firstGuild = this.bot.guilds.cache.values().next().value;
+                if (firstGuild) {
+                    const notificationService = getNotificationSubscriptionService();
+                    const notificationType = `pvp-warning:${event.id}`;
+                    const dmEmbed = await this.buildWarningEmbed(firstGuild, event, warning);
+                    await notificationService.sendNotification(this.bot, notificationType, dmEmbed);
+                }
+            } catch (error) {
+                logger.error`[PVP] Failed to send DM notifications for ${event.id} ${warning.label}: ${error}`;
+            }
+        }
     }
 
     /**
@@ -116,7 +132,12 @@ export class PvpReminderService {
         }
 
         const embed = await this.buildWarningEmbed(guild, event, warning);
-        await channel.send({ embeds: [embed] });
+        const sentMessage = await channel.send({ embeds: [embed] });
+
+        // Seed subscribe reaction on channel messages
+        const notificationService = getNotificationSubscriptionService();
+        const notificationType = `pvp-warning:${event.id}`;
+        await notificationService.seedSubscribeReaction(sentMessage, notificationType);
     }
 
     /**

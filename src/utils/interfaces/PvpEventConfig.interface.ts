@@ -43,6 +43,8 @@ export interface PvpWarningConfig {
     minutesBefore: number;
     /** Embed configuration for this warning */
     embedConfig: PvpEmbedConfig;
+    /** Whether to send DM notifications to subscribers for this warning (default: false) */
+    sendDM?: boolean;
 }
 
 /**
