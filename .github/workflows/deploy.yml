@@ -5,29 +5,42 @@ on:
     workflows: ["Release"]
     types: [completed]
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      skip_build:
+        description: 'Skip Docker build (use existing image)'
+        type: boolean
+        default: false
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: >
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.skip_build == false)
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      sha: ${{ steps.version.outputs.SHA }}
     steps:
       - name: Check Out Repo
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v5
         with:
           ref: master
 
-      - name: Get version from package.json
+      - name: Get version and SHA
         id: version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: |
+          echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          echo "SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5.3.0
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
@@ -35,18 +48,24 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
             ${{ secrets.DOCKER_USERNAME }}/rapi-bot:v${{ steps.version.outputs.VERSION }}
+            ${{ secrets.DOCKER_USERNAME }}/rapi-bot:sha-${{ steps.version.outputs.SHA }}
 
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
+    if: >
+      !cancelled() &&
+      (needs.build-and-push.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.skip_build == true))
     steps:
       - name: Deploy to DigitalOcean Droplet
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DO_DROPLET_IP }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
+
             echo "Pulling the latest Docker image..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
 
@@ -61,19 +80,27 @@ jobs:
             docker image prune -a -f
 
             echo "Creating environment file..."
-            cat << EOF > .env
-            WAIFUPORT=${{ secrets.WAIFU_PORT }}
-            WAIFUTOKEN=${{ secrets.DISCORD_TOKEN }}
-            CATAPI=${{ secrets.CAT_API }}
-            CLIENTID=${{ secrets.CLIENT_ID }}
-            S3BUCKET=${{ secrets.S3_BUCKET }}
-            S3ACCESSKEYID=${{ secrets.S3_ACCESS_KEY_ID }}
-            S3SECRETKEY=${{ secrets.S3_SECRET_KEY }}
-            CDN_DOMAIN_URL=${{ secrets.CDN_DOMAIN_URL }}
-            TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
-            TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
-            YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
-            EOF
+            echo "WAIFUPORT=${{ secrets.WAIFU_PORT }}" > .env
+            echo "WAIFUTOKEN=${{ secrets.DISCORD_TOKEN }}" >> .env
+            echo "CATAPI=${{ secrets.CAT_API }}" >> .env
+            echo "CLIENTID=${{ secrets.CLIENT_ID }}" >> .env
+            echo "S3BUCKET=${{ secrets.S3_BUCKET }}" >> .env
+            echo "S3ACCESSKEYID=${{ secrets.S3_ACCESS_KEY_ID }}" >> .env
+            echo "S3SECRETKEY=${{ secrets.S3_SECRET_KEY }}" >> .env
+            echo "CDN_DOMAIN_URL=${{ secrets.CDN_DOMAIN_URL }}" >> .env
+            echo "TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}" >> .env
+            echo "TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}" >> .env
+            echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> .env
 
             echo "Running the new container..."
             docker run -d --restart unless-stopped --name rapibot --env-file .env ${{ secrets.DOCKER_USERNAME }}/rapi-bot:latest
+
+            echo "Verifying deployment..."
+            sleep 15
+            if [ "$(docker ps -q -f name=rapibot -f status=running)" ]; then
+              echo "Deployment successful"
+            else
+              echo "Deployment failed - container not running"
+              docker logs rapibot
+              exit 1
+            fi
