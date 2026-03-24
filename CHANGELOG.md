@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/mascarell/rapi-bot/compare/v2.2.0...v2.3.0) (2026-03-24)
+
+
+### Features
+
+* add new season notification for Mirror Wars ([d74d57f](https://github.com/mascarell/rapi-bot/commit/d74d57faa621d89f24516a6aeb98dd6b27117da5)), closes [#brown-dust-2](https://github.com/mascarell/rapi-bot/issues/brown-dust-2)
+
 # [2.2.0](https://github.com/mascarell/rapi-bot/compare/v2.1.0...v2.2.0) (2026-03-15)
 
 
