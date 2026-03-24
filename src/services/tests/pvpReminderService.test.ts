@@ -95,6 +95,19 @@ describe('PvpReminderService', () => {
                         color: 0xFF0000,
                         footer: { text: 'Urgent footer' }
                     }
+                },
+                {
+                    label: 'new season',
+                    minutesBefore: 0,
+                    embedConfig: {
+                        title: 'New Mirror Wars Season!',
+                        description: (ts: number) => `New season! Next ends <t:${ts}:F>`,
+                        color: 0x00CC66,
+                        footer: { text: 'New season footer' },
+                        fields: (ts: number) => [
+                            { name: 'Next Season Ends', value: `<t:${ts}:R>`, inline: true }
+                        ]
+                    }
                 }
             ],
             mediaConfig: {
@@ -163,6 +176,12 @@ describe('PvpReminderService', () => {
             expect(cron).toBe('0 12 * * 4'); // Thursday 12:00
         });
 
+        it('should calculate new season notification: Sunday 14:59 - 0min = Sunday 14:59', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const cron = service.calculateWarningCron(testEvent, testEvent.warnings[2]);
+            expect(cron).toBe('59 14 * * 0'); // Sunday 14:59 — at season end
+        });
+
         it('should handle Sunday 00:00 event with 1-day warning = Saturday 00:00', () => {
             const service = new PvpReminderService(mockBot, testConfig);
             const sundayMidnightEvent: PvpEventConfig = {
@@ -186,9 +205,10 @@ describe('PvpReminderService', () => {
             service.initializeSchedules();
 
             const jobs = service.getScheduledJobs();
-            expect(jobs.size).toBe(2); // 2 warnings for Mirror Wars
+            expect(jobs.size).toBe(3); // 3 warnings for Mirror Wars
             expect(jobs.has('bd2-mirror-wars-1 day')).toBe(true);
             expect(jobs.has('bd2-mirror-wars-1 hour')).toBe(true);
+            expect(jobs.has('bd2-mirror-wars-new season')).toBe(true);
         });
 
         it('should handle multiple events', () => {
@@ -208,7 +228,7 @@ describe('PvpReminderService', () => {
             service.initializeSchedules();
 
             const jobs = service.getScheduledJobs();
-            expect(jobs.size).toBe(3); // 2 from Mirror Wars + 1 from Arena
+            expect(jobs.size).toBe(4); // 3 from Mirror Wars + 1 from Arena
         });
     });
 
@@ -217,7 +237,7 @@ describe('PvpReminderService', () => {
             const service = new PvpReminderService(mockBot, testConfig);
             service.initializeSchedules();
 
-            expect(service.getScheduledJobs().size).toBe(2);
+            expect(service.getScheduledJobs().size).toBe(3);
 
             service.cancelAllSchedules();
 
@@ -399,6 +419,19 @@ describe('PvpReminderService', () => {
             expect(embed.data.image).toBeUndefined();
         });
 
+        it('should build embed with correct title and color for new season notification', async () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const buildWarningEmbed = (service as any).buildWarningEmbed;
+
+            const embed = await buildWarningEmbed.call(service, mockGuild, testEvent, testEvent.warnings[2]);
+
+            expect(embed.data.title).toBe('New Mirror Wars Season!');
+            expect(embed.data.color).toBe(0x00CC66);
+            expect(embed.data.description).toMatch(/New season! Next ends <t:\d+:F>/);
+            expect(embed.data.fields).toHaveLength(1);
+            expect(embed.data.fields?.[0].value).toMatch(/<t:\d+:R>/);
+        });
+
         it('should not set image when event has no mediaConfig', async () => {
             const eventWithoutMedia: PvpEventConfig = {
                 ...testEvent,
@@ -424,7 +457,7 @@ describe('PvpReminderService', () => {
             service.initializeSchedules();
 
             const jobs = service.getScheduledJobs();
-            expect(jobs.size).toBe(2);
+            expect(jobs.size).toBe(3);
 
             process.env.NODE_ENV = originalEnv;
         });
@@ -523,11 +556,12 @@ describe('PvpReminderService', () => {
             expect(mirrorWars.id).toBe('bd2-mirror-wars');
             expect(mirrorWars.channelName).toBe('brown-dust-2');
             expect(mirrorWars.seasonEnd).toEqual({ dayOfWeek: 0, hour: 14, minute: 59 });
-            expect(mirrorWars.warnings).toHaveLength(2);
+            expect(mirrorWars.warnings).toHaveLength(3);
             expect(mirrorWars.warnings[0].minutesBefore).toBe(24 * 60);
             expect(mirrorWars.warnings[0].sendDM).toBeUndefined();
             expect(mirrorWars.warnings[1].minutesBefore).toBe(60);
             expect(mirrorWars.warnings[1].sendDM).toBe(true);
+            expect(mirrorWars.warnings[2].minutesBefore).toBe(0);
         });
 
         it('should produce correct crons for actual BD2 config', async () => {
@@ -543,6 +577,10 @@ describe('PvpReminderService', () => {
             // 1-hour warning: Sunday 13:59
             const hourWarningCron = service.calculateWarningCron(mirrorWars, mirrorWars.warnings[1]);
             expect(hourWarningCron).toBe('59 13 * * 0');
+
+            // New season notification: Sunday 14:59 (at season end)
+            const newSeasonCron = service.calculateWarningCron(mirrorWars, mirrorWars.warnings[2]);
+            expect(newSeasonCron).toBe('59 14 * * 0');
         });
     });
 });

@@ -88,6 +88,36 @@ const bd2MirrorWarsConfig: PvpEventConfig = {
                 ],
             },
         },
+        {
+            label: 'new season',
+            minutesBefore: 0, // Fires AT season end = new season start
+            embedConfig: {
+                title: '\uD83C\uDF1F New Mirror Wars Season Has Begun!',
+                description: (ts) =>
+                    `The mirrors have been restored, Adventurer! A new season of Mirror Wars awaits!\n\n` +
+                    `**Next season ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
+                    `Set your defense team, plan your strategy, and begin your climb to the top!`,
+                color: 0x00CC66, // Green — celebratory / fresh start
+                footer: {
+                    text: 'A new season dawns! | May the Blood Imprint guide your path!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: BROWN_DUST_2_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '\uD83D\uDCC5 Next Season Ends',
+                        value: `<t:${ts}:F>\n<t:${ts}:R>`,
+                        inline: true,
+                    },
+                    {
+                        name: '\u2728 New Season Tips',
+                        value: '\u2022 Update your **defense team**\n\u2022 Start battles early \u2014 don\'t wait!\n\u2022 Use all **40 daily battles**',
+                        inline: true,
+                    },
+                ],
+            },
+        },
     ],
     mediaConfig: {
         cdnPath: 'dailies/bd2/',
