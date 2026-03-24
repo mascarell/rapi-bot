@@ -1,3 +1,16 @@
+# [2.4.0](https://github.com/mascarell/rapi-bot/compare/v2.3.0...v2.4.0) (2026-03-24)
+
+
+### Bug Fixes
+
+* resolve duplicate DMs and improve notification subscription UX ([4ad5954](https://github.com/mascarell/rapi-bot/commit/4ad595460c42ef4517a99758cc84566337886c98))
+* resolve merge conflicts with master (new season notification) ([009cd86](https://github.com/mascarell/rapi-bot/commit/009cd86899dc532d411a37b8fdb53bb83df9c1ff))
+
+
+### Features
+
+* Add DM notification subscription framework ([c3ece42](https://github.com/mascarell/rapi-bot/commit/c3ece4232d865b2724aa26d7f6e9221f57c0f4c1))
+
 # [2.3.0](https://github.com/mascarell/rapi-bot/compare/v2.2.0...v2.3.0) (2026-03-24)
 
 
