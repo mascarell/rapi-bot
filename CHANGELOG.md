@@ -1,3 +1,11 @@
+# [2.5.0](https://github.com/mascarell/rapi-bot/compare/v2.4.0...v2.5.0) (2026-03-27)
+
+
+### Features
+
+* add coupon alert DM notifications for new codes ([#225](https://github.com/mascarell/rapi-bot/issues/225)) ([55d777e](https://github.com/mascarell/rapi-bot/commit/55d777e7f4bb2923a97010abc417e758a3bc8802))
+* add DM notification subscriptions for daily reset messages ([#224](https://github.com/mascarell/rapi-bot/issues/224)) ([8531fa2](https://github.com/mascarell/rapi-bot/commit/8531fa29c55ac1c99ac8a0eef425f83d5410ff3a))
+
 # [2.4.0](https://github.com/mascarell/rapi-bot/compare/v2.3.0...v2.4.0) (2026-03-24)
 
 
