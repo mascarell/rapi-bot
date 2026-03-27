@@ -56,7 +56,7 @@ export const EMBED_FIX_CONFIG = {
         : 'data/embed-fix/embed-votes.json',
 
     // Votes cache
-    VOTES_CACHE_TTL: 60_000,  // 1 minute cache for votes data
+    VOTES_CACHE_TTL: 5 * 60_000,  // 5 minutes — write-through cache ensures consistency
 
     // Duplicate detection
     DUPLICATE_WINDOW_MS: 24 * 60 * 60 * 1000,  // 24 hours

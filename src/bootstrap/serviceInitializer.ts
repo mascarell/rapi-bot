@@ -36,30 +36,31 @@ export async function initializeServices(bot: Client): Promise<void> {
         gachaCouponScheduler.initializeSchedules();
         logger.info`Gacha coupon scheduler initialized`;
 
-        // Initialize channel monitor service for coupon announcements (e.g., Lost Sword)
-        const channelMonitorService = getChannelMonitorService();
-        await channelMonitorService.initialize();
-        channelMonitorService.startMonitoring(bot);
-        logger.info`Channel monitor service initialized`;
-
         // Initialize reaction confirmation service for manual redemption tracking
         const reactionConfirmationService = getReactionConfirmationService();
         reactionConfirmationService.startListening(bot);
         logger.info`Reaction confirmation service initialized`;
 
-        // Initialize rules management service (primary server only)
-        // This will fail gracefully in dev if bot is not in the primary server
+        // Parallelize S3-dependent service initialization
+        const channelMonitorService = getChannelMonitorService();
         const rulesManagementService = getRulesManagementService();
-        const rulesResult = await rulesManagementService.initializeRulesMessage(bot);
+        const youtubeScheduler = new YouTubeNotificationScheduler(bot);
+
+        const [, rulesResult] = await Promise.all([
+            channelMonitorService.initialize(),
+            rulesManagementService.initializeRulesMessage(bot),
+            youtubeScheduler.initializeSchedules(),
+        ]);
+
+        channelMonitorService.startMonitoring(bot);
+        logger.info`Channel monitor service initialized`;
+
         if (!rulesResult.success) {
             logger.warning`Rules management skipped (not in primary server or missing permissions): ${rulesResult.error}`;
         } else {
             logger.info`Rules management service initialized`;
         }
 
-        // Initialize YouTube upload notification scheduler
-        const youtubeScheduler = new YouTubeNotificationScheduler(bot);
-        await youtubeScheduler.initializeSchedules();
         logger.info`YouTube notification scheduler initialized`;
 
         // Initialize notification subscription service (DM opt-in via reactions)
