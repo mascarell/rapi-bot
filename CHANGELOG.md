@@ -1,3 +1,16 @@
+## [2.5.1](https://github.com/mascarell/rapi-bot/compare/v2.5.0...v2.5.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* reset unbounded command usage stats on cleanup interval ([#228](https://github.com/mascarell/rapi-bot/issues/228)) ([ae2cb55](https://github.com/mascarell/rapi-bot/commit/ae2cb55fcb2299e001cfa39f4a4ec85147154e51))
+
+
+### Performance Improvements
+
+* cache S3 ListObjectsV2 calls on hot paths ([#226](https://github.com/mascarell/rapi-bot/issues/226)) ([a6517bb](https://github.com/mascarell/rapi-bot/commit/a6517bb6789c7241b7516facd7bdc0a6488643c2))
+* parallelize startup and bump EmbedVotes cache TTL ([#227](https://github.com/mascarell/rapi-bot/issues/227)) ([6dad8a5](https://github.com/mascarell/rapi-bot/commit/6dad8a5194fcdaf175f8e51c3e804e09199facb1))
+
 # [2.5.0](https://github.com/mascarell/rapi-bot/compare/v2.4.0...v2.5.0) (2026-03-27)
 
 
