@@ -100,6 +100,7 @@ const nikkeResetConfig: DailyResetConfig = {
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     },
+    notificationType: 'daily-reset:nikke',
     warningConfig: {
         enabled: true,
         minutesBefore: 60
@@ -220,6 +221,7 @@ const blueArchiveResetConfig: DailyResetConfig = {
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     },
+    notificationType: 'daily-reset:blue-archive',
     warningConfig: {
         enabled: true,
         minutesBefore: 60
@@ -262,6 +264,7 @@ const trickcalResetConfig: DailyResetConfig = {
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     },
+    notificationType: 'daily-reset:trickcal',
     warningConfig: {
         enabled: true,
         minutesBefore: 60
@@ -305,6 +308,7 @@ const chaosZeroNightmareResetConfig: DailyResetConfig = {
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     },
+    notificationType: 'daily-reset:chaos-zero-nightmare',
     warningConfig: {
         enabled: true,
         minutesBefore: 60
@@ -349,6 +353,7 @@ const lostSwordResetConfig: DailyResetConfig = {
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     },
+    notificationType: 'daily-reset:lost-sword',
     warningConfig: {
         enabled: true,
         minutesBefore: 60
@@ -395,6 +400,7 @@ const brownDust2ResetConfig: DailyResetConfig = {
         extensions: [...DEFAULT_IMAGE_EXTENSIONS],
         trackLast: 10
     },
+    notificationType: 'daily-reset:bd2',
     warningConfig: {
         enabled: true,
         minutesBefore: 60

@@ -27,6 +27,16 @@ vi.mock('../../utils/cdn/mediaManager', () => ({
     getRandomCdnMediaUrl: vi.fn().mockResolvedValue('https://cdn.example.com/test-image.png')
 }));
 
+const mockSeedSubscribeReaction = vi.fn().mockResolvedValue(undefined);
+const mockSendNotification = vi.fn().mockResolvedValue({ sent: 1, failed: 0, dmDisabled: 0 });
+
+vi.mock('../notificationSubscriptionService', () => ({
+    getNotificationSubscriptionService: vi.fn(() => ({
+        seedSubscribeReaction: mockSeedSubscribeReaction,
+        sendNotification: mockSendNotification,
+    })),
+}));
+
 describe('DailyResetService', () => {
     let mockBot: Client;
     let mockGuild: Guild;
@@ -624,6 +634,149 @@ describe('DailyResetService', () => {
 
             // Should not throw because errors are caught and logged internally
             await expect(sendWarningMessage.call(service, configWithWarning)).resolves.not.toThrow();
+        });
+    });
+
+    describe('DM Notification Integration', () => {
+        beforeEach(() => {
+            mockSeedSubscribeReaction.mockClear();
+            mockSendNotification.mockClear();
+        });
+
+        it('should seed subscribe reaction on reset messages when notificationType is set', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const configWithNotification = {
+                ...testConfig,
+                notificationType: 'daily-reset:test-game',
+            };
+
+            const service = new DailyResetService(mockBot, { games: [configWithNotification] });
+            const sendResetMessageToGuild = (service as any).sendResetMessageToGuild;
+            await sendResetMessageToGuild.call(service, mockGuild, configWithNotification);
+
+            expect(mockSeedSubscribeReaction).toHaveBeenCalledWith(
+                expect.objectContaining({ id: 'test-message-id' }),
+                'daily-reset:test-game'
+            );
+        });
+
+        it('should NOT seed subscribe reaction when notificationType is not set', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const service = new DailyResetService(mockBot, { games: [testConfig] });
+            const sendResetMessageToGuild = (service as any).sendResetMessageToGuild;
+            await sendResetMessageToGuild.call(service, mockGuild, testConfig);
+
+            expect(mockSeedSubscribeReaction).not.toHaveBeenCalled();
+        });
+
+        it('should seed subscribe reaction on warning messages when notificationType is set', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const configWithNotification = {
+                ...testConfig,
+                notificationType: 'daily-reset:test-game',
+                warningConfig: { enabled: true, minutesBefore: 60 },
+            };
+
+            const service = new DailyResetService(mockBot, { games: [configWithNotification] });
+            const sendWarningMessageToGuild = (service as any).sendWarningMessageToGuild;
+            await sendWarningMessageToGuild.call(service, mockGuild, configWithNotification);
+
+            expect(mockSeedSubscribeReaction).toHaveBeenCalledWith(
+                expect.objectContaining({ id: 'test-message-id' }),
+                'daily-reset:test-game'
+            );
+        });
+
+        it('should send DM notifications after reset messages to all guilds', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const configWithNotification = {
+                ...testConfig,
+                notificationType: 'daily-reset:test-game',
+            };
+
+            const service = new DailyResetService(mockBot, { games: [configWithNotification] });
+            const sendResetMessage = (service as any).sendResetMessage;
+            await sendResetMessage.call(service, configWithNotification);
+
+            expect(mockSendNotification).toHaveBeenCalledWith(
+                mockBot,
+                'daily-reset:test-game',
+                expect.any(Object) // EmbedBuilder
+            );
+        });
+
+        it('should send DM notifications after warning messages to all guilds', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const configWithNotification = {
+                ...testConfig,
+                notificationType: 'daily-reset:test-game',
+                warningConfig: { enabled: true, minutesBefore: 60 },
+            };
+
+            const service = new DailyResetService(mockBot, { games: [configWithNotification] });
+            const sendWarningMessage = (service as any).sendWarningMessage;
+            await sendWarningMessage.call(service, configWithNotification);
+
+            expect(mockSendNotification).toHaveBeenCalledWith(
+                mockBot,
+                'daily-reset:test-game',
+                expect.any(Object)
+            );
+        });
+
+        it('should NOT send DM notifications when notificationType is not set', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+
+            const service = new DailyResetService(mockBot, { games: [testConfig] });
+            const sendResetMessage = (service as any).sendResetMessage;
+            await sendResetMessage.call(service, testConfig);
+
+            expect(mockSendNotification).not.toHaveBeenCalled();
+        });
+
+        it('should build simplified DM embed without checklist fields', async () => {
+            const configWithNotification = {
+                ...testConfig,
+                notificationType: 'daily-reset:test-game',
+            };
+
+            const service = new DailyResetService(mockBot, { games: [configWithNotification] });
+            const buildDMResetEmbed = (service as any).buildDMResetEmbed;
+            const embed = await buildDMResetEmbed.call(service, mockGuild, configWithNotification);
+
+            expect(embed.data.title).toBe('Test Title');
+            expect(embed.data.description).toContain('#test-channel');
+            expect(embed.data.description).toContain('full checklist');
+            // DM embed should have no fields (no checklist)
+            expect(embed.data.fields).toBeUndefined();
+        });
+
+        it('should handle DM notification errors gracefully', async () => {
+            vi.mocked(util.findChannelByName).mockReturnValue(mockChannel);
+            mockSendNotification.mockRejectedValueOnce(new Error('DM failed'));
+
+            const configWithNotification = {
+                ...testConfig,
+                notificationType: 'daily-reset:test-game',
+            };
+
+            const service = new DailyResetService(mockBot, { games: [configWithNotification] });
+            const sendResetMessage = (service as any).sendResetMessage;
+
+            // Should not throw
+            await expect(sendResetMessage.call(service, configWithNotification)).resolves.not.toThrow();
+        });
+
+        it('should include all game configs with notificationType in actual config', () => {
+            for (const gameConfig of dailyResetServiceConfig.games) {
+                expect(gameConfig.notificationType).toBeDefined();
+                expect(gameConfig.notificationType).toMatch(/^daily-reset:/);
+            }
         });
     });
 
