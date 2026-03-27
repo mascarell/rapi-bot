@@ -1,4 +1,4 @@
-import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import pLimit from 'p-limit';
 import { s3Client, S3_BUCKET } from '../../utils/cdn/config.js';
 import { logger } from '../../utils/logger.js';
@@ -99,7 +99,22 @@ export class AssetSyncService {
                 return result;
             }
 
-            // 4. Rate-limited sync
+            // 4. Detect slug collisions before syncing
+            const slugMap = new Map<string, string>(); // s3Key → character name
+            for (const character of characters) {
+                const targetRarity = provider.resolveTargetRarity(character);
+                const slug = provider.slugifyName(character.name);
+                const s3Key = `${ASSETS_PREFIX}/${gameId}/rarities/${targetRarity}/${slug}.webp`;
+                const existing = slugMap.get(s3Key);
+                if (existing) {
+                    logger.warn`[AssetSync] ${gameName}: slug collision! "${character.name}" and "${existing}" both map to ${s3Key}`;
+                }
+                slugMap.set(s3Key, character.name);
+            }
+
+            // 5. Rate-limited sync
+            // Note: manifestMap/result mutations below are safe — JS is single-threaded
+            // and all mutations happen between await points within the same event loop.
             const limit = pLimit(DOWNLOAD_CONCURRENCY);
             const tasks = characters.map(character => limit(async () => {
                 const targetRarity = provider.resolveTargetRarity(character);
@@ -110,16 +125,21 @@ export class AssetSyncService {
                 if (mode === 'incremental') {
                     const existing = manifestMap.get(character.code);
                     if (existing) {
-                        // Check if image has changed via HEAD request
+                        // Check if image has changed via HEAD request (Content-Length comparison)
+                        // If HEAD fails or Content-Length unavailable, trust manifest and skip
                         try {
                             const headResponse = await fetch(character.imageUrl, { method: 'HEAD' });
                             const remoteSize = parseInt(headResponse.headers.get('content-length') || '0', 10);
-                            if (remoteSize > 0 && remoteSize === existing.imageSize) {
+                            if (remoteSize === 0 || remoteSize === existing.imageSize) {
+                                // Size matches or unavailable — trust manifest, skip
                                 result.skipped++;
                                 return;
                             }
+                            // Size changed — re-download below
                         } catch {
-                            // HEAD failed — download anyway to be safe
+                            // HEAD failed — trust manifest and skip (use --full to force)
+                            result.skipped++;
+                            return;
                         }
                     }
                 }
@@ -138,8 +158,10 @@ export class AssetSyncService {
                         throw new Error(`Image too large: ${imageBuffer.length} bytes (max ${MAX_IMAGE_SIZE_BYTES})`);
                     }
 
-                    // Validate webp magic bytes (RIFF header)
-                    if (imageBuffer.length < 4 || imageBuffer.toString('ascii', 0, 4) !== 'RIFF') {
+                    // Validate WebP magic bytes: RIFF header + WEBP marker
+                    if (imageBuffer.length < 12 ||
+                        imageBuffer.toString('ascii', 0, 4) !== 'RIFF' ||
+                        imageBuffer.toString('ascii', 8, 12) !== 'WEBP') {
                         throw new Error('Downloaded file is not a valid WebP image');
                     }
 
@@ -175,7 +197,7 @@ export class AssetSyncService {
 
             await Promise.all(tasks);
 
-            // 5. Save updated manifest
+            // 6. Save updated manifest (note: not atomic — crash before this loses tracking but images are safe in S3)
             manifest.characters = [...manifestMap.values()];
             manifest.lastSyncAt = new Date().toISOString();
             await this.saveManifest(gameId, manifest);
