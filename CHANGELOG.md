@@ -1,3 +1,10 @@
+## [2.5.2](https://github.com/mascarell/rapi-bot/compare/v2.5.1...v2.5.2) (2026-03-27)
+
+
+### Bug Fixes
+
+* polish notification DM footers with Rapi avatar and clean text ([#229](https://github.com/mascarell/rapi-bot/issues/229)) ([eb69182](https://github.com/mascarell/rapi-bot/commit/eb6918265e11fe0a5aee815d3c380556c4f890cd))
+
 ## [2.5.1](https://github.com/mascarell/rapi-bot/compare/v2.5.0...v2.5.1) (2026-03-27)
 
 
