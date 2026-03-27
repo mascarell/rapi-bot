@@ -148,5 +148,10 @@ export class ChatCommandRateLimiter {
             if (Object.keys(this.usage[guildId]).length === 0) delete this.usage[guildId];
             if (this.violators[guildId] && Object.keys(this.violators[guildId]).length === 0) delete this.violators[guildId];
         });
+
+        // Reset command usage stats (these are display-only and grow without bounds)
+        this.commandUsage = {};
+        this.guildCommandCount = {};
+        this.globalCommandCount = 0;
     }
 } 
