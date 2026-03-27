@@ -5,6 +5,10 @@ import { logger } from "../logger.js";
 // Track recently sent media keys per guild and prefix
 const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
 
+// Cache S3 ListObjectsV2 results per prefix (1-hour TTL — media files change rarely)
+const MEDIA_LIST_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const mediaListCache = new Map<string, { keys: string[]; expiry: number }>();
+
 /**
  * Retrieves and filters media from the CDN based on specified criteria, with guild-based tracking 
  * to prevent recent repeats within each server.
@@ -52,6 +56,14 @@ async function fetchAndFilterMediaKeys(
     maxSizeMB: number,
     extensions: string[]
 ): Promise<string[]> {
+    // Build cache key from all filter params
+    const cacheKey = `${prefix}|${maxSizeMB}|${extensions.join(',')}`;
+    const cached = mediaListCache.get(cacheKey);
+
+    if (cached && Date.now() < cached.expiry) {
+        return cached.keys;
+    }
+
     const response = await s3Client.send(new ListObjectsV2Command({
         Bucket: S3_BUCKET,
         Prefix: prefix,
@@ -67,7 +79,7 @@ async function fetchAndFilterMediaKeys(
             return sizeInMB <= maxSizeMB;
         })
         .map(obj => obj.Key)
-        .filter(key => key && (extensions.length === 0 || extensions.some(ext => 
+        .filter(key => key && (extensions.length === 0 || extensions.some(ext =>
             key.toLowerCase().endsWith(ext)
         )));
 
@@ -75,7 +87,9 @@ async function fetchAndFilterMediaKeys(
         throw new Error(`No valid media files found under ${maxSizeMB}MB with extensions: ${extensions.join(', ')}`);
     }
 
-    return mediaKeys.filter(key => key !== undefined) as string[];
+    const result = mediaKeys.filter(key => key !== undefined) as string[];
+    mediaListCache.set(cacheKey, { keys: result, expiry: Date.now() + MEDIA_LIST_CACHE_TTL });
+    return result;
 }
 
 async function getRandomUniqueKey(
