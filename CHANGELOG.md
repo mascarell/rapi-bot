@@ -1,3 +1,10 @@
+## [2.5.3](https://github.com/mascarell/rapi-bot/compare/v2.5.2...v2.5.3) (2026-03-27)
+
+
+### Bug Fixes
+
+* replace raw notification type slugs with display names in footers ([#230](https://github.com/mascarell/rapi-bot/issues/230)) ([a0c909e](https://github.com/mascarell/rapi-bot/commit/a0c909e09db2a4312a3b41a3947a09ca45c615a6))
+
 ## [2.5.2](https://github.com/mascarell/rapi-bot/compare/v2.5.1...v2.5.2) (2026-03-27)
 
 
