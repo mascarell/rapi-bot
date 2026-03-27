@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/mascarell/rapi-bot/compare/v2.5.3...v2.6.0) (2026-03-27)
+
+
+### Features
+
+* add game asset sync framework with NIKKE provider ([#232](https://github.com/mascarell/rapi-bot/issues/232)) ([9573a00](https://github.com/mascarell/rapi-bot/commit/9573a00f0ac41104f5b17427a25dc8c11fb960b1))
+
 ## [2.5.3](https://github.com/mascarell/rapi-bot/compare/v2.5.2...v2.5.3) (2026-03-27)
 
 
