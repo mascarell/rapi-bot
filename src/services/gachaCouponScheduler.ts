@@ -244,9 +244,20 @@ export class GachaCouponScheduler {
 
                 if (result.success) {
                     if (result.newCodes.length > 0) {
-                        // Trigger auto-redemption for new codes with notification enabled
                         const redemptionService = getGachaRedemptionService();
-                        await redemptionService.processGameAutoRedemptions(this.bot, 'bd2', { hasNewCodes: true });
+                        const dataService = getGachaDataService();
+
+                        // Notify subscribers for each new code (DMs + coupon alerts)
+                        for (const code of result.newCodes) {
+                            try {
+                                const coupon = await dataService.getCoupon('bd2', code);
+                                if (coupon) {
+                                    await redemptionService.notifyNewCode(this.bot, coupon);
+                                }
+                            } catch (error) {
+                                logger.error`[BD2 Pulse] Failed to notify for code ${code}: ${error}`;
+                            }
+                        }
                     }
                 } else {
                     logger.error`[BD2 Pulse] Scraping failed: ${result.error}`;
