@@ -170,7 +170,7 @@ describe('NotificationSubscriptionService', () => {
             expect(sendDMSafe).not.toHaveBeenCalled();
         });
 
-        it('should append footer tag with notification type', async () => {
+        it('should set branded footer with display name', async () => {
             vi.mocked(mockDataService.getSubscribers).mockResolvedValueOnce([
                 { discordId: 'user1', guildId: 'g1', notificationType: 'pvp-warning:bd2-mirror-wars', subscribedAt: '' },
             ]);
@@ -187,11 +187,11 @@ describe('NotificationSubscriptionService', () => {
 
             await service.sendNotification(mockBot, 'pvp-warning:bd2-mirror-wars', embed);
 
-            // Check the embed passed to sendDMSafe has the footer tag
+            // Check the embed passed to sendDMSafe has branded footer with display name
             const call = vi.mocked(sendDMSafe).mock.calls[0];
             const sentEmbed = call[1].embeds[0];
-            expect(sentEmbed.data.footer?.text).toContain('[n:pvp-warning:bd2-mirror-wars]');
-            expect(sentEmbed.data.footer?.text).toContain('Original footer');
+            expect(sentEmbed.data.footer?.text).toContain('Rapi BOT Notifications');
+            expect(sentEmbed.data.footer?.text).toContain('BD2 Mirror Wars PVP');
         });
 
         it('should count failures when sendDMSafe returns null', async () => {
@@ -239,7 +239,19 @@ describe('NotificationSubscriptionService', () => {
     });
 
     describe('Footer Tag Parsing', () => {
-        it('should parse notification type from embed footer', () => {
+        it('should parse notification type from display name in footer', () => {
+            const parseMethod = (service as any).parseNotificationTypeFromEmbed.bind(service);
+
+            const message = {
+                embeds: [{
+                    footer: { text: 'Rapi BOT Notifications • BD2 Mirror Wars PVP' },
+                }],
+            } as any;
+
+            expect(parseMethod(message)).toBe('pvp-warning:bd2-mirror-wars');
+        });
+
+        it('should parse notification type from legacy [n:type] footer tag', () => {
             const parseMethod = (service as any).parseNotificationTypeFromEmbed.bind(service);
 
             const message = {

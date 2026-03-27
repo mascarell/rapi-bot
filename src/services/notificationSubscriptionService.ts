@@ -142,13 +142,12 @@ export class NotificationSubscriptionService {
 
         if (subscribers.length === 0) return result;
 
-        // Append footer tag for unsubscribe parsing, ensure Rapi thumbnail icon
+        // Set branded footer with display name (used for unsubscribe type lookup)
         const ASSET_URLS = getAssetUrls();
-        const footerText = embed.data.footer?.text || 'Rapi BOT Notifications';
-        const taggedFooter = `${footerText} | [n:${notificationType}]`;
+        const displayName = typeConfig?.displayName || notificationType;
         const footerIcon = embed.data.footer?.icon_url || ASSET_URLS.rapiBot.thumbnail;
         embed.setFooter({
-            text: taggedFooter,
+            text: `Rapi BOT Notifications • ${displayName}`,
             ...(footerIcon?.startsWith('http') ? { iconURL: footerIcon } : {}),
         });
 
@@ -308,7 +307,7 @@ export class NotificationSubscriptionService {
                 .setDescription(result.message)
                 .setColor(result.success ? 0x00FF00 : 0xFFA500)
                 .setFooter({
-                    text: `Rapi BOT Notifications | [n:${notificationType}]`,
+                    text: `Rapi BOT Notifications • ${typeConfig?.displayName || notificationType}`,
                     ...(confirmFooterIcon?.startsWith('http') ? { iconURL: confirmFooterIcon } : {}),
                 })
                 .setTimestamp();
@@ -384,18 +383,33 @@ export class NotificationSubscriptionService {
     }
 
     /**
-     * Parse notification type from message embed footer tag [type:...]
+     * Parse notification type from message embed footer.
+     * Matches the display name after "Rapi BOT Notifications • " against the type registry.
+     * Falls back to legacy [n:type] tag parsing for older DMs.
      */
     private parseNotificationTypeFromEmbed(message: Message): NotificationType | undefined {
         const embed = message.embeds[0];
         if (!embed?.footer?.text) return undefined;
 
-        const match = embed.footer.text.match(NOTIFICATION_TYPE_FOOTER_REGEX);
-        if (!match) return undefined;
+        const footerText = embed.footer.text;
 
-        const type = match[1];
-        // Only handle types we know about
-        return this.typeRegistry.has(type) ? type : undefined;
+        // Try display name lookup: "Rapi BOT Notifications • Display Name"
+        const displayNameMatch = footerText.match(/Rapi BOT Notifications\s*[•·|]\s*(.+)/);
+        if (displayNameMatch) {
+            const displayName = displayNameMatch[1].trim();
+            for (const [type, config] of this.typeRegistry) {
+                if (config.displayName === displayName) return type;
+            }
+        }
+
+        // Legacy fallback: parse [n:type] tag for older DMs
+        const legacyMatch = footerText.match(NOTIFICATION_TYPE_FOOTER_REGEX);
+        if (legacyMatch) {
+            const type = legacyMatch[1];
+            return this.typeRegistry.has(type) ? type : undefined;
+        }
+
+        return undefined;
     }
 }
 
