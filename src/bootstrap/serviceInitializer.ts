@@ -9,6 +9,7 @@ import { YouTubeNotificationScheduler } from '../services/youtubeNotificationSch
 import { PvpReminderService } from '../services/pvpReminderService.js';
 import { pvpReminderServiceConfig } from '../utils/data/pvpEventsConfig.js';
 import { getNotificationSubscriptionService } from '../services/notificationSubscriptionService.js';
+import { GACHA_GAMES } from '../utils/data/gachaGamesConfig.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -81,6 +82,17 @@ export async function initializeServices(bot: Client): Promise<void> {
                     thumbnailUrl: gameConfig.embedConfig.thumbnail,
                 });
             }
+        }
+
+        // Register coupon alert notification types for each gacha game
+        for (const game of Object.values(GACHA_GAMES)) {
+            notificationService.registerNotificationType({
+                type: `coupon-alert:${game.id}`,
+                displayName: `${game.shortName} Coupon Alerts`,
+                description: `New coupon code alerts for ${game.name}`,
+                embedColor: game.embedColor,
+                thumbnailUrl: game.logoPath,
+            });
         }
 
         notificationService.startListening(bot);

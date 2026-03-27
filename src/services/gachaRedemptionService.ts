@@ -3,6 +3,7 @@ import pLimit from 'p-limit';
 import { getGachaDataService } from './gachaDataService.js';
 import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from './reactionConfirmationService.js';
 import { getChannelMonitorService } from './channelMonitorService.js';
+import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
 import {
     RedemptionResult,
     GachaCoupon,
@@ -1135,6 +1136,34 @@ export class GachaRedemptionService {
         // Batch write redemption history
         if (historyEntries.length > 0) {
             await dataService.addBatchRedemptionHistory(historyEntries);
+        }
+
+        // Send notification to coupon-alert subscribers (separate from gacha subscriptions)
+        await this.sendCouponAlertNotification(bot, coupon, embed);
+    }
+
+    /**
+     * Send a coupon alert to subscribers of the coupon-alert notification type.
+     * This is separate from gacha subscriptions — users can get alerts without having
+     * a game account set up. Reuses the embed already built by notifyNewCode().
+     */
+    private async sendCouponAlertNotification(bot: Client, coupon: GachaCoupon, embed: EmbedBuilder): Promise<void> {
+        const notificationType = `coupon-alert:${coupon.gameId}`;
+        const notificationService = getNotificationSubscriptionService();
+
+        // Only send if this notification type is registered
+        if (!notificationService.getNotificationType(notificationType)) return;
+
+        try {
+            // Clone the embed to avoid mutating the original (sendNotification appends footer/fields)
+            const alertEmbed = EmbedBuilder.from(embed.toJSON());
+            const result = await notificationService.sendNotification(bot, notificationType, alertEmbed);
+
+            if (result.sent > 0 || result.failed > 0) {
+                logger.debug`[Gacha] Coupon alert DMs for ${coupon.gameId} code ${coupon.code}: sent=${result.sent}, failed=${result.failed}, dmDisabled=${result.dmDisabled}`;
+            }
+        } catch (error) {
+            logger.error`[Gacha] Failed to send coupon alert DMs for ${coupon.gameId}: ${error}`;
         }
     }
 
