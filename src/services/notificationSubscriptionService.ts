@@ -14,6 +14,7 @@ import {
 import { getNotificationSubscriptionDataService } from './notificationSubscriptionDataService.js';
 import { sendDMSafe } from '../utils/dmSender.js';
 import { NOTIFICATION_CONFIG, NOTIFICATION_TYPE_FOOTER_REGEX } from '../utils/data/notificationConfig.js';
+import { getAssetUrls } from '../config/assets.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -141,14 +142,14 @@ export class NotificationSubscriptionService {
 
         if (subscribers.length === 0) return result;
 
-        // Append footer tag for unsubscribe parsing
-        const footerText = embed.data.footer?.text || '';
-        const taggedFooter = footerText
-            ? `${footerText} | [n:${notificationType}]`
-            : `[n:${notificationType}]`;
+        // Append footer tag for unsubscribe parsing, ensure Rapi thumbnail icon
+        const ASSET_URLS = getAssetUrls();
+        const footerText = embed.data.footer?.text || 'Rapi BOT Notifications';
+        const taggedFooter = `${footerText} | [n:${notificationType}]`;
+        const footerIcon = embed.data.footer?.icon_url || ASSET_URLS.rapiBot.thumbnail;
         embed.setFooter({
             text: taggedFooter,
-            iconURL: embed.data.footer?.icon_url,
+            ...(footerIcon?.startsWith('http') ? { iconURL: footerIcon } : {}),
         });
 
         // Add unsubscribe instruction as last field
@@ -300,11 +301,16 @@ export class NotificationSubscriptionService {
 
             // Send confirmation DM with unsubscribe option
             const fullUser = user.partial ? await bot.users.fetch(user.id) : user;
+            const ASSET_URLS = getAssetUrls();
+            const confirmFooterIcon = ASSET_URLS.rapiBot.thumbnail;
             const confirmEmbed = new EmbedBuilder()
                 .setTitle(result.success ? 'Subscribed!' : 'Already Subscribed')
                 .setDescription(result.message)
                 .setColor(result.success ? 0x00FF00 : 0xFFA500)
-                .setFooter({ text: `[n:${notificationType}]` })
+                .setFooter({
+                    text: `Rapi BOT Notifications | [n:${notificationType}]`,
+                    ...(confirmFooterIcon?.startsWith('http') ? { iconURL: confirmFooterIcon } : {}),
+                })
                 .setTimestamp();
 
             if (typeConfig?.thumbnailUrl) {
@@ -356,9 +362,14 @@ export class NotificationSubscriptionService {
 
             // Edit the original DM to show unsubscribed status
             try {
+                const ASSET_URLS = getAssetUrls();
+                const unsubFooterIcon = ASSET_URLS.rapiBot.thumbnail;
                 const updatedEmbed = EmbedBuilder.from(message.embeds[0])
                     .setColor(0x808080) // Gray
-                    .setFooter({ text: `Unsubscribed from ${typeConfig?.displayName || notificationType}` });
+                    .setFooter({
+                        text: `Unsubscribed from ${typeConfig?.displayName || notificationType}`,
+                        ...(unsubFooterIcon?.startsWith('http') ? { iconURL: unsubFooterIcon } : {}),
+                    });
                 await message.edit({ embeds: [updatedEmbed] });
             } catch {
                 // Message may be too old to edit — non-critical
