@@ -69,6 +69,20 @@ export async function initializeServices(bot: Client): Promise<void> {
             description: 'Weekly PVP season end reminders for Brown Dust 2',
             embedColor: 0x8B4513,
         });
+
+        // Register daily reset notification types for each game
+        for (const gameConfig of dailyResetServiceConfig.games) {
+            if (gameConfig.notificationType) {
+                notificationService.registerNotificationType({
+                    type: gameConfig.notificationType,
+                    displayName: `${gameConfig.game} Daily Reset`,
+                    description: `Daily reset reminders for ${gameConfig.game}`,
+                    embedColor: gameConfig.embedConfig.color,
+                    thumbnailUrl: gameConfig.embedConfig.thumbnail,
+                });
+            }
+        }
+
         notificationService.startListening(bot);
         logger.info`Notification subscription service initialized`;
 

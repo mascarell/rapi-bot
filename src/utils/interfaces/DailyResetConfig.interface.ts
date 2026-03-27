@@ -149,6 +149,14 @@ export interface DailyResetConfig {
      * When enabled, sends a warning message before the daily reset
      */
     warningConfig?: WarningConfig;
+
+    /**
+     * Optional notification type for DM subscriptions.
+     * When set, reset messages will have a subscribe reaction and
+     * DMs will be sent to subscribers on each reset/warning.
+     * Convention: "daily-reset:{game-slug}" e.g., "daily-reset:nikke"
+     */
+    notificationType?: string;
 }
 
 /**

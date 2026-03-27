@@ -3,6 +3,7 @@ import schedule from 'node-schedule';
 import { DailyResetConfig, DailyResetServiceConfig } from '../utils/interfaces/DailyResetConfig.interface';
 import { findChannelByName, findRoleByName, logError } from '../utils/util';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager';
+import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -127,6 +128,9 @@ export class DailyResetService {
                 );
             }
         }
+
+        // Send DM notifications to subscribers (once, not per-guild)
+        await this.sendDMNotifications(config, 'reset');
     }
 
     /**
@@ -147,6 +151,9 @@ export class DailyResetService {
                 );
             }
         }
+
+        // Send DM notifications to subscribers (once, not per-guild)
+        await this.sendDMNotifications(config, 'warning');
     }
 
     /**
@@ -179,6 +186,12 @@ export class DailyResetService {
         // Send the embed message
         const sentMessage = await channel.send({ embeds: [embed] });
 
+        // Seed subscribe reaction for DM notifications
+        if (config.notificationType) {
+            const notificationService = getNotificationSubscriptionService();
+            await notificationService.seedSubscribeReaction(sentMessage, config.notificationType);
+        }
+
         // Execute afterSend hook if provided
         if (config.hooks?.afterSend) {
             await config.hooks.afterSend(sentMessage, guild.id, this.bot);
@@ -201,6 +214,12 @@ export class DailyResetService {
 
         // Send the warning embed message (NO role ping as per requirements)
         const sentMessage = await channel.send({ embeds: [embed] });
+
+        // Seed subscribe reaction for DM notifications
+        if (config.notificationType) {
+            const notificationService = getNotificationSubscriptionService();
+            await notificationService.seedSubscribeReaction(sentMessage, config.notificationType);
+        }
 
         // Execute afterSend hook if provided (warnings can have hooks too)
         if (config.hooks?.afterSend) {
@@ -336,6 +355,57 @@ export class DailyResetService {
                 // Log but don't fail the entire message if media fetch fails
                 logger.warn`Failed to fetch warning media for ${config.game} in guild ${guild.name}: ${error}`;
             }
+        }
+
+        return embed;
+    }
+
+    /**
+     * Send DM notifications to subscribers for a daily reset or warning.
+     * Uses the first available guild to build the embed (media URLs are guild-scoped for tracking).
+     */
+    private async sendDMNotifications(config: DailyResetConfig, type: 'reset' | 'warning'): Promise<void> {
+        if (!config.notificationType) return;
+
+        try {
+            const firstGuild = this.bot.guilds.cache.values().next().value;
+            if (!firstGuild) return;
+
+            const embed = type === 'reset'
+                ? await this.buildDMResetEmbed(firstGuild, config)
+                : await this.buildWarningEmbed(firstGuild, config);
+
+            const notificationService = getNotificationSubscriptionService();
+            const result = await notificationService.sendNotification(this.bot, config.notificationType, embed);
+
+            if (result.sent > 0 || result.failed > 0) {
+                logger.debug`[DailyReset] DM ${type} notifications for ${config.game}: sent=${result.sent}, failed=${result.failed}, dmDisabled=${result.dmDisabled}`;
+            }
+        } catch (error) {
+            logger.error`[DailyReset] Failed to send DM ${type} notifications for ${config.game}: ${error}`;
+        }
+    }
+
+    /**
+     * Build a simplified embed for DM reset notifications.
+     * Omits the full checklist to keep DMs concise — includes title, description, and channel reference.
+     */
+    private async buildDMResetEmbed(guild: Guild, config: DailyResetConfig): Promise<EmbedBuilder> {
+        const embed = new EmbedBuilder()
+            .setTitle(config.embedConfig.title)
+            .setDescription(`${config.embedConfig.description}\nCheck **#${config.channelName}** for the full checklist!`)
+            .setColor(config.embedConfig.color)
+            .setTimestamp();
+
+        if (config.embedConfig.author) {
+            embed.setAuthor({
+                name: config.embedConfig.author.name,
+                iconURL: config.embedConfig.author.iconURL,
+            });
+        }
+
+        if (config.embedConfig.thumbnail) {
+            embed.setThumbnail(config.embedConfig.thumbnail);
         }
 
         return embed;
