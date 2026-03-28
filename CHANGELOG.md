@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/mascarell/rapi-bot/compare/v2.6.0...v2.7.0) (2026-03-28)
+
+
+### Features
+
+* wire asset sync scheduler into service initializer ([#233](https://github.com/mascarell/rapi-bot/issues/233)) ([c30464b](https://github.com/mascarell/rapi-bot/commit/c30464bbb7f6ad3f591c511788efe63fc34318fa))
+
 # [2.6.0](https://github.com/mascarell/rapi-bot/compare/v2.5.3...v2.6.0) (2026-03-27)
 
 
