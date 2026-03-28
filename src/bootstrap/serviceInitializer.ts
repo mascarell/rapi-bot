@@ -10,6 +10,7 @@ import { PvpReminderService } from '../services/pvpReminderService.js';
 import { pvpReminderServiceConfig } from '../utils/data/pvpEventsConfig.js';
 import { getNotificationSubscriptionService } from '../services/notificationSubscriptionService.js';
 import { GACHA_GAMES } from '../utils/data/gachaGamesConfig.js';
+import { AssetSyncScheduler } from '../services/assetSync/index.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -103,6 +104,13 @@ export async function initializeServices(bot: Client): Promise<void> {
         const pvpReminderService = new PvpReminderService(bot, pvpReminderServiceConfig);
         pvpReminderService.initializeSchedules();
         logger.info`PVP reminder service initialized`;
+
+        // Initialize asset sync scheduler (periodic character art sync from external APIs)
+        const assetSyncScheduler = new AssetSyncScheduler({
+            devSyncIntervalMinutes: 10,
+        });
+        assetSyncScheduler.initializeSchedules();
+        logger.info`Asset sync scheduler initialized`;
 
         logger.info`All services initialized successfully`;
     } catch (error) {
