@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/mascarell/rapi-bot/compare/v2.7.0...v2.8.0) (2026-03-28)
+
+
+### Features
+
+* add Fandom wiki fallback for missing DotGG character art ([#234](https://github.com/mascarell/rapi-bot/issues/234)) ([6169749](https://github.com/mascarell/rapi-bot/commit/6169749311c7f360f6e54faebadab821edaa1098))
+
 # [2.7.0](https://github.com/mascarell/rapi-bot/compare/v2.6.0...v2.7.0) (2026-03-28)
 
 
