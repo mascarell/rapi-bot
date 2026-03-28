@@ -10,6 +10,8 @@ export interface CharacterAsset {
     sourceRarity: string;
     /** Full URL to download the image */
     imageUrl: string;
+    /** Whether this is a collab unit (excluded from gacha pool but still synced) */
+    collab?: boolean;
     /** Extra metadata from the provider (e.g. manufacturer for Pilgrim detection) */
     metadata?: Record<string, unknown>;
 }
@@ -69,6 +71,8 @@ export interface ManifestEntry {
     s3Key: string;
     /** ISO timestamp of when this character was last synced */
     syncedAt: string;
+    /** Whether this character is a collab unit (excluded from gacha pool) */
+    collab?: boolean;
 }
 
 /**

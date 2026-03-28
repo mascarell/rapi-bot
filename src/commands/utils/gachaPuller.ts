@@ -1,11 +1,17 @@
-import { ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { s3Client } from '../../utils/cdn';
+import { GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { s3Client, S3_BUCKET } from '../../utils/cdn/config.js';
 import { CONSTANTS } from './gachaConstants';
 import { GachaGameConfig, PullResult } from './gachaTypes';
 import { NikkeUtil } from './nikkeUtil.js';
+import { GameManifest } from '../../services/assetSync/types.js';
+import { logger } from '../../utils/logger.js';
 
 const RARITY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 const rarityCache = new Map<string, { files: string[]; expiry: number }>();
+
+// Manifest cache (collab exclusion list)
+const MANIFEST_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+let manifestCache: { collabSlugs: Set<string>; expiry: number } | null = null;
 
 export class GachaPuller {
     static async pull(pullType: string, gameConfig: GachaGameConfig): Promise<PullResult[]> {
@@ -33,6 +39,41 @@ export class GachaPuller {
         return Object.keys(rates)[0];
     }
 
+    /**
+     * Load collab slugs from the manifest to exclude from the gacha pool.
+     */
+    private static async getCollabSlugs(game: string): Promise<Set<string>> {
+        if (manifestCache && Date.now() < manifestCache.expiry) {
+            return manifestCache.collabSlugs;
+        }
+
+        const collabSlugs = new Set<string>();
+
+        try {
+            const response = await s3Client.send(new GetObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: `assets/gacha/${game}/manifest.json`,
+            }));
+
+            const body = await response.Body?.transformToString();
+            if (body) {
+                const manifest: GameManifest = JSON.parse(body);
+                for (const entry of manifest.characters) {
+                    if (entry.collab) {
+                        // Match the filename as it appears in S3 (slug.webp or slug.png)
+                        collabSlugs.add(`${entry.slug}.webp`);
+                        collabSlugs.add(`${entry.slug}.png`);
+                    }
+                }
+            }
+        } catch {
+            // No manifest or read error — don't exclude anything
+        }
+
+        manifestCache = { collabSlugs, expiry: Date.now() + MANIFEST_CACHE_TTL };
+        return collabSlugs;
+    }
+
     private static async getRarityFiles(game: string, rarity: string): Promise<string[]> {
         const cacheKey = `${game}/${rarity.toLowerCase()}`;
         const cached = rarityCache.get(cacheKey);
@@ -41,9 +82,9 @@ export class GachaPuller {
             return cached.files;
         }
 
-        const prefix = `gacha/${game}/rarities/${rarity.toLowerCase()}`;
+        const prefix = `assets/gacha/${game}/rarities/${rarity.toLowerCase()}`;
         const response = await s3Client.send(new ListObjectsV2Command({
-            Bucket: process.env.S3BUCKET,
+            Bucket: S3_BUCKET,
             Prefix: prefix,
         }));
 
@@ -51,9 +92,18 @@ export class GachaPuller {
             throw new Error(`No characters found for ${rarity}`);
         }
 
+        // Get collab exclusion list
+        const collabSlugs = await this.getCollabSlugs(game);
+
         const validFiles = response.Contents
             .map(obj => obj.Key?.split('/').pop())
-            .filter((name): name is string => name?.endsWith('.webp') ?? false);
+            .filter((name): name is string => {
+                if (!name) return false;
+                if (!name.endsWith('.webp') && !name.endsWith('.png')) return false;
+                // Exclude collab characters from the pool
+                if (collabSlugs.has(name)) return false;
+                return true;
+            });
 
         if (!validFiles.length) {
             throw new Error(`No valid character files found for ${rarity}`);
@@ -67,7 +117,7 @@ export class GachaPuller {
         game: string,
         rarity: string
     ): Promise<PullResult> {
-        const prefix = `gacha/${game}/rarities/${rarity.toLowerCase()}`;
+        const prefix = `assets/gacha/${game}/rarities/${rarity.toLowerCase()}`;
         const validFiles = await this.getRarityFiles(game, rarity);
         const randomFile = validFiles[Math.floor(Math.random() * validFiles.length)];
 
@@ -77,4 +127,4 @@ export class GachaPuller {
             imageUrl: `${CONSTANTS.cdnDomainUrl}/${prefix}/${randomFile}`
         };
     }
-} 
+}
