@@ -145,10 +145,19 @@ export class AssetSyncService {
                 }
 
                 try {
-                    // Download image
-                    const imageResponse = await fetch(character.imageUrl);
+                    // Download image — try primary URL, then fallback on 404
+                    let imageResponse = await fetch(character.imageUrl);
+
+                    if (!imageResponse.ok && imageResponse.status === 404 && provider.getFallbackImageUrl) {
+                        const fallbackUrl = await provider.getFallbackImageUrl(character);
+                        if (fallbackUrl) {
+                            logger.debug`[AssetSync] ${gameName}: primary 404 for ${character.name}, trying fallback`;
+                            imageResponse = await fetch(fallbackUrl);
+                        }
+                    }
+
                     if (!imageResponse.ok) {
-                        throw new Error(`HTTP ${imageResponse.status} downloading ${character.imageUrl}`);
+                        throw new Error(`HTTP ${imageResponse.status} downloading ${character.name}`);
                     }
 
                     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
@@ -158,19 +167,25 @@ export class AssetSyncService {
                         throw new Error(`Image too large: ${imageBuffer.length} bytes (max ${MAX_IMAGE_SIZE_BYTES})`);
                     }
 
-                    // Validate WebP magic bytes: RIFF header + WEBP marker
-                    if (imageBuffer.length < 12 ||
-                        imageBuffer.toString('ascii', 0, 4) !== 'RIFF' ||
-                        imageBuffer.toString('ascii', 8, 12) !== 'WEBP') {
-                        throw new Error('Downloaded file is not a valid WebP image');
+                    // Validate image format (WebP or PNG)
+                    const isWebP = imageBuffer.length >= 12 &&
+                        imageBuffer.toString('ascii', 0, 4) === 'RIFF' &&
+                        imageBuffer.toString('ascii', 8, 12) === 'WEBP';
+                    const isPNG = imageBuffer.length >= 4 &&
+                        imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 &&
+                        imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47;
+
+                    if (!isWebP && !isPNG) {
+                        throw new Error('Downloaded file is not a valid image (expected WebP or PNG)');
                     }
 
                     // Upload to S3
+                    const contentType = isPNG ? 'image/png' : 'image/webp';
                     await s3Client.send(new PutObjectCommand({
                         Bucket: S3_BUCKET,
                         Key: s3Key,
                         Body: imageBuffer,
-                        ContentType: 'image/webp',
+                        ContentType: contentType,
                         ACL: 'public-read',
                     }));
 

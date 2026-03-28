@@ -4,6 +4,7 @@ import { logger } from '../../../utils/logger.js';
 
 const NIKKE_API_URL = 'https://api.dotgg.gg/nikke/characters/';
 const NIKKE_IMAGE_BASE = 'https://static.dotgg.gg/nikke/characters';
+const FANDOM_API_BASE = 'https://nikke-goddess-of-victory-international.fandom.com/api.php';
 
 interface DotGGCharacter {
     name: string;
@@ -51,6 +52,77 @@ export class NikkeAssetProvider implements GameAssetProvider {
 
     slugifyName(name: string): string {
         return slugify(name);
+    }
+
+    /**
+     * Fallback: search the Fandom wiki for full-body art (_FB.png) when DotGG 404s.
+     * Uses the MediaWiki allimages API to search by character name prefix.
+     */
+    async getFallbackImageUrl(character: CharacterAsset): Promise<string | null> {
+        try {
+            const baseName = character.name.split(':')[0].trim().replace(/ /g, '_');
+
+            const params = new URLSearchParams({
+                action: 'query',
+                list: 'allimages',
+                aiprefix: baseName,
+                ailimit: '50',
+                format: 'json',
+            });
+
+            const response = await fetch(`${FANDOM_API_BASE}?${params}`, {
+                headers: { 'User-Agent': 'RapiBot/1.0 (Discord Bot)' },
+            });
+
+            if (!response.ok) return null;
+
+            const data = await response.json() as {
+                query?: { allimages?: Array<{ name: string }> };
+            };
+
+            const allImages = data.query?.allimages || [];
+            const fbImages = allImages
+                .filter(img => img.name.endsWith('_FB.png'))
+                .map(img => img.name);
+
+            if (fbImages.length === 0) return null;
+
+            // Best match: exact base name, otherwise first FB image found
+            const exactMatch = fbImages.find(f => f === `${baseName}_FB.png`);
+            const bestMatch = exactMatch || fbImages[0];
+
+            // Resolve actual URL via imageinfo API
+            const infoParams = new URLSearchParams({
+                action: 'query',
+                titles: `File:${bestMatch}`,
+                prop: 'imageinfo',
+                iiprop: 'url',
+                format: 'json',
+            });
+
+            const infoResponse = await fetch(`${FANDOM_API_BASE}?${infoParams}`, {
+                headers: { 'User-Agent': 'RapiBot/1.0 (Discord Bot)' },
+            });
+
+            if (!infoResponse.ok) return null;
+
+            const infoData = await infoResponse.json() as {
+                query?: { pages?: Record<string, { imageinfo?: Array<{ url: string }> }> };
+            };
+
+            const pages = infoData.query?.pages || {};
+            for (const page of Object.values(pages)) {
+                const url = page.imageinfo?.[0]?.url;
+                if (url) {
+                    logger.debug`[AssetSync:NIKKE] Fandom fallback for ${character.name}: ${bestMatch}`;
+                    return url;
+                }
+            }
+        } catch (error) {
+            logger.warn`[AssetSync:NIKKE] Fandom fallback failed for ${character.name}: ${error}`;
+        }
+
+        return null;
     }
 
     async fetchCharacterList(): Promise<CharacterAsset[]> {
