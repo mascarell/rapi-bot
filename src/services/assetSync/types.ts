@@ -43,6 +43,12 @@ export interface GameAssetProvider {
      * Convert a character display name to a slugified filename (without extension).
      */
     slugifyName(name: string): string;
+
+    /**
+     * Optional: resolve a fallback image URL when the primary imageUrl returns 404.
+     * Return null if no fallback is available.
+     */
+    getFallbackImageUrl?(character: CharacterAsset): Promise<string | null>;
 }
 
 /**
