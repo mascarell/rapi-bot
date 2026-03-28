@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/mascarell/rapi-bot/compare/v2.8.0...v2.9.0) (2026-03-28)
+
+
+### Features
+
+* exclude collab characters from gacha pool via manifest ([#235](https://github.com/mascarell/rapi-bot/issues/235)) ([923a50c](https://github.com/mascarell/rapi-bot/commit/923a50c920c562744aa46fd4bfc2e8ce5ccfc480))
+
 # [2.8.0](https://github.com/mascarell/rapi-bot/compare/v2.7.0...v2.8.0) (2026-03-28)
 
 
