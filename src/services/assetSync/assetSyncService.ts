@@ -125,6 +125,11 @@ export class AssetSyncService {
                 if (mode === 'incremental') {
                     const existing = manifestMap.get(character.code);
                     if (existing) {
+                        // Update collab flag even when skipping (in case it changed)
+                        if (character.collab !== undefined && existing.collab !== character.collab) {
+                            existing.collab = character.collab || undefined;
+                        }
+
                         // Check if image has changed via HEAD request (Content-Length comparison)
                         // If HEAD fails or Content-Length unavailable, trust manifest and skip
                         try {
@@ -198,6 +203,7 @@ export class AssetSyncService {
                         imageSize: imageBuffer.length,
                         s3Key,
                         syncedAt: new Date().toISOString(),
+                        ...(character.collab ? { collab: true } : {}),
                     };
 
                     manifestMap.set(character.code, entry);

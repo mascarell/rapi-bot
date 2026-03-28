@@ -160,6 +160,7 @@ export class NikkeAssetProvider implements GameAssetProvider {
                 code,
                 sourceRarity: char.rarity,
                 imageUrl: `${NIKKE_IMAGE_BASE}/${code}_00.webp`,
+                collab: char.manufacturer === 'Abnormal',
                 metadata: {
                     manufacturer: char.manufacturer,
                 },

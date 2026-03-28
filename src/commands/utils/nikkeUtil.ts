@@ -1,6 +1,6 @@
 export const NikkeUtil = {
     fileToCharacterName(fileName: string): string {
-        const baseName = fileName.replace(/\.webp$/, '');
+        const baseName = fileName.replace(/\.(webp|png)$/, '');
         return baseName
             .split('-')
             .map((part, i) => this.capitalizeWord(part))
