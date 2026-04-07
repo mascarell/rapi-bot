@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/mascarell/rapi-bot/compare/v2.9.0...v2.9.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* exclude IncorrectUser errors from circuit breaker ([#236](https://github.com/mascarell/rapi-bot/issues/236)) ([d12f087](https://github.com/mascarell/rapi-bot/commit/d12f087ce1d8cdde189813b56dd139da6059e29c))
+
 # [2.9.0](https://github.com/mascarell/rapi-bot/compare/v2.8.0...v2.9.0) (2026-03-28)
 
 
