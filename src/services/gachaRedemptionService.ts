@@ -206,7 +206,9 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
                 const errorCode = data.error || 'Unknown';
                 const errorMessage = ERROR_MESSAGES[errorCode as CommonRedemptionError] || `Redemption failed: ${errorCode}`;
                 // Don't count business logic errors as circuit breaker failures
-                if (errorCode !== 'InvalidCode' && errorCode !== 'AlreadyUsed' && errorCode !== 'ExpiredCode') {
+                // These are user/data issues, not API outages
+                const nonCircuitErrors = ['InvalidCode', 'AlreadyUsed', 'ExpiredCode', 'IncorrectUser', 'ValidationFailed'];
+                if (!nonCircuitErrors.includes(errorCode)) {
                     circuitBreaker.recordFailure(this.gameId);
                 }
                 return this.createResult(code, false, errorMessage, errorCode);
