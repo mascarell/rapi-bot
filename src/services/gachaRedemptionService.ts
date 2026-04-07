@@ -536,6 +536,36 @@ export class GachaRedemptionService {
                         !r.success && r.errorCode !== 'AlreadyUsed' && r.errorCode !== 'ExpiredCode'
                     );
 
+                    // Auto-unsubscribe users with invalid account IDs
+                    const incorrectUserErrors = actualFailures.filter(r => r.errorCode === 'IncorrectUser');
+                    if (incorrectUserErrors.length > 0 && successfulCodes.length === 0) {
+                        const gameConfig = getGameConfig(gameId);
+                        await dataService.unsubscribe(discordId, gameId);
+                        logger.warning`Auto-unsubscribed ${discordId} from ${gameId}: invalid ${gameConfig.userIdFieldName} "${subscription.gameUserId}"`;
+
+                        // DM the user about the removal
+                        if (!dmDisabled) {
+                            try {
+                                const user = await bot.users.fetch(discordId);
+                                const embed = new EmbedBuilder()
+                                    .setTitle(`⚠️ ${gameConfig.shortName} Subscription Removed`)
+                                    .setDescription(
+                                        `Your auto-redeem subscription for **${gameConfig.name}** has been removed because your ${gameConfig.userIdFieldName} \`${subscription.gameUserId}\` is not recognized by the game.\n\n` +
+                                        `Please re-subscribe with a valid ${gameConfig.userIdFieldName} using:\n` +
+                                        `\`/redeem subscribe game:${gameId}\``
+                                    )
+                                    .setColor(0xFF0000)
+                                    .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL })
+                                    .setTimestamp();
+                                await sendDMSafe(user, { embeds: [embed] });
+                            } catch {
+                                // DM failed — non-critical
+                            }
+                        }
+
+                        return { skipped: false, redemptions: 0, successful: 0, failed: incorrectUserErrors.length, successfulCodes: [], historyEntries: [] };
+                    }
+
                     // Log actual failures only (not already redeemed or expired)
                     for (const failed of actualFailures) {
                         logger.error`Redemption failed for ${subscription.gameUserId} - Code: ${failed.code}, Error: ${failed.errorCode || 'Unknown'}, Message: ${failed.message}`;
