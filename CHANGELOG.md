@@ -1,3 +1,10 @@
+## [2.9.2](https://github.com/mascarell/rapi-bot/compare/v2.9.1...v2.9.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* auto-unsubscribe users with invalid game IDs and notify via DM ([#237](https://github.com/mascarell/rapi-bot/issues/237)) ([fb1ad18](https://github.com/mascarell/rapi-bot/commit/fb1ad18c234da79d5d512ef372971a02026a86d7))
+
 ## [2.9.1](https://github.com/mascarell/rapi-bot/compare/v2.9.0...v2.9.1) (2026-04-07)
 
 
