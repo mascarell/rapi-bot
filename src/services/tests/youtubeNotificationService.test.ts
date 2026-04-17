@@ -535,7 +535,7 @@ describe('YouTubeNotificationService', () => {
             expect(mockGuild.channels.cache.get).toHaveBeenCalledWith('channel_videos_123');
 
             const sendCall = mockChannel.send.mock.calls[0][0];
-            expect(sendCall.content).toContain('@everyone');
+            expect(sendCall.content).toContain('<@&1494591035001671711>');
             expect(sendCall.content).toContain('<@118451485221715977>');
             expect(sendCall.content).toContain('https://www.youtube.com/watch?v=vid1');
         });
