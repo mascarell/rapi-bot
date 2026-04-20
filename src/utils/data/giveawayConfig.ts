@@ -1,0 +1,14 @@
+export const GIVEAWAY_CONFIG = {
+    DATA_PATH: 'data/giveaways',
+    CACHE_TTL: 5 * 60 * 1000,
+    MAX_ACTIVE_GIVEAWAYS_PER_GUILD: 5,
+    MAX_TITLE_LENGTH: 100,
+    MAX_DESCRIPTION_LENGTH: 500,
+    MAX_PRIZE_NAME_LENGTH: 200,
+    DM_RETRY_ATTEMPTS: 3,
+    DM_RETRY_DELAY: 2000,
+    WHEEL_BASE_URL: 'https://wheelofnames.com',
+    MOD_CHANNEL_NAME: 'moderator-only',
+    GIVEAWAYS_PER_PAGE: 10,
+    ENTRIES_PER_PAGE: 20,
+} as const;
