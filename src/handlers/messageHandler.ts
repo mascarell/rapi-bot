@@ -2,6 +2,7 @@ import { Message, ChannelType, TextChannel, PartialMessage } from 'discord.js';
 import { CustomClient } from '../utils/interfaces/CustomClient.interface.js';
 import { getChatCommand, getChatCommandNames } from '../chatCommands/index.js';
 import { checkSensitiveTerms } from '../utils/sensitiveTermsChecker.js';
+import { getSlurModerationService } from '../services/slurModerationService.js';
 import { checkEmbedFixUrls } from '../services/embedFix/urlFixService.js';
 import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter.js';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager.js';
@@ -46,6 +47,10 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
     if (welcomeChannel?.id === msg.channel.id) {
         return;
     }
+
+    // Slur auto-moderation runs first: 30-min timeout (Discord replaces existing
+    // timeouts with new duration, so the longer rule must win the race)
+    await getSlurModerationService().checkMessage(msg);
 
     // Check sensitive terms
     await checkSensitiveTerms(msg);
@@ -201,6 +206,7 @@ export async function handleMessageUpdate(
             return;
         }
 
+        await getSlurModerationService().checkMessage(newMsg as Message);
         await checkSensitiveTerms(newMsg as Message);
     } catch (error) {
         logger.error`Error handling message update: ${error}`;
