@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/mascarell/rapi-bot/compare/v2.9.2...v2.10.0) (2026-04-25)
+
+
+### Features
+
+* add slur auto-moderation with mod-log embed and S3-backed list ([#238](https://github.com/mascarell/rapi-bot/issues/238)) ([8f0163e](https://github.com/mascarell/rapi-bot/commit/8f0163e61cdf7a3ebccebb997f200eef690e6955))
+
 ## [2.9.2](https://github.com/mascarell/rapi-bot/compare/v2.9.1...v2.9.2) (2026-04-07)
 
 
