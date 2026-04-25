@@ -4,6 +4,7 @@ import { logError } from './util.js';
 import { getRandomCdnMediaUrl } from './cdn/mediaManager.js';
 import { getCCPMessage } from './constants/messages.js';
 import { SensitiveTerm } from './interfaces/SensitiveTerm.interface.js';
+import { preprocessMessage } from './messagePreprocessor.js';
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
@@ -44,39 +45,6 @@ const SENSITIVE_TERMS: SensitiveTerm[] = [
 ];
 
 /**
- * Cyrillic/Greek homoglyphs that visually mimic Latin characters.
- * Maps Unicode codepoints to their Latin equivalents for normalization.
- */
-const HOMOGLYPH_MAP: Record<string, string> = {
-    // Cyrillic uppercase
-    '\u0410': 'a', '\u0412': 'b', '\u0421': 'c', '\u0415': 'e',
-    '\u041D': 'h', '\u0406': 'i', '\u041A': 'k', '\u041C': 'm',
-    '\u041E': 'o', '\u0420': 'p', '\u0422': 't', '\u0425': 'x',
-    '\u0423': 'y',
-    // Cyrillic lowercase (critical — preprocessMessage lowercases first)
-    '\u0430': 'a', '\u0432': 'b', '\u0441': 'c', '\u0435': 'e',
-    '\u043D': 'h', '\u0456': 'i', '\u043A': 'k', '\u043C': 'm',
-    '\u043E': 'o', '\u0440': 'p', '\u0442': 't', '\u0445': 'x',
-    '\u0443': 'y',
-};
-
-const HOMOGLYPH_REGEX = new RegExp(`[${Object.keys(HOMOGLYPH_MAP).join('')}]`, 'g');
-
-/**
- * Message preprocessing options
- */
-const MESSAGE_CLEANUP_PATTERNS = [
-    { pattern: /https?:\/\/[^\s]+/g, replacement: '' },           // URLs
-    { pattern: /<@!?\d+>/g, replacement: '' },                    // User mentions
-    { pattern: /<a?:\w+:\d+>/g, replacement: '' },                // Custom emoji IDs
-    { pattern: /<:\w+:\d+>/g, replacement: '' },                  // Animated emoji IDs
-    { pattern: /`{1,3}[^`]*`/g, replacement: '' },                // Code blocks
-    { pattern: /\*{1,2}([^*]+)\*{1,2}/g, replacement: '$1' },     // Bold/italic
-    { pattern: /~~([^~]+)~~/g, replacement: '$1' },               // Strikethrough
-    { pattern: /__([^_]+)__/g, replacement: '$1' }                // Underline
-] as const;
-
-/**
  * Cache for compiled regular expressions
  */
 const SENSITIVE_PATTERNS = (() => {
@@ -115,24 +83,6 @@ export async function checkSensitiveTerms(message: Message): Promise<void> {
     } catch (error) {
         await handleError(message, error);
     }
-}
-
-/**
- * Preprocesses message content by removing formatting and unwanted patterns
- * @param content - Raw message content
- * @returns Cleaned message content
- */
-function preprocessMessage(content: string): string {
-    let processed = content.toLowerCase();
-
-    // Normalize Cyrillic/Greek homoglyphs to Latin equivalents
-    processed = processed.replace(HOMOGLYPH_REGEX, char => HOMOGLYPH_MAP[char] || char);
-
-    MESSAGE_CLEANUP_PATTERNS.forEach(({ pattern, replacement }) => {
-        processed = processed.replace(pattern, replacement);
-    });
-
-    return processed.trim();
 }
 
 /**
