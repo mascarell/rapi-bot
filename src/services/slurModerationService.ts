@@ -58,6 +58,8 @@ interface SlurOffenseStore {
     guilds: Record<string, GuildOffenseRecord>;
 }
 
+type ActionResult = { success: true } | { success: false; reason: string };
+
 /* ==========================================================================
  *  Helpers
  * ========================================================================== */
@@ -140,8 +142,15 @@ export class SlurModerationService {
 
             const matchedTerms = this.extractMatchedTerms(matches);
 
-            // Step 8: three independent operations
+            // Step 8: independent action steps — each wrapped so a failure in one
+            // doesn't unwind the others. Order: timeout → DM the offender →
+            // delete the offending message → record offense → post mod-log.
+            // DM is sent BEFORE the message is deleted so the user can see what
+            // they posted that triggered the action (Discord doesn't preserve
+            // message content after deletion in DMs).
             const timeoutResult = await this.applyTimeout(message.member);
+            const dmResult = await this.dmOffender(message, snapshot, matchedTerms);
+            const deleteResult = await this.deleteOffendingMessage(message);
             const offenses = await this.recordOffense(
                 message.guild.id,
                 message.author.id,
@@ -150,7 +159,15 @@ export class SlurModerationService {
                 message.channel.id,
                 message.id
             );
-            await this.postModLog(message, snapshot, matchedTerms, offenses, timeoutResult);
+            await this.postModLog(
+                message,
+                snapshot,
+                matchedTerms,
+                offenses,
+                timeoutResult,
+                dmResult,
+                deleteResult
+            );
         } catch (error) {
             logger.error`[slur-mod] checkMessage failed: ${error}`;
         }
@@ -306,7 +323,7 @@ export class SlurModerationService {
 
     private async applyTimeout(
         member: GuildMember
-    ): Promise<{ success: true } | { success: false; reason: string }> {
+    ): Promise<ActionResult> {
         try {
             await member.timeout(
                 SLUR_MOD_CONFIG.TIMEOUT_DURATION_MS,
@@ -326,6 +343,94 @@ export class SlurModerationService {
                 reason = error?.message || String(error);
             }
             logger.warn`[slur-mod] timeout failed for ${member.user.tag}: ${reason}`;
+            return { success: false, reason };
+        }
+    }
+
+    /* --------------------------------------------------------------------
+     * DM the offender + delete the offending message
+     * -------------------------------------------------------------------- */
+
+    private async dmOffender(
+        message: Message,
+        snapshot: string,
+        matchedTerms: string[]
+    ): Promise<ActionResult> {
+        try {
+            const guildName = message.guild?.name ?? 'the server';
+            const channelMention = `<#${message.channel.id}>`;
+            const previewLength = SLUR_MOD_CONFIG.MESSAGE_PREVIEW_LENGTH;
+            const truncated =
+                snapshot.length > previewLength
+                    ? `${snapshot.slice(0, previewLength)}…`
+                    : snapshot;
+            // Defang inner spoiler markers so the outer ||...|| wrap renders correctly
+            const safeContent = truncated.replace(/\|\|/g, '|​|');
+
+            const embed = EmbedTemplates.warning('⚠️ Auto-Moderation Notice')
+                .setColor(EmbedColors.WARNING)
+                .setDescription(
+                    `Your message in **${guildName}** has been removed for violating community rules ` +
+                        `and you have been timed out for **30 minutes**.`
+                )
+                .addFields(
+                    {
+                        name: 'Channel',
+                        value: channelMention,
+                        inline: true,
+                    },
+                    {
+                        name: 'Matched Term(s)',
+                        value: matchedTerms.map(t => `||${t}||`).join(', ') || 'unknown',
+                        inline: true,
+                    },
+                    {
+                        name: 'Your Message',
+                        value: `||${safeContent}||`,
+                        inline: false,
+                    },
+                    {
+                        name: 'If you think this is a mistake',
+                        value:
+                            'Please reach out to any moderator for further assistance. ' +
+                            'This violation has been reported to the moderation team.',
+                        inline: false,
+                    }
+                )
+                .setFooter({ text: 'Auto-moderation' });
+
+            await message.author.send({ embeds: [embed] });
+            return { success: true };
+        } catch (error: any) {
+            const code = error?.code;
+            let reason: string;
+            if (code === 50007) {
+                reason = 'Cannot send DMs to this user (DMs disabled or blocked)';
+            } else {
+                reason = error?.message || String(error);
+            }
+            logger.warn`[slur-mod] DM offender failed for ${message.author.tag}: ${reason}`;
+            return { success: false, reason };
+        }
+    }
+
+    private async deleteOffendingMessage(
+        message: Message
+    ): Promise<ActionResult> {
+        try {
+            await message.delete();
+            return { success: true };
+        } catch (error: any) {
+            const code = error?.code;
+            let reason: string;
+            if (code === 10008) {
+                reason = 'Message already deleted';
+            } else if (code === 50013) {
+                reason = 'Bot lacks Manage Messages permission';
+            } else {
+                reason = error?.message || String(error);
+            }
+            logger.warn`[slur-mod] delete message failed (${message.id}): ${reason}`;
             return { success: false, reason };
         }
     }
@@ -491,7 +596,9 @@ export class SlurModerationService {
         snapshot: string,
         matchedTerms: string[],
         offenses: UserOffenses,
-        timeoutResult: { success: true } | { success: false; reason: string }
+        timeoutResult: ActionResult,
+        dmResult: ActionResult,
+        deleteResult: ActionResult
     ): Promise<void> {
         try {
             const channel = this.findModLogChannel(message.guild!);
@@ -516,6 +623,8 @@ export class SlurModerationService {
                 matchedTerms,
                 offenses,
                 timeoutResult,
+                dmResult,
+                deleteResult,
                 suppressed
             );
             await channel.send({ embeds: [embed] });
@@ -529,7 +638,9 @@ export class SlurModerationService {
         snapshot: string,
         matchedTerms: string[],
         offenses: UserOffenses,
-        timeoutResult: { success: true } | { success: false; reason: string },
+        timeoutResult: ActionResult,
+        dmResult: ActionResult,
+        deleteResult: ActionResult,
         suppressed: number
     ): EmbedBuilder {
         const member = message.member!;
@@ -610,10 +721,20 @@ export class SlurModerationService {
                     inline: false,
                 },
                 {
-                    name: 'Action',
-                    value: timeoutResult.success
-                        ? `Timed out for 30 min`
-                        : `Timeout failed: ${timeoutResult.reason} — manual action needed`,
+                    name: 'Actions',
+                    value: capFieldValue(
+                        [
+                            timeoutResult.success
+                                ? '✅ Timed out for 30 min'
+                                : `❌ Timeout failed: ${timeoutResult.reason}`,
+                            deleteResult.success
+                                ? '✅ Message deleted'
+                                : `❌ Delete failed: ${deleteResult.reason}`,
+                            dmResult.success
+                                ? '✅ DM sent to user'
+                                : `⚠️ DM not delivered: ${dmResult.reason}`,
+                        ].join('\n')
+                    ),
                     inline: false,
                 }
             )

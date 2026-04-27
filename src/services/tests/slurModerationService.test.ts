@@ -125,9 +125,21 @@ interface FakeMemberOpts {
     userId?: string;
 }
 
-function makeMessage(content: string, opts: FakeMemberOpts = {}, guildOpts: FakeGuildOpts = {}) {
+interface MessageBehaviorOpts {
+    deleteSucceeds?: boolean;
+    deleteErrorCode?: number;
+    dmSucceeds?: boolean;
+    dmErrorCode?: number;
+}
+
+function makeMessage(
+    content: string,
+    opts: FakeMemberOpts & MessageBehaviorOpts = {},
+    guildOpts: FakeGuildOpts = {}
+) {
     const userId = opts.userId ?? 'user-1';
     const { guild, modLogChannel } = makeGuild(guildOpts);
+    guild.name = 'Test Guild';
 
     const timeoutFn = vi.fn().mockImplementation(async () => {
         if (opts.timeoutSucceeds === false) {
@@ -136,6 +148,24 @@ function makeMessage(content: string, opts: FakeMemberOpts = {}, guildOpts: Fake
             throw err;
         }
         return undefined;
+    });
+
+    const deleteFn = vi.fn().mockImplementation(async () => {
+        if (opts.deleteSucceeds === false) {
+            const err: any = new Error('delete failed');
+            if (opts.deleteErrorCode) err.code = opts.deleteErrorCode;
+            throw err;
+        }
+        return undefined;
+    });
+
+    const dmSendFn = vi.fn().mockImplementation(async () => {
+        if (opts.dmSucceeds === false) {
+            const err: any = new Error('dm failed');
+            if (opts.dmErrorCode) err.code = opts.dmErrorCode;
+            throw err;
+        }
+        return { id: 'dm-msg' };
     });
 
     const roles = new Map<string, any>();
@@ -187,12 +217,14 @@ function makeMessage(content: string, opts: FakeMemberOpts = {}, guildOpts: Fake
             ...member.user,
             bot: !!opts.isBot,
             createdTimestamp: 1500000000000,
+            send: dmSendFn,
         },
         channel,
         url: 'https://discord.com/channels/guild-1/chan-general/msg-1',
+        delete: deleteFn,
     };
 
-    return { message, member, guild, modLogChannel, timeoutFn };
+    return { message, member, guild, modLogChannel, timeoutFn, deleteFn, dmSendFn };
 }
 
 /* ==========================================================================
@@ -343,7 +375,7 @@ describe('SlurModerationService', () => {
         expect(data.title).toContain('Slur Detected');
         const fieldNames = (data.fields ?? []).map((f: any) => f.name);
         expect(fieldNames).toEqual(
-            expect.arrayContaining(['User', 'Account Created', 'Channel', 'Action', 'Total Offenses'])
+            expect.arrayContaining(['User', 'Account Created', 'Channel', 'Actions', 'Total Offenses'])
         );
     });
 
@@ -368,7 +400,73 @@ describe('SlurModerationService', () => {
         expect(sentEmbeds).toHaveLength(1);
     });
 
-    it('still posts mod-log when timeout fails (with failure note in Action field)', async () => {
+    it('deletes the offending message and DMs the offender on detection', async () => {
+        const { message, deleteFn, dmSendFn } = makeMessage('fooslurbar');
+        await service.checkMessage(message);
+        expect(deleteFn).toHaveBeenCalledTimes(1);
+        expect(dmSendFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('DM payload includes server name, channel mention, matched terms, and recourse instructions', async () => {
+        const { message, dmSendFn } = makeMessage('fooslurbar');
+        await service.checkMessage(message);
+
+        const dmCall = dmSendFn.mock.calls[0][0];
+        const embed = dmCall.embeds[0];
+        const data = embed.data ?? embed.toJSON();
+
+        expect(data.title).toContain('Auto-Moderation');
+        expect(data.description).toContain('Test Guild');
+        expect(data.description).toContain('30 minutes');
+
+        const fieldNames = (data.fields ?? []).map((f: any) => f.name);
+        expect(fieldNames).toEqual(
+            expect.arrayContaining(['Channel', 'Matched Term(s)', 'Your Message', 'If you think this is a mistake'])
+        );
+
+        const recourse = (data.fields ?? []).find((f: any) => f.name === 'If you think this is a mistake');
+        expect(recourse.value).toContain('moderator');
+    });
+
+    it('handles DM failure (user has DMs disabled) without aborting other actions', async () => {
+        const sentEmbeds: any[] = [];
+        const { message, deleteFn } = makeMessage(
+            'fooslurbar',
+            { dmSucceeds: false, dmErrorCode: 50007 },
+            { modLogSentEmbeds: sentEmbeds }
+        );
+        await service.checkMessage(message);
+
+        // Delete still happens
+        expect(deleteFn).toHaveBeenCalledTimes(1);
+        // Mod-log still posted
+        expect(sentEmbeds).toHaveLength(1);
+        // Mod-log Actions field reflects DM failure
+        const data = sentEmbeds[0].data ?? sentEmbeds[0].toJSON();
+        const actions = (data.fields ?? []).find((f: any) => f.name === 'Actions');
+        expect(actions.value).toContain('DM not delivered');
+        expect(actions.value).toContain('DMs disabled');
+    });
+
+    it('handles delete failure (already deleted / lacking permission) without aborting other actions', async () => {
+        const sentEmbeds: any[] = [];
+        const { message, dmSendFn } = makeMessage(
+            'fooslurbar',
+            { deleteSucceeds: false, deleteErrorCode: 10008 },
+            { modLogSentEmbeds: sentEmbeds }
+        );
+        await service.checkMessage(message);
+
+        // DM still sent
+        expect(dmSendFn).toHaveBeenCalledTimes(1);
+        // Mod-log still posted
+        expect(sentEmbeds).toHaveLength(1);
+        const data = sentEmbeds[0].data ?? sentEmbeds[0].toJSON();
+        const actions = (data.fields ?? []).find((f: any) => f.name === 'Actions');
+        expect(actions.value).toContain('Delete failed');
+    });
+
+    it('still posts mod-log when timeout fails (with failure note in Actions field)', async () => {
         const sentEmbeds: any[] = [];
         const { message } = makeMessage(
             'qwertytest',
@@ -378,7 +476,7 @@ describe('SlurModerationService', () => {
         await service.checkMessage(message);
         expect(sentEmbeds).toHaveLength(1);
         const data = sentEmbeds[0].data ?? sentEmbeds[0].toJSON();
-        const action = (data.fields ?? []).find((f: any) => f.name === 'Action');
+        const action = (data.fields ?? []).find((f: any) => f.name === 'Actions');
         expect(action.value).toContain('Timeout failed');
     });
 
