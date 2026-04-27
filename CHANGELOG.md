@@ -1,3 +1,10 @@
+## [2.10.1](https://github.com/mascarell/rapi-bot/compare/v2.10.0...v2.10.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* use word-boundary assertions to prevent slur substring false positives ([#239](https://github.com/mascarell/rapi-bot/issues/239)) ([986206a](https://github.com/mascarell/rapi-bot/commit/986206a10a745150313c88fc054edb69f4cc174e))
+
 # [2.10.0](https://github.com/mascarell/rapi-bot/compare/v2.9.2...v2.10.0) (2026-04-25)
 
 
