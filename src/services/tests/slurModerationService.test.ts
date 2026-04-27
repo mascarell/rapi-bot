@@ -238,6 +238,37 @@ describe('SlurModerationService', () => {
         expect(t4).not.toHaveBeenCalled();
     });
 
+    it('does not trigger on substring matches (Scunthorpe problem)', async () => {
+        // Use a list where the placeholders are themselves substrings of common words
+        // to verify word-boundary assertions are doing their job.
+        service.clearCache();
+        const substringProneList = {
+            schemaVersion: 1,
+            lastUpdated: new Date().toISOString(),
+            slurs: ['foo', 'bar'],
+        };
+        mockS3SuccessFor(substringProneList);
+
+        // 'foo' should NOT match in 'foobar', 'fool', 'food', 'foofy'
+        const { timeoutFn: t1 } = await runWith('foobar is a meta term');
+        const { timeoutFn: t2 } = await runWith('don\'t be a fool');
+        const { timeoutFn: t3 } = await runWith('I love food');
+        // 'bar' should NOT match in 'barricade', 'barbecue', 'bartender'
+        const { timeoutFn: t4 } = await runWith('built a barricade');
+        const { timeoutFn: t5 } = await runWith('barbecue tonight');
+        // But the standalone term DOES still match
+        const { timeoutFn: t6 } = await runWith('plain foo here');
+        const { timeoutFn: t7 } = await runWith('walk into a bar');
+
+        expect(t1).not.toHaveBeenCalled();
+        expect(t2).not.toHaveBeenCalled();
+        expect(t3).not.toHaveBeenCalled();
+        expect(t4).not.toHaveBeenCalled();
+        expect(t5).not.toHaveBeenCalled();
+        expect(t6).toHaveBeenCalled();
+        expect(t7).toHaveBeenCalled();
+    });
+
     it('detects leetspeak / case / homoglyph evasion', async () => {
         // Case variation: handled by the recommended transformers
         const { timeoutFn: t1 } = await runWith('FOOSLURBAR is bad');
