@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/mascarell/rapi-bot/compare/v2.10.1...v2.11.0) (2026-04-27)
+
+
+### Features
+
+* dm offender and delete offending message on slur detection ([#240](https://github.com/mascarell/rapi-bot/issues/240)) ([465a9c1](https://github.com/mascarell/rapi-bot/commit/465a9c1f1b8178d861af638f3e18c0efd38b2d6f))
+
 ## [2.10.1](https://github.com/mascarell/rapi-bot/compare/v2.10.0...v2.10.1) (2026-04-27)
 
 
