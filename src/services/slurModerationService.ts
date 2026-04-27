@@ -264,8 +264,14 @@ export class SlurModerationService {
             .map(s => s.trim().toLowerCase())
             .filter(s => s.length > 0);
 
+        // Word-boundary assertions (`|...|`) prevent the Scunthorpe problem:
+        // `spic` no longer matches inside `spicy`, `coon` doesn't match `tycoon`,
+        // `paki` doesn't match `Pakistan`, `fag` doesn't match `flag`, etc.
+        // `|` is a literal in obscenity's pattern syntax used only at term
+        // boundaries — strip any embedded pipes from the input as a safety guard
+        // since slur terms shouldn't contain pipes anyway.
         const blacklistedTerms = assignIncrementingIds(
-            normalized.map(s => parseRawPattern(s))
+            normalized.map(s => parseRawPattern(`|${s.replace(/\|/g, '')}|`))
         );
 
         this.termIdToWord = new Map(
