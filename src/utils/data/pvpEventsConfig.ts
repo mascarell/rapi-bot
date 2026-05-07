@@ -130,13 +130,13 @@ const bd2MirrorWarsConfig: PvpEventConfig = {
 /**
  * Lost Sword — Avalon (Biweekly Guild Raid)
  *
- * Avalon is a biweekly event where guilds attack one of 6 castles for points.
- * This server's guild attacks Camelot or Mercia.
- * Each member gets 6 attempts; first 2 give 100 Diamonds, 3rd gives 150 💎.
- * Guild rewards = highest single-castle score, so focus efforts on ONE castle.
+ * Avalon is a biweekly event where guilds attack castles for points.
+ * This server's guild attacks BOTH Camelot AND Mercia — 3 attempts each
+ * (6 attempts total, split 3/3).
  *
- * Schedule: ends every other Sunday at 15:00 UTC. Anchor 2026-04-26 confirms
- * the active week. The off-week runs Star Reincarnation (separate config — TBD).
+ * Schedule: ends every other Sunday at 15:00 UTC. Anchor 2026-05-03 is the
+ * end of the current active cycle (Avalon active 2026-04-26 → 2026-05-03).
+ * The alternating weeks run Star Reincarnation (phaseOffset=1, see below).
  */
 const lostSwordAvalonConfig: PvpEventConfig = {
     id: 'lost-sword-avalon',
@@ -149,20 +149,20 @@ const lostSwordAvalonConfig: PvpEventConfig = {
         minute: 0,
     },
     cyclePhase: {
-        anchor: '2026-04-26T15:00:00Z',  // user-confirmed active Sunday
+        anchor: '2026-05-03T15:00:00Z',  // first season-end of active cycle
         intervalWeeks: 2,
-        phaseOffset: 0,                  // Avalon is phase A; future Star Reincarnation = phase 1
+        phaseOffset: 0,                  // Avalon is phase A; Star Reincarnation = phase B (offset 1)
     },
     warnings: [
         {
             label: '2 days',
             minutesBefore: 2 * 24 * 60,  // Friday 15:00 UTC
             embedConfig: {
-                title: '🏰 Avalon Ends in 2 Days — Lock Your Castle Target',
+                title: '🏰 Avalon Ends in 2 Days — Hit Both Castles!',
                 description: (ts) =>
                     `Swordbringers, the Round Table calls! Avalon's reset approaches.\n\n` +
                     `**Avalon ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
-                    `Coordinate with your guild — focus efforts on **ONE castle** for the best leaderboard score.`,
+                    `Spend your **6 attempts: 3 on Camelot, 3 on Mercia.**`,
                 color: 0xFFD700, // Gold — Lost Sword brand color
                 footer: {
                     text: 'May Excalibur guide your path, Swordbringers!',
@@ -177,18 +177,18 @@ const lostSwordAvalonConfig: PvpEventConfig = {
                         inline: true,
                     },
                     {
-                        name: '🎯 This Server Attacks',
-                        value: '**Camelot** or **Mercia** — coordinate with guild',
+                        name: '🎯 Castles to Attack',
+                        value: '**Camelot** AND **Mercia**\n(3 attempts each)',
                         inline: true,
                     },
                     {
                         name: '⚔️ Attempts',
-                        value: '6 per member\n• 1st & 2nd: **100 💎** each\n• 3rd: **150 💎**',
+                        value: '**6 attempts total** — 3 on Camelot, 3 on Mercia',
                         inline: false,
                     },
                     {
                         name: '📜 Strategy',
-                        value: 'Guild rewards = highest single-castle score. **Focus on ONE castle** for max leaderboard impact.',
+                        value: 'Split your **6 attempts evenly** across both castles. Coordinate in guild chat to align with team picks.',
                         inline: false,
                     },
                     {
@@ -207,7 +207,7 @@ const lostSwordAvalonConfig: PvpEventConfig = {
                 description: (ts) =>
                     `Swordbringers, the castle siege closes tomorrow!\n\n` +
                     `**Avalon ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
-                    `Spend your remaining attempts and push your guild's chosen castle to the leaderboard.`,
+                    `Spend remaining attempts on **both Camelot AND Mercia** — 3 each.`,
                 color: 0xFFA500, // Orange — urgency rising
                 footer: {
                     text: 'The Round Table awaits, Swordbringer!',
@@ -222,13 +222,13 @@ const lostSwordAvalonConfig: PvpEventConfig = {
                         inline: true,
                     },
                     {
-                        name: '🎯 Castle Targets',
-                        value: '**Camelot** or **Mercia**',
+                        name: '🎯 Castles',
+                        value: '**Camelot** AND **Mercia** (3 each)',
                         inline: true,
                     },
                     {
                         name: '🔥 What to Do',
-                        value: '• Burn remaining **6 attempts**\n• Stack on guild\'s chosen castle\n• Coordinate in guild chat',
+                        value: '• Burn remaining attempts\n• 3 on Camelot, 3 on Mercia\n• Coordinate team picks in guild chat',
                         inline: false,
                     },
                 ],
@@ -243,7 +243,7 @@ const lostSwordAvalonConfig: PvpEventConfig = {
                 description: (ts) =>
                     `Final hour, Swordbringers! Avalon's reset is imminent.\n\n` +
                     `**Avalon ends <t:${ts}:R> (<t:${ts}:t>).**\n\n` +
-                    `**Last chance** to spend attempts — rewards lock at reset.`,
+                    `**Last chance** to spend remaining attempts on Camelot AND Mercia — rewards lock at reset.`,
                 color: 0xFF0000, // Red — urgent
                 footer: {
                     text: 'The siege closes! | May Excalibur guide your path!',
@@ -259,7 +259,154 @@ const lostSwordAvalonConfig: PvpEventConfig = {
                     },
                     {
                         name: '🚨 Last Call',
-                        value: '• Spend **all 6 attempts NOW**\n• Final castle pushes\n• Rewards lock at reset',
+                        value: '• Spend **all 6 attempts NOW**\n• 3 on Camelot, 3 on Mercia\n• Rewards lock at reset',
+                        inline: true,
+                    },
+                ],
+            },
+        },
+    ],
+    mediaConfig: {
+        cdnPath: 'dailies/lost-sword/',
+        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+        trackLast: 10,
+    },
+};
+
+/**
+ * Lost Sword — Star Reincarnation (Biweekly Endgame Raid)
+ *
+ * Alternates with Avalon: when Avalon is dormant, Star Reincarnation is active.
+ * Players fight 6 bosses with 2 different teams (10 chars + 6 pets total) for
+ * Goddess Stones and Galaxy Essence. Damage thresholds reward Diamonds + Goddess
+ * Stones at 10M / 100M / 300M. Each cycle features unique bosses and buffs that
+ * demand varied team compositions.
+ *
+ * Schedule: ends every other Sunday at 15:00 UTC, on the alternating week from
+ * Avalon (shared anchor 2026-05-03 + phaseOffset=1 → SR ends 2026-05-10, 05-24, ...).
+ */
+const lostSwordStarReincarnationConfig: PvpEventConfig = {
+    id: 'lost-sword-star-reincarnation',
+    game: 'Lost Sword',
+    eventName: 'Star Reincarnation',
+    channelName: 'lost-sword',
+    seasonEnd: {
+        dayOfWeek: 0,
+        hour: 15,
+        minute: 0,
+    },
+    cyclePhase: {
+        anchor: '2026-05-03T15:00:00Z',  // shared anchor with Avalon
+        intervalWeeks: 2,
+        phaseOffset: 1,                  // phase B (Avalon = phase A, offset 0)
+    },
+    warnings: [
+        {
+            label: '2 days',
+            minutesBefore: 2 * 24 * 60,
+            embedConfig: {
+                title: '🌌 Star Reincarnation Ends in 2 Days — Plan Your Two Teams',
+                description: (ts) =>
+                    `Swordbringers, the cosmos calls! Star Reincarnation's reset approaches.\n\n` +
+                    `**Star Reincarnation ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
+                    `Build **two distinct teams** (5 characters + 3 pets each) and start chipping away at the 6 bosses for Goddess Stones.`,
+                color: 0x9B59B6, // Purple — cosmic/Star theme
+                footer: {
+                    text: 'May the stars align for you, Swordbringer!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: LOST_SWORD_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '⏰ Reset',
+                        value: `<t:${ts}:F>\n<t:${ts}:R>`,
+                        inline: true,
+                    },
+                    {
+                        name: '⚔️ Format',
+                        value: '**6 bosses** × **2 teams**\n10 characters + 6 pets total',
+                        inline: true,
+                    },
+                    {
+                        name: '💎 Damage Thresholds',
+                        value: '• **10M** damage\n• **100M** damage\n• **300M** damage\nEach tier unlocks Diamonds + Goddess Stones',
+                        inline: false,
+                    },
+                    {
+                        name: '🌠 Strategy',
+                        value: 'Each cycle features unique bosses and buffs — review boss kits and adjust your team comps. Roster depth matters here.',
+                        inline: false,
+                    },
+                    {
+                        name: '📖 Guides',
+                        value: '[Star Reincarnation Guide](https://lootandwaifus.com/guides/reincarnation-of-stars-lost-sword/)',
+                        inline: false,
+                    },
+                ],
+            },
+        },
+        {
+            label: '1 day',
+            minutesBefore: 24 * 60,
+            embedConfig: {
+                title: '🌌 Star Reincarnation Ends Tomorrow!',
+                description: (ts) =>
+                    `Swordbringers, the cosmic raid closes tomorrow!\n\n` +
+                    `**Star Reincarnation ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
+                    `Push damage on remaining bosses and lock in your highest tier rewards before reset.`,
+                color: 0xFFA500, // Orange — urgency rising
+                footer: {
+                    text: 'The stars wait for no one, Swordbringer!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: LOST_SWORD_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '⏰ Reset',
+                        value: `<t:${ts}:F>\n<t:${ts}:R>`,
+                        inline: true,
+                    },
+                    {
+                        name: '🎯 Reward Tiers',
+                        value: '**10M / 100M / 300M** damage',
+                        inline: true,
+                    },
+                    {
+                        name: '🔥 What to Do',
+                        value: '• Finish remaining bosses\n• Push for next damage tier\n• Swap team comps if stuck',
+                        inline: false,
+                    },
+                ],
+            },
+        },
+        {
+            label: '1 hour',
+            minutesBefore: 60,
+            sendDM: true,
+            embedConfig: {
+                title: '🚨 Star Reincarnation Reset in 1 Hour!',
+                description: (ts) =>
+                    `Final hour, Swordbringers! Star Reincarnation closes soon.\n\n` +
+                    `**Star Reincarnation ends <t:${ts}:R> (<t:${ts}:t>).**\n\n` +
+                    `**Last chance** to push damage tiers — Goddess Stones lock at reset.`,
+                color: 0xFF0000, // Red — urgent
+                footer: {
+                    text: 'The stars dim! | May the cosmos guide your path!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: LOST_SWORD_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '⏰ Reset',
+                        value: `<t:${ts}:t> (<t:${ts}:R>)`,
+                        inline: true,
+                    },
+                    {
+                        name: '🚨 Last Call',
+                        value: '• Finish damage pushes\n• Final boss attempts\n• Rewards lock at reset',
                         inline: true,
                     },
                 ],
@@ -274,6 +421,6 @@ const lostSwordAvalonConfig: PvpEventConfig = {
 };
 
 export const pvpReminderServiceConfig: PvpReminderServiceConfig = {
-    events: [bd2MirrorWarsConfig, lostSwordAvalonConfig],
+    events: [bd2MirrorWarsConfig, lostSwordAvalonConfig, lostSwordStarReincarnationConfig],
     devModeInterval: 3,
 };

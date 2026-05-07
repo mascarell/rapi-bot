@@ -80,6 +80,13 @@ export async function initializeServices(bot: Client): Promise<void> {
             embedColor: 0xFFD700,
         });
 
+        notificationService.registerNotificationType({
+            type: 'pvp-warning:lost-sword-star-reincarnation',
+            displayName: 'Lost Sword Star Reincarnation',
+            description: 'Biweekly Star Reincarnation endgame raid reset reminders for Lost Sword',
+            embedColor: 0x9B59B6,
+        });
+
         // Register daily reset notification types for each game
         for (const gameConfig of dailyResetServiceConfig.games) {
             if (gameConfig.notificationType) {
