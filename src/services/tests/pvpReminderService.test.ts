@@ -582,5 +582,243 @@ describe('PvpReminderService', () => {
             const newSeasonCron = service.calculateWarningCron(mirrorWars, mirrorWars.warnings[2]);
             expect(newSeasonCron).toBe('59 14 * * 0');
         });
+
+        it('should include Lost Sword Avalon biweekly config', async () => {
+            const { pvpReminderServiceConfig } = await import('../../utils/data/pvpEventsConfig');
+            const avalon = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-avalon');
+            expect(avalon).toBeDefined();
+            expect(avalon!.channelName).toBe('lost-sword');
+            expect(avalon!.seasonEnd).toEqual({ dayOfWeek: 0, hour: 15, minute: 0 });
+            expect(avalon!.cyclePhase?.intervalWeeks).toBe(2);
+            expect(avalon!.cyclePhase?.phaseOffset).toBe(0);
+            expect(avalon!.cyclePhase?.anchor).toBe('2026-04-26T15:00:00Z');
+            expect(avalon!.warnings.map(w => w.label)).toEqual(['2 days', '1 day', '1 hour']);
+        });
+    });
+
+    describe('cyclePhase: isActiveCycle', () => {
+        const buildBiweekly = (
+            base: PvpEventConfig,
+            phaseOffset = 0,
+            skipSeasonEnds: string[] = []
+        ): PvpEventConfig => ({
+            ...base,
+            id: 'biweekly-test',
+            seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+            cyclePhase: {
+                anchor: '2026-04-26T15:00:00Z',
+                intervalWeeks: 2,
+                phaseOffset,
+                skipSeasonEnds,
+            },
+        });
+
+        const buildWarning = (base: PvpEventConfig, label = 'test', minutesBefore = 0): PvpWarningConfig => ({
+            label,
+            minutesBefore,
+            embedConfig: base.warnings[0].embedConfig,
+        });
+
+        it('returns true on the anchor Sunday at season-end', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent);
+            const now = new Date('2026-04-26T14:59:59Z');
+            expect(service.isActiveCycle(event, buildWarning(testEvent), now)).toBe(true);
+        });
+
+        it('returns false on the off-cycle Sunday', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent);
+            const now = new Date('2026-05-03T14:59:59Z');
+            expect(service.isActiveCycle(event, buildWarning(testEvent), now)).toBe(false);
+        });
+
+        it('returns true on the next active Sunday (anchor + 14 days)', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent);
+            const now = new Date('2026-05-10T14:59:59Z');
+            expect(service.isActiveCycle(event, buildWarning(testEvent), now)).toBe(true);
+        });
+
+        it('Friday 2-day warning projects to the upcoming Sunday and returns true on active week', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent);
+            // Friday 2026-04-24 15:00 UTC, projected Sunday is 2026-04-26 (anchor) → active
+            const now = new Date('2026-04-24T15:00:00Z');
+            const warning2d = buildWarning(testEvent, '2 days', 2 * 24 * 60);
+            expect(service.isActiveCycle(event, warning2d, now)).toBe(true);
+        });
+
+        it('Friday 2-day warning projects to the upcoming Sunday and returns false on off-cycle week (QA #1 regression)', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent);
+            // Friday 2026-05-01, projected Sunday is 2026-05-03 → off-cycle
+            const now = new Date('2026-05-01T15:00:00Z');
+            const warning2d = buildWarning(testEvent, '2 days', 2 * 24 * 60);
+            expect(service.isActiveCycle(event, warning2d, now)).toBe(false);
+        });
+
+        it('handles negative modulo (anchor in future) without crashing', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent);
+            event.cyclePhase!.anchor = '2099-01-04T15:00:00Z';
+            const now = new Date('2026-04-26T15:00:00Z');
+            expect(() => service.isActiveCycle(event, buildWarning(testEvent), now)).not.toThrow();
+        });
+
+        it('skips dates listed in skipSeasonEnds (do not fire on this Sunday)', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            // 04-26 IS the active Sunday but is in skipSeasonEnds (e.g. game maintenance)
+            // → isActiveCycle returns false so we don't fire
+            const event = buildBiweekly(testEvent, 0, ['2026-04-26T15:00:00.000Z']);
+            const now = new Date('2026-04-26T14:59:59Z');
+            expect(service.isActiveCycle(event, buildWarning(testEvent), now)).toBe(false);
+        });
+
+        it('does not skip when skipSeasonEnds does not match the resolved target', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const event = buildBiweekly(testEvent, 0, ['2099-01-01T00:00:00.000Z']);
+            const now = new Date('2026-04-26T14:59:59Z');
+            expect(service.isActiveCycle(event, buildWarning(testEvent), now)).toBe(true);
+        });
+
+        it('Mirror Wars (no cyclePhase) fires every Sunday across 12 simulated weeks', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            for (let i = 0; i < 12; i++) {
+                const sunday = new Date(Date.parse('2026-04-26T15:00:00Z') + i * 7 * 24 * 60 * 60 * 1000);
+                expect(service.isActiveCycle(testEvent, buildWarning(testEvent), sunday)).toBe(true);
+            }
+        });
+
+        it('Avalon (phaseOffset=0) and a hypothetical Star Reincarnation (phaseOffset=1) never both fire on the same Sunday across 26 weeks', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const avalon = buildBiweekly(testEvent, 0);
+            const sr = { ...buildBiweekly(testEvent, 1), id: 'star-reincarnation-test', channelName: 'lost-sword-other' };
+            for (let i = 0; i < 26; i++) {
+                const sunday = new Date(Date.parse('2026-04-26T15:00:00Z') + i * 7 * 24 * 60 * 60 * 1000);
+                const a = service.isActiveCycle(avalon, buildWarning(testEvent), sunday);
+                const b = service.isActiveCycle(sr, buildWarning(testEvent), sunday);
+                expect(a !== b).toBe(true);
+            }
+        });
+    });
+
+    describe('cyclePhase: getNextSeasonEndTimestamp', () => {
+        it('returns timestamp 14 days out (not 7) when current week is off-cycle', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const avalonEvent: PvpEventConfig = {
+                ...testEvent,
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+                cyclePhase: {
+                    anchor: '2026-04-26T15:00:00Z',
+                    intervalWeeks: 2,
+                    phaseOffset: 0,
+                },
+            };
+            // now = Tuesday 2026-04-28 (during off-week — wait, anchor 04-26 was active week,
+            // so 05-03 is off-cycle, 05-10 is active). 04-28 is between active and off; the
+            // upcoming weekly Sunday is 05-03 (off) so the result should advance to 05-10.
+            const now = new Date('2026-04-28T12:00:00Z');
+            const ts = service.getNextSeasonEndTimestamp(avalonEvent, now);
+            const result = new Date(ts * 1000);
+            expect(result.toISOString()).toBe('2026-05-10T15:00:00.000Z');
+        });
+
+        it('returns the next weekly Sunday for an event with no cyclePhase', () => {
+            const service = new PvpReminderService(mockBot, testConfig);
+            const now = new Date('2026-04-28T12:00:00Z'); // Tuesday
+            const ts = service.getNextSeasonEndTimestamp(testEvent, now);
+            const result = new Date(ts * 1000);
+            // Next Sunday at 14:59 UTC = 2026-05-03
+            expect(result.toISOString()).toBe('2026-05-03T14:59:00.000Z');
+        });
+    });
+
+    describe('cyclePhase: startup invariants', () => {
+        it('throws when anchor weekday does not match seasonEnd.dayOfWeek', () => {
+            const badEvent: PvpEventConfig = {
+                ...testEvent,
+                id: 'bad-event',
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 }, // Sunday
+                cyclePhase: {
+                    anchor: '2026-04-25T15:00:00Z', // Saturday — wrong weekday
+                    intervalWeeks: 2,
+                },
+            };
+            const service = new PvpReminderService(mockBot, { events: [badEvent], devModeInterval: 3 });
+            expect(() => service.initializeSchedules()).toThrow(/weekday/);
+        });
+
+        it('throws when anchor time-of-day does not match seasonEnd', () => {
+            const badEvent: PvpEventConfig = {
+                ...testEvent,
+                id: 'bad-event',
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+                cyclePhase: {
+                    anchor: '2026-04-26T16:00:00Z', // wrong hour
+                    intervalWeeks: 2,
+                },
+            };
+            const service = new PvpReminderService(mockBot, { events: [badEvent], devModeInterval: 3 });
+            expect(() => service.initializeSchedules()).toThrow(/time/);
+        });
+
+        it('throws on cyclePhase collision (two events share channel + interval + phaseOffset)', () => {
+            const eventA: PvpEventConfig = {
+                ...testEvent,
+                id: 'event-a',
+                channelName: 'lost-sword',
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+                cyclePhase: { anchor: '2026-04-26T15:00:00Z', intervalWeeks: 2, phaseOffset: 0 },
+            };
+            const eventB: PvpEventConfig = {
+                ...testEvent,
+                id: 'event-b',
+                channelName: 'lost-sword',
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+                cyclePhase: { anchor: '2026-04-26T15:00:00Z', intervalWeeks: 2, phaseOffset: 0 }, // same offset!
+            };
+            const service = new PvpReminderService(mockBot, { events: [eventA, eventB], devModeInterval: 3 });
+            expect(() => service.initializeSchedules()).toThrow(/collision/);
+        });
+
+        it('does not throw when two events share channel + interval but have unique phaseOffset', () => {
+            const eventA: PvpEventConfig = {
+                ...testEvent,
+                id: 'event-a',
+                channelName: 'lost-sword',
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+                cyclePhase: { anchor: '2026-04-26T15:00:00Z', intervalWeeks: 2, phaseOffset: 0 },
+            };
+            const eventB: PvpEventConfig = {
+                ...testEvent,
+                id: 'event-b',
+                channelName: 'lost-sword',
+                seasonEnd: { dayOfWeek: 0, hour: 15, minute: 0 },
+                cyclePhase: { anchor: '2026-04-26T15:00:00Z', intervalWeeks: 2, phaseOffset: 1 },
+            };
+            const service = new PvpReminderService(mockBot, { events: [eventA, eventB], devModeInterval: 3 });
+            expect(() => service.initializeSchedules()).not.toThrow();
+        });
+    });
+
+    describe('node-schedule TZ pin', () => {
+        it('passes { tz: "Etc/UTC" } when scheduling weekly cron in production', async () => {
+            const scheduleMod = await import('node-schedule');
+            const scheduleJobSpy = vi.mocked(scheduleMod.default.scheduleJob);
+            scheduleJobSpy.mockClear();
+
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
+
+            const service = new PvpReminderService(mockBot, testConfig);
+            service.initializeSchedules();
+
+            // First call should be the object form { rule, tz }
+            const firstCall = scheduleJobSpy.mock.calls[0];
+            expect(firstCall[0]).toMatchObject({ tz: 'Etc/UTC' });
+
+            process.env.NODE_ENV = originalEnv;
+        });
     });
 });

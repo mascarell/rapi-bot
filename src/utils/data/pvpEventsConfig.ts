@@ -5,6 +5,7 @@ import { cacheBust } from '../../config/assets.js';
 // Asset URLs (shared with gamesResetConfig.ts)
 const RAPI_BOT_THUMBNAIL_URL = cacheBust(`${cdnDomainUrl}/assets/rapi-bot-thumbnail.jpg`);
 const BROWN_DUST_2_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/brown-dust-2-logo.png`);
+const LOST_SWORD_LOGO_URL = cacheBust(`${cdnDomainUrl}/assets/logos/lost-sword-logo.png`);
 
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'];
 
@@ -126,7 +127,153 @@ const bd2MirrorWarsConfig: PvpEventConfig = {
     },
 };
 
+/**
+ * Lost Sword — Avalon (Biweekly Guild Raid)
+ *
+ * Avalon is a biweekly event where guilds attack one of 6 castles for points.
+ * This server's guild attacks Camelot or Mercia.
+ * Each member gets 6 attempts; first 2 give 100 Diamonds, 3rd gives 150 💎.
+ * Guild rewards = highest single-castle score, so focus efforts on ONE castle.
+ *
+ * Schedule: ends every other Sunday at 15:00 UTC. Anchor 2026-04-26 confirms
+ * the active week. The off-week runs Star Reincarnation (separate config — TBD).
+ */
+const lostSwordAvalonConfig: PvpEventConfig = {
+    id: 'lost-sword-avalon',
+    game: 'Lost Sword',
+    eventName: 'Avalon',
+    channelName: 'lost-sword',
+    seasonEnd: {
+        dayOfWeek: 0,  // Sunday
+        hour: 15,      // 15:00 UTC (matches Lost Sword daily reset)
+        minute: 0,
+    },
+    cyclePhase: {
+        anchor: '2026-04-26T15:00:00Z',  // user-confirmed active Sunday
+        intervalWeeks: 2,
+        phaseOffset: 0,                  // Avalon is phase A; future Star Reincarnation = phase 1
+    },
+    warnings: [
+        {
+            label: '2 days',
+            minutesBefore: 2 * 24 * 60,  // Friday 15:00 UTC
+            embedConfig: {
+                title: '🏰 Avalon Ends in 2 Days — Lock Your Castle Target',
+                description: (ts) =>
+                    `Swordbringers, the Round Table calls! Avalon's reset approaches.\n\n` +
+                    `**Avalon ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
+                    `Coordinate with your guild — focus efforts on **ONE castle** for the best leaderboard score.`,
+                color: 0xFFD700, // Gold — Lost Sword brand color
+                footer: {
+                    text: 'May Excalibur guide your path, Swordbringers!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: LOST_SWORD_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '⏰ Reset',
+                        value: `<t:${ts}:F>\n<t:${ts}:R>`,
+                        inline: true,
+                    },
+                    {
+                        name: '🎯 This Server Attacks',
+                        value: '**Camelot** or **Mercia** — coordinate with guild',
+                        inline: true,
+                    },
+                    {
+                        name: '⚔️ Attempts',
+                        value: '6 per member\n• 1st & 2nd: **100 💎** each\n• 3rd: **150 💎**',
+                        inline: false,
+                    },
+                    {
+                        name: '📜 Strategy',
+                        value: 'Guild rewards = highest single-castle score. **Focus on ONE castle** for max leaderboard impact.',
+                        inline: false,
+                    },
+                    {
+                        name: '📖 Guides',
+                        value: '[Avalon Guide](https://lootandwaifus.com/guides/avalon-guide-lost-sword/) • [Camelot Teams](https://lootandwaifus.com/teams/lost-sword-avalon-camelot-castle/) • [Prydwen Raid Guide](https://www.prydwen.gg/lost-sword/guides/raid-guide/)',
+                        inline: false,
+                    },
+                ],
+            },
+        },
+        {
+            label: '1 day',
+            minutesBefore: 24 * 60, // Saturday 15:00 UTC
+            embedConfig: {
+                title: '🏰 Avalon Ends Tomorrow!',
+                description: (ts) =>
+                    `Swordbringers, the castle siege closes tomorrow!\n\n` +
+                    `**Avalon ends <t:${ts}:F> (<t:${ts}:R>).**\n\n` +
+                    `Spend your remaining attempts and push your guild's chosen castle to the leaderboard.`,
+                color: 0xFFA500, // Orange — urgency rising
+                footer: {
+                    text: 'The Round Table awaits, Swordbringer!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: LOST_SWORD_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '⏰ Reset',
+                        value: `<t:${ts}:F>\n<t:${ts}:R>`,
+                        inline: true,
+                    },
+                    {
+                        name: '🎯 Castle Targets',
+                        value: '**Camelot** or **Mercia**',
+                        inline: true,
+                    },
+                    {
+                        name: '🔥 What to Do',
+                        value: '• Burn remaining **6 attempts**\n• Stack on guild\'s chosen castle\n• Coordinate in guild chat',
+                        inline: false,
+                    },
+                ],
+            },
+        },
+        {
+            label: '1 hour',
+            minutesBefore: 60, // Sunday 14:00 UTC
+            sendDM: true,      // Only the 1-hour warning DMs subscribers
+            embedConfig: {
+                title: '🚨 Avalon Reset in 1 Hour!',
+                description: (ts) =>
+                    `Final hour, Swordbringers! Avalon's reset is imminent.\n\n` +
+                    `**Avalon ends <t:${ts}:R> (<t:${ts}:t>).**\n\n` +
+                    `**Last chance** to spend attempts — rewards lock at reset.`,
+                color: 0xFF0000, // Red — urgent
+                footer: {
+                    text: 'The siege closes! | May Excalibur guide your path!',
+                    iconURL: RAPI_BOT_THUMBNAIL_URL,
+                },
+                thumbnail: LOST_SWORD_LOGO_URL,
+                author: { name: 'Rapi BOT', iconURL: RAPI_BOT_THUMBNAIL_URL },
+                fields: (ts) => [
+                    {
+                        name: '⏰ Reset',
+                        value: `<t:${ts}:t> (<t:${ts}:R>)`,
+                        inline: true,
+                    },
+                    {
+                        name: '🚨 Last Call',
+                        value: '• Spend **all 6 attempts NOW**\n• Final castle pushes\n• Rewards lock at reset',
+                        inline: true,
+                    },
+                ],
+            },
+        },
+    ],
+    mediaConfig: {
+        cdnPath: 'dailies/lost-sword/',
+        extensions: [...DEFAULT_IMAGE_EXTENSIONS],
+        trackLast: 10,
+    },
+};
+
 export const pvpReminderServiceConfig: PvpReminderServiceConfig = {
-    events: [bd2MirrorWarsConfig],
+    events: [bd2MirrorWarsConfig, lostSwordAvalonConfig],
     devModeInterval: 3,
 };
