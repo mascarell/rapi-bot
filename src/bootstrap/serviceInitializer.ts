@@ -73,6 +73,13 @@ export async function initializeServices(bot: Client): Promise<void> {
             embedColor: 0x8B4513,
         });
 
+        notificationService.registerNotificationType({
+            type: 'pvp-warning:lost-sword-avalon',
+            displayName: 'Lost Sword Avalon',
+            description: 'Biweekly Avalon castle raid reset reminders for Lost Sword',
+            embedColor: 0xFFD700,
+        });
+
         // Register daily reset notification types for each game
         for (const gameConfig of dailyResetServiceConfig.games) {
             if (gameConfig.notificationType) {
