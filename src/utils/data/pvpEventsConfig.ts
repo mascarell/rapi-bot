@@ -134,8 +134,8 @@ const bd2MirrorWarsConfig: PvpEventConfig = {
  * This server's guild attacks BOTH Camelot AND Mercia — 3 attempts each
  * (6 attempts total, split 3/3).
  *
- * Schedule: ends every other Sunday at 15:00 UTC. Anchor 2026-05-03 is the
- * end of the current active cycle (Avalon active 2026-04-26 → 2026-05-03).
+ * Schedule: ends every other Sunday at 15:00 UTC. Anchor 2026-05-10 is the
+ * end of the current active cycle (Avalon active 2026-05-03 → 2026-05-10).
  * The alternating weeks run Star Reincarnation (phaseOffset=1, see below).
  */
 const lostSwordAvalonConfig: PvpEventConfig = {
@@ -149,7 +149,7 @@ const lostSwordAvalonConfig: PvpEventConfig = {
         minute: 0,
     },
     cyclePhase: {
-        anchor: '2026-05-03T15:00:00Z',  // first season-end of active cycle
+        anchor: '2026-05-10T15:00:00Z',  // first season-end of active cycle
         intervalWeeks: 2,
         phaseOffset: 0,                  // Avalon is phase A; Star Reincarnation = phase B (offset 1)
     },
@@ -283,7 +283,7 @@ const lostSwordAvalonConfig: PvpEventConfig = {
  * demand varied team compositions.
  *
  * Schedule: ends every other Sunday at 15:00 UTC, on the alternating week from
- * Avalon (shared anchor 2026-05-03 + phaseOffset=1 → SR ends 2026-05-10, 05-24, ...).
+ * Avalon (shared anchor 2026-05-10 + phaseOffset=1 → SR ends 2026-05-17, 05-31, ...).
  */
 const lostSwordStarReincarnationConfig: PvpEventConfig = {
     id: 'lost-sword-star-reincarnation',
@@ -296,7 +296,7 @@ const lostSwordStarReincarnationConfig: PvpEventConfig = {
         minute: 0,
     },
     cyclePhase: {
-        anchor: '2026-05-03T15:00:00Z',  // shared anchor with Avalon
+        anchor: '2026-05-10T15:00:00Z',  // shared anchor with Avalon
         intervalWeeks: 2,
         phaseOffset: 1,                  // phase B (Avalon = phase A, offset 0)
     },
