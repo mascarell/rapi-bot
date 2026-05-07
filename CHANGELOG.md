@@ -1,3 +1,10 @@
+## [2.13.1](https://github.com/mascarell/rapi-bot/compare/v2.13.0...v2.13.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* correct lost sword avalon and star reincarnation anchor to 2026-05-10 ([#243](https://github.com/mascarell/rapi-bot/issues/243)) ([212b503](https://github.com/mascarell/rapi-bot/commit/212b503ee76f5bf7174e32c54b7f1734db3dac88))
+
 # [2.13.0](https://github.com/mascarell/rapi-bot/compare/v2.12.0...v2.13.0) (2026-05-07)
 
 
