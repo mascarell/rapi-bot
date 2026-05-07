@@ -591,8 +591,59 @@ describe('PvpReminderService', () => {
             expect(avalon!.seasonEnd).toEqual({ dayOfWeek: 0, hour: 15, minute: 0 });
             expect(avalon!.cyclePhase?.intervalWeeks).toBe(2);
             expect(avalon!.cyclePhase?.phaseOffset).toBe(0);
-            expect(avalon!.cyclePhase?.anchor).toBe('2026-04-26T15:00:00Z');
+            expect(avalon!.cyclePhase?.anchor).toBe('2026-05-03T15:00:00Z');
             expect(avalon!.warnings.map(w => w.label)).toEqual(['2 days', '1 day', '1 hour']);
+        });
+
+        it('should include Lost Sword Star Reincarnation biweekly config', async () => {
+            const { pvpReminderServiceConfig } = await import('../../utils/data/pvpEventsConfig');
+            const sr = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-star-reincarnation');
+            expect(sr).toBeDefined();
+            expect(sr!.channelName).toBe('lost-sword');
+            expect(sr!.seasonEnd).toEqual({ dayOfWeek: 0, hour: 15, minute: 0 });
+            expect(sr!.cyclePhase?.intervalWeeks).toBe(2);
+            expect(sr!.cyclePhase?.phaseOffset).toBe(1);
+            expect(sr!.cyclePhase?.anchor).toBe('2026-05-03T15:00:00Z');
+            expect(sr!.warnings.map(w => w.label)).toEqual(['2 days', '1 day', '1 hour']);
+        });
+
+        it('Avalon and Star Reincarnation should never both fire on the same Sunday', async () => {
+            const { pvpReminderServiceConfig } = await import('../../utils/data/pvpEventsConfig');
+            const avalon = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-avalon')!;
+            const sr = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-star-reincarnation')!;
+            const service = new PvpReminderService(mockBot, pvpReminderServiceConfig);
+            const anyWarning: PvpWarningConfig = {
+                label: 'test',
+                minutesBefore: 0,
+                embedConfig: testEvent.warnings[0].embedConfig,
+            };
+            // Sweep 26 Sundays starting from the shared anchor
+            for (let i = 0; i < 26; i++) {
+                const sunday = new Date(Date.parse('2026-05-03T15:00:00Z') + i * 7 * 24 * 60 * 60 * 1000);
+                const a = service.isActiveCycle(avalon, anyWarning, sunday);
+                const b = service.isActiveCycle(sr, anyWarning, sunday);
+                expect(a !== b).toBe(true);
+            }
+        });
+
+        it('Avalon active cycle ends on 2026-05-03 (the anchor Sunday)', async () => {
+            const { pvpReminderServiceConfig } = await import('../../utils/data/pvpEventsConfig');
+            const avalon = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-avalon')!;
+            const service = new PvpReminderService(mockBot, pvpReminderServiceConfig);
+            // Friday 2026-05-01 (2 days before 05-03) — 2-day warning's projected target = 05-03
+            const fri = new Date('2026-05-01T15:00:00Z');
+            const warning2d: PvpWarningConfig = { label: '2 days', minutesBefore: 2 * 24 * 60, embedConfig: testEvent.warnings[0].embedConfig };
+            expect(service.isActiveCycle(avalon, warning2d, fri)).toBe(true);
+        });
+
+        it('Star Reincarnation first active end is 2026-05-10 (one week after Avalon ends)', async () => {
+            const { pvpReminderServiceConfig } = await import('../../utils/data/pvpEventsConfig');
+            const sr = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-star-reincarnation')!;
+            const service = new PvpReminderService(mockBot, pvpReminderServiceConfig);
+            // Friday 2026-05-08 — 2-day warning's projected target = 05-10 (SR's first end)
+            const fri = new Date('2026-05-08T15:00:00Z');
+            const warning2d: PvpWarningConfig = { label: '2 days', minutesBefore: 2 * 24 * 60, embedConfig: testEvent.warnings[0].embedConfig };
+            expect(service.isActiveCycle(sr, warning2d, fri)).toBe(true);
         });
     });
 
