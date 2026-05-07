@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/mascarell/rapi-bot/compare/v2.11.0...v2.12.0) (2026-05-07)
+
+
+### Features
+
+* lost sword avalon biweekly reminder alerts ([#241](https://github.com/mascarell/rapi-bot/issues/241)) ([fd662d5](https://github.com/mascarell/rapi-bot/commit/fd662d5a6efa3504327a4401b82431763604b5a2)), closes [#lost-sword](https://github.com/mascarell/rapi-bot/issues/lost-sword)
+
 # [2.11.0](https://github.com/mascarell/rapi-bot/compare/v2.10.1...v2.11.0) (2026-04-27)
 
 
