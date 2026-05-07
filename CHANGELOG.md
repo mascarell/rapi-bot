@@ -1,3 +1,10 @@
+# [2.13.0](https://github.com/mascarell/rapi-bot/compare/v2.12.0...v2.13.0) (2026-05-07)
+
+
+### Features
+
+* lost sword star reincarnation alerts and avalon anchor fix ([#242](https://github.com/mascarell/rapi-bot/issues/242)) ([ce02350](https://github.com/mascarell/rapi-bot/commit/ce02350a0969e9afd3a3a062f59441dc5a7cb4f0)), closes [#lost-sword](https://github.com/mascarell/rapi-bot/issues/lost-sword)
+
 # [2.12.0](https://github.com/mascarell/rapi-bot/compare/v2.11.0...v2.12.0) (2026-05-07)
 
 
