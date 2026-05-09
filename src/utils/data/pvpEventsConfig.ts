@@ -156,7 +156,7 @@ const lostSwordAvalonConfig: PvpEventConfig = {
     warnings: [
         {
             label: '2 days',
-            minutesBefore: 2 * 24 * 60,  // Friday 15:00 UTC
+            minutesBefore: (2 * 24 * 60) + 60,  // Friday 14:00 UTC (1h before daily reset to avoid notification collision)
             embedConfig: {
                 title: '🏰 Avalon Ends in 2 Days — Hit Both Castles!',
                 description: (ts) =>
@@ -201,7 +201,7 @@ const lostSwordAvalonConfig: PvpEventConfig = {
         },
         {
             label: '1 day',
-            minutesBefore: 24 * 60, // Saturday 15:00 UTC
+            minutesBefore: (24 * 60) + 60, // Saturday 14:00 UTC (1h before daily reset to avoid notification collision)
             embedConfig: {
                 title: '🏰 Avalon Ends Tomorrow!',
                 description: (ts) =>
@@ -303,7 +303,7 @@ const lostSwordStarReincarnationConfig: PvpEventConfig = {
     warnings: [
         {
             label: '2 days',
-            minutesBefore: 2 * 24 * 60,
+            minutesBefore: (2 * 24 * 60) + 60,  // Friday 14:00 UTC (1h before daily reset to avoid notification collision)
             embedConfig: {
                 title: '🌌 Star Reincarnation Ends in 2 Days — Plan Your Two Teams',
                 description: (ts) =>
@@ -348,7 +348,7 @@ const lostSwordStarReincarnationConfig: PvpEventConfig = {
         },
         {
             label: '1 day',
-            minutesBefore: 24 * 60,
+            minutesBefore: (24 * 60) + 60, // Saturday 14:00 UTC (1h before daily reset to avoid notification collision)
             embedConfig: {
                 title: '🌌 Star Reincarnation Ends Tomorrow!',
                 description: (ts) =>
