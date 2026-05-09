@@ -1,3 +1,10 @@
+# [2.14.0](https://github.com/mascarell/rapi-bot/compare/v2.13.2...v2.14.0) (2026-05-09)
+
+
+### Features
+
+* restrict chat commands to #rapi-bot channel ([#245](https://github.com/mascarell/rapi-bot/issues/245)) ([022e421](https://github.com/mascarell/rapi-bot/commit/022e42168727fdb6d6c1796796c8e6db223b406f)), closes [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot) [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot) [#1](https://github.com/mascarell/rapi-bot/issues/1) [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot)
+
 ## [2.13.2](https://github.com/mascarell/rapi-bot/compare/v2.13.1...v2.13.2) (2026-05-09)
 
 
