@@ -1,3 +1,10 @@
+## [2.13.2](https://github.com/mascarell/rapi-bot/compare/v2.13.1...v2.13.2) (2026-05-09)
+
+
+### Bug Fixes
+
+* correct Avalon/Star Reincarnation cycle and stagger warnings 1h before reset ([#244](https://github.com/mascarell/rapi-bot/issues/244)) ([db6a7a5](https://github.com/mascarell/rapi-bot/commit/db6a7a54d27bf77ad6bc34278dc4b6938eda5fc9))
+
 ## [2.13.1](https://github.com/mascarell/rapi-bot/compare/v2.13.0...v2.13.1) (2026-05-07)
 
 
