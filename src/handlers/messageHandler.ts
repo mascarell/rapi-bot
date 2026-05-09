@@ -89,6 +89,9 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
         return;
     }
 
+    // ccp commands (ccp leadership, ccp rules, ccp #1) are allowed everywhere
+    const isCcpCommand = chatCommand.name.toLowerCase().startsWith('ccp ');
+
     try {
         const ignoredRole = findRoleByName(msg.guild, 'Grounded');
         const contentCreatorRole = findRoleByName(msg.guild, 'Content Creator');
@@ -96,7 +99,30 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
         const hasIgnoredRole = ignoredRole && msg.member.roles.cache.has(ignoredRole.id);
         const hasContentCreatorRole = contentCreatorRole && msg.member.roles.cache.has(contentCreatorRole.id);
 
-        // Rate limit all chat commands (except in rapi-bot channel)
+        // Block non-ccp chat commands outside #rapi-bot
+        if (isChatCommand && !isCcpCommand && !isRapiBotChannel) {
+            const rapiBotChannelId = msg.guild.channels.cache.find(
+                channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot'
+            )?.id;
+
+            const channelMention = rapiBotChannelId ? `<#${rapiBotChannelId}>` : '#rapi-bot';
+
+            const warningMsg = await msg.reply({
+                content: `Commander ${msg.author}, this command is only available in ${channelMention}.`
+            });
+
+            setTimeout(async () => {
+                try {
+                    await warningMsg.delete();
+                } catch {
+                    // Message likely already deleted
+                }
+            }, 5000);
+
+            return;
+        }
+
+        // Rate limit ccp chat commands (only path that reaches here outside rapi-bot)
         if (isChatCommand && !isRapiBotChannel) {
             const guildId = msg.guild.id;
             const userId = msg.author.id;
