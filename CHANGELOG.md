@@ -1,3 +1,10 @@
+## [2.14.1](https://github.com/mascarell/rapi-bot/compare/v2.14.0...v2.14.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* cron jitter rolls Avalon/SR phase forward + 4h stagger for 1d/2d ([#246](https://github.com/mascarell/rapi-bot/issues/246)) ([62f8849](https://github.com/mascarell/rapi-bot/commit/62f8849049e38fe941727af3b0ff6e8282e9a246))
+
 # [2.14.0](https://github.com/mascarell/rapi-bot/compare/v2.13.2...v2.14.0) (2026-05-09)
 
 
