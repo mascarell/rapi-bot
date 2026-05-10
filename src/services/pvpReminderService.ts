@@ -183,8 +183,15 @@ export class PvpReminderService {
     }
 
     /**
-     * Internal: next weekly Sunday season-end strictly-at-or-after `now`. Biweekly-blind.
-     * If `now` lands exactly on a season-end instant, returns that instant.
+     * Internal: next weekly Sunday season-end at-or-after `now`. Biweekly-blind.
+     *
+     * When the cron fires for a warning anticipating "this Sunday's" season end,
+     * `now` (already projected forward by minutesBefore) lands at-or-very-near the
+     * season-end instant. Cron schedulers fire with millisecond jitter, so a strict
+     * `<` comparison would treat 15:00:00.123 as "after" 15:00:00.000 and roll forward
+     * to NEXT Sunday — breaking biweekly phase calculations for any Sunday-resetting
+     * event. Use a 5-minute tolerance window to absorb jitter while still catching
+     * genuinely past season-ends.
      */
     private weeklySeasonEndAtOrAfter(event: PvpEventConfig, now: Date): Date {
         const { dayOfWeek, hour, minute } = event.seasonEnd;
@@ -199,8 +206,9 @@ export class PvpReminderService {
         const currentDay = target.getUTCDay();
         let daysUntil = dayOfWeek - currentDay;
         if (daysUntil < 0) daysUntil += 7;
-        // Strictly-less-than: at exact equality `target == now`, stay on this Sunday
-        if (daysUntil === 0 && target.getTime() < now.getTime()) daysUntil = 7;
+        // 5-min tolerance: only roll forward if target is meaningfully before now
+        const TOLERANCE_MS = 5 * 60 * 1000;
+        if (daysUntil === 0 && target.getTime() + TOLERANCE_MS < now.getTime()) daysUntil = 7;
         target.setUTCDate(target.getUTCDate() + daysUntil);
         return target;
     }

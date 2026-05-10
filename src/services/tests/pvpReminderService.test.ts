@@ -656,6 +656,27 @@ describe('PvpReminderService', () => {
             // 05-03 is off-cycle for Avalon (anchor=05-10, so 05-03 is one week before anchor → phase=1)
             expect(service.isActiveCycle(avalon, warning2d, fri)).toBe(false);
         });
+
+        it('cron jitter regression: Avalon (not SR) fires for 1-hour warning at Sunday 14:00 UTC + ms jitter', async () => {
+            // Bug repro: cron schedulers fire with millisecond jitter. The 1-hour warning
+            // for a Sunday-resetting biweekly event should NOT roll forward to next Sunday
+            // when `now` is a few ms past the scheduled :00:00 mark.
+            const { pvpReminderServiceConfig } = await import('../../utils/data/pvpEventsConfig');
+            const avalon = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-avalon')!;
+            const sr = pvpReminderServiceConfig.events.find(e => e.id === 'lost-sword-star-reincarnation')!;
+            const service = new PvpReminderService(mockBot, pvpReminderServiceConfig);
+            const warning1h: PvpWarningConfig = { label: '1 hour', minutesBefore: 60, embedConfig: testEvent.warnings[0].embedConfig };
+
+            // Sunday 2026-05-10 14:00:00.500 UTC — cron fires with 500ms jitter
+            const sunWithJitter = new Date(Date.parse('2026-05-10T14:00:00Z') + 500);
+            expect(service.isActiveCycle(avalon, warning1h, sunWithJitter)).toBe(true);
+            expect(service.isActiveCycle(sr, warning1h, sunWithJitter)).toBe(false);
+
+            // Same exact second too — should also work
+            const sunExact = new Date('2026-05-10T14:00:00Z');
+            expect(service.isActiveCycle(avalon, warning1h, sunExact)).toBe(true);
+            expect(service.isActiveCycle(sr, warning1h, sunExact)).toBe(false);
+        });
     });
 
     describe('cyclePhase: isActiveCycle', () => {
