@@ -30,7 +30,7 @@ export default {
             if (isLive) {
                 const channel = await interaction.client.channels.fetch(channelId) as TextChannel;
                 if (channel) {
-                    await channel.send(`<@&1494591138412232744> Commander Sefhi is now streaming! You can watch on Youtube or Twitch here: ${url} ${twitchLink}`);
+                    await channel.send(`@everyone Commander Sefhi is now streaming! You can watch on Youtube or Twitch here: ${url} ${twitchLink}`);
                 } else {
                     logger.warning`Channel with ID ${channelId} not found.`;
                 }

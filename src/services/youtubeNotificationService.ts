@@ -384,7 +384,7 @@ class YouTubeNotificationService {
                         }
 
                         const phrase = this.getRandomAnnouncementPhrase(channelConfig.discordUserId);
-                        await channel.send({ content: `<@&1494591035001671711>\n${phrase}\n${video.videoUrl}` });
+                        await channel.send({ content: `@everyone\n${phrase}\n${video.videoUrl}` });
                         notified++;
                     } catch (error: any) {
                         logger.error`[YouTube] Failed to post in ${guild.name}#${channel.name}: ${error.message}`;
