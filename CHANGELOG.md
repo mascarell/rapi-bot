@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/mascarell/rapi-bot/compare/v2.14.1...v2.15.0) (2026-08-28)
+
+
+### Features
+
+* announce NIKKE co-op when the co-op role is pinged ([#247](https://github.com/mascarell/rapi-bot/issues/247)) ([7f886d1](https://github.com/mascarell/rapi-bot/commit/7f886d199f4178b1fe1994a53d1a87a2980d242b))
+
 ## [2.14.1](https://github.com/mascarell/rapi-bot/compare/v2.14.0...v2.14.1) (2026-05-10)
 
 
