@@ -1,6 +1,6 @@
 import gamesData from "./data/gamesData";
 import { Guild, TextChannel, ChannelType, VoiceBasedChannel } from 'discord.js';
-import { bosses, bossesLinks, towerRotation, rapiMessages, readNikkeMessages } from ".";
+import { bosses, bossesLinks, towerRotation, rapiMessages, readNikkeMessages, coopPingMessages } from ".";
 import { promises as fs } from "fs";
 import path from "path";
 import { Command, SlashCommand, MessageCommand } from './interfaces/Command.interface.js';
@@ -48,6 +48,10 @@ export function getRandomRapiMessage() {
 
 export function getRandomReadNikkeMessage() {
     return readNikkeMessages[Math.floor(Math.random() * readNikkeMessages.length)];
+}
+
+export function getRandomCoopPingMessage() {
+    return coopPingMessages[Math.floor(Math.random() * coopPingMessages.length)];
 }
 
 export function getBossFileName(bossName: string) {

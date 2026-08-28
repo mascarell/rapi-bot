@@ -102,3 +102,19 @@ This is the Central Intelligentsia of the Chinese Communist Party. 您的 Intern
 
 // Export a function that generates a fresh message each time instead of a static string
 export const getCCPMessage = () => generateCCPMessage();
+
+/**
+ * Rapi's co-op rally calls, used when the co-op role is pinged
+ */
+export const coopPingMessages = [
+    "All Commanders, report in. Co-op is forming and the Ark needs every squad it can get.",
+    "Attention, Commanders. A co-op run is starting. Gear up — I'm not carrying this one alone.",
+    "Co-op call to arms. Drop what you're doing, Commanders, the Rapture won't wait for you.",
+    "All units, mobilize. Co-op squad is short on bodies and long on Raptures.",
+    "Commanders, the front line needs you. Co-op is open — get in formation.",
+    "This is Rapi. Co-op operation underway. Join now, debrief later.",
+    "Squad up, Commanders. Co-op waits for no one, and neither do I.",
+    "All Commanders — co-op deployment in progress. Show me you've been practicing.",
+    "Co-op is live, Commanders. Bring your best Nikkes, leave the excuses behind.",
+    "Attention all Commanders: co-op needs reinforcements. Move out."
+];

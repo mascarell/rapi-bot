@@ -37,6 +37,7 @@ export const ASSET_PATHS = {
     // Command-specific media paths can be added here
     skillissue: 'commands/skillissue/',
     seggs: 'commands/seggs/',
+    coop: 'commands/coop/',
     // Add more as needed during Phase 3
   }
 } as const;

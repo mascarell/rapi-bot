@@ -4,6 +4,7 @@ import { getChatCommand, getChatCommandNames } from '../chatCommands/index.js';
 import { checkSensitiveTerms } from '../utils/sensitiveTermsChecker.js';
 import { getSlurModerationService } from '../services/slurModerationService.js';
 import { checkEmbedFixUrls } from '../services/embedFix/urlFixService.js';
+import { checkCoopPing } from './coopPingHandler.js';
 import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter.js';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager.js';
 import { findRoleByName, logError, isMessageCommand } from '../utils/util.js';
@@ -57,6 +58,9 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
 
     // Check for scarrow mentions
     await checkScarrowMention(msg);
+
+    // Check for co-op role pings
+    await checkCoopPing(msg);
 
     // Check for embed-worthy URLs (Twitter, Pixiv, etc.)
     await checkEmbedFixUrls(msg);
