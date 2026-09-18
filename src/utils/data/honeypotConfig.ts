@@ -6,15 +6,21 @@
  * running scam spam blast every channel they can see, so they trip the trap
  * before they reach the channels people actually read.
  *
- * On a trip the offender is softbanned — banned with message deletion, then
- * immediately unbanned — which removes the account and purges its recent
- * messages server-wide while leaving a real member who wandered in able to
- * rejoin with an invite.
+ * On a trip the offender is permanently banned and their recent messages are
+ * purged server-wide. Decided in the server on 2026-09-17: the point of the
+ * trap is to get the account off the server, and a recovered account is dealt
+ * with by unbanning it by hand. An earlier revision softbanned (ban, then
+ * immediate unban) so an accidental trip could rejoin; that was rejected in
+ * favour of removal.
  *
- * Deliberately a TypeScript constant rather than S3 or a slash command: a
- * channel name changes about once a year, which is slower than the release
- * cycle, and admin-only slash command surface is the most-rejected proposal on
- * this project.
+ * Because the action is irreversible, the mod-log embed carries the offender's
+ * ID so a mod can undo it in one step.
+ *
+ * Deliberately a TypeScript constant rather than S3, an env var or a slash
+ * command: a channel name changes about once a year, which is slower than the
+ * release cycle, and admin-only slash command surface is the most-rejected
+ * proposal on this project. Nothing here is a GitHub variable or secret — the
+ * only setup is a Discord channel whose name matches CHANNEL_NAME.
  */
 
 export const HONEYPOT_CONFIG = {
@@ -28,11 +34,8 @@ export const HONEYPOT_CONFIG = {
      */
     DELETE_MESSAGE_SECONDS: 24 * 60 * 60,
 
-    /** Discord audit-log reason for the ban half of the softban. */
+    /** Discord audit-log reason for the ban. */
     BAN_REASON: 'Honeypot: posted in the trap channel',
-
-    /** Discord audit-log reason for the unban half of the softban. */
-    UNBAN_REASON: 'Honeypot softban release',
 
     /**
      * Channel name the bot looks up for mod alerts. Intentionally the same
@@ -73,7 +76,7 @@ export const HONEYPOT_CONFIG = {
     NOTICE_TITLE: '🍯 Do Not Post Here',
     NOTICE_BODY: [
         'This channel is bait, Commander. Nothing happens here — it exists so spam accounts trip over it before they reach the channels that matter.',
-        'Post anything and you are removed, along with your last 24 hours of messages. If that was genuinely an accident, you can rejoin — ask a mod for an invite.',
+        'Post anything and you are banned, permanently, and your last 24 hours of messages go with you. No warning, no second chance.',
         'Move along.',
     ].join('\n\n'),
 

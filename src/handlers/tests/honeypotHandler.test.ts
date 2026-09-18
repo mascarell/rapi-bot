@@ -124,7 +124,7 @@ describe('checkHoneypot', () => {
         resetHoneypotState();
     });
 
-    it('softbans a non-exempt account that posts in the trap', async () => {
+    it('permanently bans a non-exempt account that posts in the trap', async () => {
         const { msg, banCreate, banRemove } = createMessage();
 
         await checkHoneypot(msg);
@@ -133,7 +133,8 @@ describe('checkHoneypot', () => {
             deleteMessageSeconds: HONEYPOT_CONFIG.DELETE_MESSAGE_SECONDS,
             reason: HONEYPOT_CONFIG.BAN_REASON,
         });
-        expect(banRemove).toHaveBeenCalledWith(msg.author.id, HONEYPOT_CONFIG.UNBAN_REASON);
+        // The ban is permanent: nothing lifts it automatically.
+        expect(banRemove).not.toHaveBeenCalled();
     });
 
     it('acts on @everyone spam, which the main message handler filters out', async () => {
@@ -195,13 +196,14 @@ describe('checkHoneypot', () => {
         expect(hook.banCreate).not.toHaveBeenCalled();
     });
 
-    it('leaves an existing ban alone rather than releasing it', async () => {
-        const { msg, banCreate, banRemove } = createMessage({ alreadyBanned: true });
+    it('does nothing when the account is already banned', async () => {
+        const { msg, banCreate, banRemove, modLogSend } = createMessage({ alreadyBanned: true });
 
         await checkHoneypot(msg);
 
         expect(banCreate).not.toHaveBeenCalled();
         expect(banRemove).not.toHaveBeenCalled();
+        expect(modLogSend).not.toHaveBeenCalled();
     });
 
     it('acts once per account within the cooldown window', async () => {
@@ -226,7 +228,18 @@ describe('checkHoneypot', () => {
         const fields = embed.data.fields;
         expect(fields.find((f: any) => f.name === 'User').value).toContain(msg.author.id);
         expect(fields.find((f: any) => f.name === 'Message').value).toContain('scam link here');
-        expect(actionsField(modLogSend)).toContain('Banned');
+        expect(actionsField(modLogSend)).toContain('Permanently banned');
+    });
+
+    it('tells mods how to reverse the ban, since nothing else will', async () => {
+        const { msg, modLogSend } = createMessage();
+
+        await checkHoneypot(msg);
+
+        expect(actionsField(modLogSend)).toContain('To reverse');
+        // The offender ID has to survive into the log; they are gone by now.
+        expect(modLogEmbed(modLogSend).data.fields.find((f: any) => f.name === 'User').value)
+            .toContain(msg.author.id);
     });
 
     it('snapshots the message before the ban purges it', async () => {
@@ -242,16 +255,6 @@ describe('checkHoneypot', () => {
         expect(fields.find((f: any) => f.name === 'Message').value).toContain('original scam text');
     });
 
-    it('flags loudly when the unban fails, because the user is still banned', async () => {
-        const banRemove = vi.fn().mockRejectedValue(new Error('Missing Permissions'));
-        const { msg, modLogSend } = createMessage({ banRemove });
-
-        await checkHoneypot(msg);
-
-        const actions = actionsField(modLogSend);
-        expect(actions).toContain('Unban FAILED');
-        expect(actions).toContain('still banned');
-    });
 
     it('reports a missing Ban Members permission instead of failing silently', async () => {
         const { msg, banCreate, modLogSend } = createMessage({ botHasBanPermission: false });
@@ -362,7 +365,9 @@ describe('ensureHoneypotNotice', () => {
         const embed = send.mock.calls[0][0].embeds[0];
         expect(embed.data.title).toBe(HONEYPOT_CONFIG.NOTICE_TITLE);
         expect(embed.data.description).toContain('bait');
-        expect(embed.data.description).toContain('ask a mod for an invite');
+        // The warning must match the actual consequence: a permanent ban.
+        expect(embed.data.description).toContain('permanently');
+        expect(embed.data.description).not.toContain('rejoin');
     });
 
     it('edits its existing notice instead of stacking a new one each restart', async () => {

@@ -64,35 +64,21 @@ function reasonOf(error: unknown): string {
 }
 
 /**
- * Bans with message deletion, then immediately unbans.
+ * Permanently bans the offender and purges their recent messages.
  *
- * The unban is what makes this recoverable, so a failure there is the one
- * outcome mods must not miss: the account stays banned until someone lifts it
- * by hand. It is reported separately rather than folded into the ban result.
+ * Irreversible by design — the trap exists to get the account off the server.
+ * A recovered account is unbanned by hand, which is why the mod-log carries the
+ * user ID.
  */
-async function softban(
-    guild: Guild,
-    userId: string
-): Promise<{ ban: ActionResult; unban: ActionResult }> {
-    let ban: ActionResult;
+async function banOffender(guild: Guild, userId: string): Promise<ActionResult> {
     try {
         await guild.bans.create(userId, {
             deleteMessageSeconds: HONEYPOT_CONFIG.DELETE_MESSAGE_SECONDS,
             reason: HONEYPOT_CONFIG.BAN_REASON,
         });
-        ban = { success: true };
+        return { success: true };
     } catch (error) {
-        return {
-            ban: { success: false, reason: reasonOf(error) },
-            unban: { success: false, reason: 'skipped, ban did not land' },
-        };
-    }
-
-    try {
-        await guild.bans.remove(userId, HONEYPOT_CONFIG.UNBAN_REASON);
-        return { ban, unban: { success: true } };
-    } catch (error) {
-        return { ban, unban: { success: false, reason: reasonOf(error) } };
+        return { success: false, reason: reasonOf(error) };
     }
 }
 
@@ -100,8 +86,7 @@ async function postModLog(
     msg: Message,
     member: GuildMember | null,
     snapshot: string,
-    ban: ActionResult,
-    unban: ActionResult
+    ban: ActionResult
 ): Promise<void> {
     const channel = findModLogChannel(msg.guild!);
     if (!channel) {
@@ -115,18 +100,13 @@ async function postModLog(
         ? Math.floor(member.joinedTimestamp / 1000)
         : null;
 
-    const actions = [
-        ban.success
-            ? '✅ Banned, last 24h of messages purged'
-            : `❌ Ban failed: ${ban.reason}`,
-        unban.success
-            ? '✅ Unbanned — softban complete, they can rejoin'
-            : `🚨 Unban FAILED: ${unban.reason} — **this user is still banned**`,
-    ].join('\n');
+    const actions = ban.success
+        ? '🔨 **Permanently banned**, last 24h of messages purged\nTo reverse: `/unban` or Server Settings → Bans'
+        : `❌ Ban failed: ${ban.reason}`;
 
     const embed = EmbedTemplates.warning(
         '🍯 Honeypot Triggered',
-        `<@${msg.author.id}> posted in <#${msg.channel.id}> and was softbanned.`
+        `<@${msg.author.id}> posted in <#${msg.channel.id}> and was permanently banned.`
     )
         .addFields(
             {
@@ -205,21 +185,18 @@ export async function checkHoneypot(msg: Message): Promise<void> {
         if (!me?.permissions.has(PermissionFlagsBits.BanMembers)) {
             logger.error`[honeypot] missing Ban Members in guild ${msg.guild.id}; cannot action ${msg.author.tag}`;
             recentlyActioned.set(msg.author.id, now);
-            await postModLog(
-                msg,
-                member,
-                msg.content,
-                { success: false, reason: 'Rapi is missing the Ban Members permission' },
-                { success: false, reason: 'skipped, ban did not land' }
-            );
+            await postModLog(msg, member, msg.content, {
+                success: false,
+                reason: 'Rapi is missing the Ban Members permission',
+            });
             return;
         }
 
-        // An account banned for some other reason must not be released by our
-        // unban. If they are already banned they are already gone.
+        // Already banned means already gone. Re-banning would achieve nothing
+        // and would post a second mod-log embed for the same account.
         const existingBan = await msg.guild.bans.fetch(msg.author.id).catch(() => null);
         if (existingBan) {
-            logger.info`[honeypot] ${msg.author.tag} is already banned; leaving the existing ban alone`;
+            logger.info`[honeypot] ${msg.author.tag} is already banned; nothing to do`;
             return;
         }
 
@@ -229,7 +206,7 @@ export async function checkHoneypot(msg: Message): Promise<void> {
         // delete race would otherwise leave the mod-log with nothing to show.
         const snapshot = msg.content;
 
-        const { ban, unban } = await softban(msg.guild, msg.author.id);
+        const ban = await banOffender(msg.guild, msg.author.id);
 
         // deleteMessageSeconds normally takes the triggering message with it.
         // This is the fallback for when the ban itself failed.
@@ -237,7 +214,7 @@ export async function checkHoneypot(msg: Message): Promise<void> {
             await msg.delete().catch(() => {});
         }
 
-        await postModLog(msg, member, snapshot, ban, unban);
+        await postModLog(msg, member, snapshot, ban);
     } catch (error) {
         // Never break message processing over the trap.
         logger.error`[honeypot] checkHoneypot failed in guild ${msg.guild?.id}: ${error}`;
