@@ -35,6 +35,7 @@ import { logger } from './utils/logger.js';
 
 // Import new modular handlers and services
 import { handleMessage, handleMessageUpdate } from './handlers/messageHandler.js';
+import { checkHoneypot } from './handlers/honeypotHandler.js';
 import { handleSlashCommand, handleAutocomplete } from './handlers/slashCommandHandler.js';
 import { initializeServices } from './bootstrap/serviceInitializer.js';
 import { chatCommands } from './chatCommands/index.js';
@@ -461,6 +462,10 @@ async function initDiscordBot() {
             await initializeServices(bot);
 
             // Setup event handlers
+            // Honeypot gets its own listener: handleMessage returns early on
+            // bot authors and @everyone mentions, which is exactly what scam
+            // spam looks like, so the trap must see messages before that filter.
+            bot.on('messageCreate', checkHoneypot);
             bot.on('messageCreate', (msg) => handleMessage(msg, bot));
             bot.on('messageUpdate', handleMessageUpdate);
             bot.on(Events.InteractionCreate, async (interaction) => {
