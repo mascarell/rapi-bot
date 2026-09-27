@@ -1,3 +1,10 @@
+## [2.15.1](https://github.com/mascarell/rapi-bot/compare/v2.15.0...v2.15.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* keep the radio connected after a voice error ([#249](https://github.com/mascarell/rapi-bot/issues/249)) ([97fa4c3](https://github.com/mascarell/rapi-bot/commit/97fa4c3836a44acd32a4a1429cbbc87a5a7e1e64))
+
 # [2.15.0](https://github.com/mascarell/rapi-bot/compare/v2.14.1...v2.15.0) (2026-08-28)
 
 
