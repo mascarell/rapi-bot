@@ -6,20 +6,17 @@ import {
     ActivityType,
     PresenceUpdateStatus,
     Partials,
-    TextChannel,
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
 import path from "path";
 import fs from "fs";
 import schedule from 'node-schedule';
-import moment from "moment";
 import 'moment-timezone';
 
 import * as util from "./utils/util.js";
 import { CustomClient } from "./utils/interfaces/CustomClient.interface.js";
 import { getRadioService } from "./services/radioService.js";
-import { RADIO_CONFIG } from "./utils/data/radioConfig.js";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager.js";
 import { startStreamStatusCheck } from './utils/twitch.js';
 import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter.js';
@@ -364,7 +361,7 @@ async function initDiscordBot() {
     // Handle voice state updates (bot removed from the channel).
     // This used to destroy the connection permanently; the radio service now
     // reconnects instead, which is the whole point of the fix.
-    bot.on('voiceStateUpdate', (oldState, newState) => {
+    bot.on('voiceStateUpdate', (_oldState, newState) => {
         const botId = bot.user?.id;
         if (newState.member?.id === botId && !newState.channelId) {
             getRadioService().handleForcedDisconnect(newState.guild.id);
