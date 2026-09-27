@@ -6,28 +6,17 @@ import {
     ActivityType,
     PresenceUpdateStatus,
     Partials,
-    TextChannel,
 } from "discord.js";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
-import {
-    createAudioPlayer,
-    joinVoiceChannel,
-    createAudioResource,
-    VoiceConnectionStatus,
-    AudioPlayerStatus,
-    entersState,
-    StreamType,
-} from '@discordjs/voice';
 import path from "path";
 import fs from "fs";
 import schedule from 'node-schedule';
-import moment from "moment";
 import 'moment-timezone';
 
 import * as util from "./utils/util.js";
-import { VoiceConnectionData } from "./utils/interfaces/voiceConnectionData.interface.js";
 import { CustomClient } from "./utils/interfaces/CustomClient.interface.js";
+import { getRadioService } from "./services/radioService.js";
 import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager.js";
 import { startStreamStatusCheck } from './utils/twitch.js';
 import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter.js';
@@ -45,19 +34,15 @@ const {
     getRandomRapiMessage,
     findChannelByName,
     logError,
-    getVoiceChannel,
     isSlashCommand,
     isMessageCommand
 } = util;
 
 const DISCORD_TOKEN = process.env.WAIFUTOKEN as string;
 const CLIENT_ID = process.env.CLIENTID as string;
-const RADIO_FOLDER_PATH = './src/radio';
 
 // Default extensions
 const DEFAULT_IMAGE_EXTENSIONS = ['.gif', '.png', '.jpg', '.webp'] as const;
-
-const voiceConnections: Map<string, VoiceConnectionData> = new Map();
 
 const bot: CustomClient = new Client({
     intents: [
@@ -329,120 +314,6 @@ function sendRandomMessages() {
 }
 
 /**
- * Connect to voice channel for radio playback
- */
-async function connectToVoiceChannel(guildId: string, voiceChannel: any) {
-    try {
-        const connection = joinVoiceChannel({
-            channelId: voiceChannel.id,
-            guildId: voiceChannel.guild.id,
-            adapterCreator: voiceChannel.guild.voiceAdapterCreator
-        });
-
-        connection.on('error', error => {
-            logError(guildId, 'UNKNOWN', error, 'Voice connection');
-        });
-
-        const SUPPORTED_AUDIO_EXTENSIONS = ['.mp3', '.opus', '.ogg', '.wav', '.flac', '.m4a'];
-        const playlist = fs.readdirSync(RADIO_FOLDER_PATH).filter(file => {
-            const ext = path.extname(file).toLowerCase();
-            return SUPPORTED_AUDIO_EXTENSIONS.includes(ext);
-        });
-
-        if (playlist.length === 0) {
-            logger.error`No audio files found in ${RADIO_FOLDER_PATH}`;
-            return;
-        }
-
-        voiceConnections.set(guildId, { connection, playlist });
-
-        connection.on(VoiceConnectionStatus.Ready, () => {
-            playNextSong(guildId);
-        });
-
-        // Handle disconnection with reconnection attempt
-        connection.on(VoiceConnectionStatus.Disconnected, async () => {
-            try {
-                // Try to reconnect within 5 seconds
-                await Promise.race([
-                    entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-                    entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-                ]);
-            } catch (error) {
-                // Failed to reconnect - destroy and cleanup
-                connection.destroy();
-                voiceConnections.delete(guildId);
-            }
-        });
-    } catch (error) {
-        if (error instanceof Error) {
-            logError(guildId, 'UNKNOWN', error, 'Connecting to voice channel');
-        } else {
-            logError(guildId, 'UNKNOWN', new Error(String(error)), 'Connecting to voice channel');
-        }
-    }
-}
-
-/**
- * Play next song in radio playlist
- */
-function playNextSong(guildId: string) {
-    try {
-        const voiceConnectionData = voiceConnections.get(guildId);
-        if (!voiceConnectionData) {
-            throw new Error(`No voice connection data found for guild ${guildId}`);
-        }
-        const { connection, playlist, currentSongIndex = 0 } = voiceConnectionData;
-        const nextIndex = (currentSongIndex + 1) % playlist.length;
-        const songPath = `${RADIO_FOLDER_PATH}/${playlist[nextIndex]}`;
-
-        // Skip missing files
-        if (!fs.existsSync(songPath)) {
-            logger.warning`Radio file not found, skipping: ${songPath}`;
-            voiceConnectionData.currentSongIndex = nextIndex;
-            playNextSong(guildId);
-            return;
-        }
-
-        // Detect input type based on file extension
-        const fileExtension = path.extname(songPath).toLowerCase();
-        const inputType = fileExtension === '.opus' || fileExtension === '.ogg'
-            ? StreamType.OggOpus
-            : StreamType.Arbitrary;
-
-        const resource = createAudioResource(songPath, {
-            inputType: inputType,
-        });
-
-        if (!voiceConnectionData.player) {
-            voiceConnectionData.player = createAudioPlayer();
-            connection.subscribe(voiceConnectionData.player);
-
-            // Handle player errors - skip to next song
-            voiceConnectionData.player.on('error', (error: Error) => {
-                logger.error`Audio player error: ${error.message}`;
-                logError(guildId, 'RADIO', error, 'Audio player error');
-                playNextSong(guildId);
-            });
-
-            voiceConnectionData.player.on(AudioPlayerStatus.Idle, () => {
-                playNextSong(guildId);
-            });
-        }
-
-        voiceConnectionData.player.play(resource);
-
-        voiceConnectionData.currentSongIndex = nextIndex;
-    } catch (error) {
-        if (error instanceof Error) {
-            logError(guildId, 'RADIO', error, 'Playing next song');
-        } else {
-            logError(guildId, 'RADIO', new Error(String(error)), 'Playing next song');
-        }
-    }
-}
-
-/**
  * Initialize Discord bot
  */
 async function initDiscordBot() {
@@ -478,30 +349,22 @@ async function initDiscordBot() {
             const rest = new REST().setToken(DISCORD_TOKEN);
             await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 
-            // Connect to voice channels for radio
-            for (const guild of bot.guilds.cache.values()) {
-                const voiceChannel = getVoiceChannel(guild, '1229441264718577734');
-                if (voiceChannel) {
-                    await connectToVoiceChannel(guild.id, voiceChannel);
-                }
-            }
+            // Start the radio. Scoped to RADIO_CONFIG.GUILD_ID rather than
+            // looping every guild for a channel only one of them has.
+            await getRadioService().start(bot);
 
         } catch (error) {
             logError('GLOBAL', 'GLOBAL', error instanceof Error ? error : new Error(String(error)), 'Initializing bot');
         }
     });
 
-    // Handle voice state updates (bot disconnection)
-    bot.on('voiceStateUpdate', (oldState, newState) => {
-        const guildId = newState.guild.id;
+    // Handle voice state updates (bot removed from the channel).
+    // This used to destroy the connection permanently; the radio service now
+    // reconnects instead, which is the whole point of the fix.
+    bot.on('voiceStateUpdate', (_oldState, newState) => {
         const botId = bot.user?.id;
-
         if (newState.member?.id === botId && !newState.channelId) {
-            const connection = voiceConnections.get(guildId)?.connection;
-            if (connection) {
-                connection.destroy();
-                voiceConnections.delete(guildId);
-            }
+            getRadioService().handleForcedDisconnect(newState.guild.id);
         }
     });
 
