@@ -77,9 +77,54 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
         }
     }
 
+    // Games declaring extraUserFields need every one of them. Driven off the
+    // config so this stays game-agnostic; today only CZN declares any.
+    const extraFields: Record<string, string> = {};
+    for (const field of gameConfig.extraUserFields ?? []) {
+        const raw = interaction.options.getString(field.key, false)?.trim();
+
+        if (!raw) {
+            await interaction.reply({
+                content:
+                    `❌ ${field.label} is required for ${gameConfig.name}.\n` +
+                    `${gameConfig.name} checks your ${gameConfig.userIdFieldName}, ` +
+                    `${gameConfig.extraUserFields!.map(f => f.label.toLowerCase()).join(' and ')} together, ` +
+                    `so all of them are needed.`,
+                flags: MessageFlags.Ephemeral
+            });
+            return;
+        }
+
+        if (field.maxLength && raw.length > field.maxLength) {
+            await interaction.reply({
+                content: `❌ ${field.label} must be ${field.maxLength} characters or fewer.`,
+                flags: MessageFlags.Ephemeral
+            });
+            return;
+        }
+
+        if (field.choices && !field.choices.some(c => c.value === raw)) {
+            await interaction.reply({
+                content: `❌ ${field.label} must be one of: ${field.choices.map(c => c.label).join(', ')}.`,
+                flags: MessageFlags.Ephemeral
+            });
+            return;
+        }
+
+        extraFields[field.key] = raw;
+    }
+
+    const hasExtraFields = Object.keys(extraFields).length > 0;
+
     try {
         const dataService = getGachaDataService();
-        await dataService.subscribe(interaction.user.id, gameId, gameUserId, mode);
+        // Single-identifier games are called exactly as before — no trailing
+        // argument — so nothing about BD2 or Lost Sword changes shape.
+        if (hasExtraFields) {
+            await dataService.subscribe(interaction.user.id, gameId, gameUserId, mode, extraFields);
+        } else {
+            await dataService.subscribe(interaction.user.id, gameId, gameUserId, mode);
+        }
 
         let modeDescription = mode === 'auto-redeem' && gameConfig.supportsAutoRedeem
             ? 'The bot will automatically redeem new codes for you.'
@@ -99,6 +144,12 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
                 { name: gameConfig.userIdFieldName, value: `\`${gameUserId}\``, inline: true }
             );
         }
+        for (const field of gameConfig.extraUserFields ?? []) {
+            const stored = extraFields[field.key];
+            if (!stored) continue;
+            const shown = field.choices?.find(c => c.value === stored)?.label ?? stored;
+            embed.addFields({ name: field.label, value: `\`${shown}\``, inline: true });
+        }
         embed.addFields(
             { name: 'Mode', value: mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only', inline: true }
         );
@@ -110,7 +161,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
                 interaction.client,
                 interaction.user.id,
                 gameId,
-                gameUserId
+                hasExtraFields ? { userId: gameUserId, fields: extraFields } : gameUserId
             );
 
             if (result.total > 0) {
@@ -1088,8 +1139,23 @@ export default {
                 ))
             .addStringOption(opt => opt
                 .setName('userid')
-                .setDescription('Your in-game ID (required for BD2, optional for Lost Sword)')
-                .setRequired(false)))
+                .setDescription('Your in-game ID, or STOVE membership number for CZN')
+                .setRequired(false))
+            // CZN validates membership number + nickname + world together, so
+            // it needs these two as well. Added to this existing subcommand
+            // rather than a new command, per the no-new-surface rule.
+            .addStringOption(opt => opt
+                .setName('nickname')
+                .setDescription('Your character nickname (CZN only)')
+                .setRequired(false))
+            .addStringOption(opt => opt
+                .setName('server')
+                .setDescription('Your server (CZN only)')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Global', value: 'world_live_global' },
+                    { name: 'Asia', value: 'world_live_asia' }
+                )))
 
         // User: Unsubscribe
         .addSubcommand(sub => sub

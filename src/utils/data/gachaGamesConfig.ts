@@ -55,6 +55,45 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
             expiration: /\*{0,2}📌\s*Redemption Period\*{0,2}\s*\n(?:>\s*)?-?\s*Until\s+(.+)/i,
         },
     },
+    'czn': {
+        id: 'czn',
+        name: 'Chaos Zero Nightmare',
+        shortName: 'CZN',
+        // STOVE's public coupon endpoint. The redemption page offers a
+        // "Register Coupon as a Guest" toggle which issues no network request
+        // at all — it only reveals the form — so this needs no login, no
+        // token and no cookie. Verified 2026-10-10.
+        apiEndpoint: 'https://api.onstove.com/pub-comm/v1.0/common/coupons',
+        apiConfig: {
+            method: 'POST',
+        },
+        manualRedeemUrl: 'https://chaoszeronightmare.onstove.com/en/coupon',
+        supportsAutoRedeem: true,
+        logoPath: cacheBust(`${cdnDomainUrl}/assets/logos/chaos-zero-nightmare-logo.png`),
+        embedColor: 0x7B2D8E, // Nightmare purple
+        maxNicknameLength: 20,
+        maxCodeLength: 30,
+        // The primary identifier is the STOVE membership number, not a
+        // nickname — the nickname is an extra field below, because STOVE
+        // validates the pair together.
+        userIdFieldName: 'STOVE membership number',
+        requiresUserId: true,
+        extraUserFields: [
+            {
+                key: 'nickname',
+                label: 'Character nickname',
+                maxLength: 20,
+            },
+            {
+                key: 'world',
+                label: 'Server',
+                choices: [
+                    { label: 'Global', value: 'world_live_global' },
+                    { label: 'Asia', value: 'world_live_asia' },
+                ],
+            },
+        ],
+    },
     // TODO: Implement NIKKE support later
     // 'nikke': {
     //     id: 'nikke',
