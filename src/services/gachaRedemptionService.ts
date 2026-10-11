@@ -10,10 +10,19 @@ import {
     GachaGameId,
     BatchRedemptionResult,
     CommonRedemptionError,
-    RedemptionHistoryEntry
+    RedemptionHistoryEntry,
+    RedemptionIdentity,
+    RedemptionIdentityInput
 } from '../utils/interfaces/GachaCoupon.interface';
 import { getGameConfig, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GACHA_CONFIG } from '../utils/data/gachaConfig';
+import {
+    CZN_CONFIG,
+    CZN_RESULT_ERRORS,
+    CZN_OUTER_ERRORS,
+    CZN_ERROR_OVERRIDES,
+    CZN_IDENTITY_MISMATCH_MESSAGE
+} from '../utils/data/cznCouponConfig.js';
 import { logger } from '../utils/logger.js';
 import { sendDMSafe } from '../utils/dmSender.js';
 import { getAssetUrls } from '../config/assets.js';
@@ -140,7 +149,15 @@ export const _testResetCircuitBreaker = () => circuitBreaker.reset();
  * Abstract interface for game-specific redemption implementations
  */
 interface GameRedemptionHandler {
-    redeem(gameUserId: string, code: string): Promise<RedemptionResult>;
+    redeem(identity: RedemptionIdentity, code: string): Promise<RedemptionResult>;
+}
+
+/**
+ * Accepts either a bare primary identifier or a full multi-field identity, so
+ * single-identifier games and their existing callers and tests stay unchanged.
+ */
+function toIdentity(input: RedemptionIdentityInput): RedemptionIdentity {
+    return typeof input === 'string' ? { userId: input } : input;
 }
 
 /**
@@ -149,8 +166,9 @@ interface GameRedemptionHandler {
 class BD2RedemptionHandler implements GameRedemptionHandler {
     private readonly gameId: GachaGameId = 'bd2';
 
-    async redeem(gameUserId: string, code: string): Promise<RedemptionResult> {
+    async redeem(identity: RedemptionIdentity, code: string): Promise<RedemptionResult> {
         const config = getGameConfig(this.gameId);
+        const gameUserId = identity.userId;
 
         if (!config.apiEndpoint) {
             return this.createResult(code, false, 'Auto-redemption not supported for this game');
@@ -310,6 +328,222 @@ class BD2RedemptionHandler implements GameRedemptionHandler {
 }
 
 /**
+ * Chaos Zero Nightmare redemption handler.
+ *
+ * Differs from BD2 in three ways that matter:
+ *
+ * 1. **Identity is three values**, not one — STOVE membership number (`guid`),
+ *    character nickname and world — and it validates them together, so a
+ *    mismatch in any one is indistinguishable from the others.
+ * 2. **Every response is HTTP 200.** Failure lives in the body, in two layers:
+ *    an outer `code`, and when that is 0, a `value.result` *string*. Reading
+ *    `response.ok`, or treating `value.result` as a number, turns every failure
+ *    into a success.
+ * 3. **Invalid codes are penalised.** STOVE counts failed attempts per account
+ *    and locks redemption for roughly six hours (result 5031). So an invalid
+ *    code must never be retried — see `isPoisonedCode` on the service, which
+ *    stops a bad code from being tried against the rest of the subscribers.
+ */
+class CZNRedemptionHandler implements GameRedemptionHandler {
+    private readonly gameId: GachaGameId = 'czn';
+
+    async redeem(identity: RedemptionIdentity, code: string): Promise<RedemptionResult> {
+        const config = getGameConfig(this.gameId);
+
+        if (!config.apiEndpoint) {
+            return this.createResult(code, false, 'Auto-redemption not supported for this game');
+        }
+
+        const nickname = identity.fields?.nickname?.trim();
+        const world = identity.fields?.world?.trim();
+
+        // Fail closed and say which piece is missing, rather than sending a
+        // request that STOVE would answer with an unhelpful -90009.
+        if (!nickname || !world) {
+            const missing = [!nickname && 'character nickname', !world && 'server']
+                .filter(Boolean)
+                .join(' and ');
+            return this.createResult(
+                code,
+                false,
+                `Missing ${missing} on your subscription. Re-subscribe with \`/redeem subscribe game:czn\`.`,
+                'ValidationFailed'
+            );
+        }
+
+        if (circuitBreaker.isOpen(this.gameId)) {
+            const status = circuitBreaker.getStatus(this.gameId);
+            const cooldownSecs = Math.ceil(status.cooldownRemaining / 1000);
+            return this.createResult(
+                code,
+                false,
+                `Game API temporarily unavailable (retry in ${cooldownSecs}s)`,
+                'RateLimited'
+            );
+        }
+
+        try {
+            const requestBody = {
+                coupon_no: code.trim(),
+                game_code: CZN_CONFIG.GAME_CODE,
+                game_id: CZN_CONFIG.GAME_ID,
+                lang_code: CZN_CONFIG.LANG_CODE,
+                guid: identity.userId.trim(),
+                nick_name: nickname,
+                world_id: world,
+            };
+
+            // Deliberately no membership number in the log line.
+            logger.debug`CZN API Request: code=${requestBody.coupon_no}, world=${requestBody.world_id}`;
+
+            const response = await this.fetchWithRetry(config.apiEndpoint, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(requestBody),
+            });
+
+            // Transport-level failure. STOVE itself answers 200 for business
+            // failures, so a non-2xx here really is the network or the gateway.
+            if (!response.ok) {
+                const responseText = await response.text();
+                logger.error`CZN API HTTP Error: ${response.status} ${response.statusText} - ${responseText}`;
+                circuitBreaker.recordFailure(this.gameId);
+                return this.createResult(
+                    code,
+                    false,
+                    `API error: ${response.status} ${response.statusText}`,
+                    'NetworkError'
+                );
+            }
+
+            const data = await response.json() as {
+                code?: number;
+                message?: string;
+                value?: { result?: string; message?: string };
+            };
+
+            return this.interpret(code, data);
+        } catch (error: any) {
+            logger.error`CZN API Error: ${error.message}`;
+            circuitBreaker.recordFailure(this.gameId);
+
+            if (error.name === 'AbortError') {
+                return this.createResult(code, false, 'Request timed out - STOVE may be slow', 'NetworkError');
+            }
+            return this.createResult(
+                code,
+                false,
+                `Network error: ${error.message || 'Unable to connect'}`,
+                'NetworkError'
+            );
+        }
+    }
+
+    /**
+     * Turns STOVE's two-layer body into a RedemptionResult.
+     */
+    private interpret(
+        code: string,
+        data: { code?: number; message?: string; value?: { result?: string; message?: string } }
+    ): RedemptionResult {
+        const outer = data.code;
+
+        // Outer failure: identity mismatch, maintenance, or a gateway error.
+        if (outer !== 0) {
+            const key = String(outer);
+            const errorCode = CZN_OUTER_ERRORS[key] ?? 'Unknown';
+
+            // -90009 arrives in Korean whatever lang_code says, so we never
+            // pass STOVE's own text through for it.
+            const message = errorCode === 'IncorrectUser'
+                ? CZN_IDENTITY_MISMATCH_MESSAGE
+                : ERROR_MESSAGES[errorCode];
+
+            if (errorCode !== 'IncorrectUser') {
+                circuitBreaker.recordFailure(this.gameId);
+            }
+            return this.createResult(code, false, message, errorCode);
+        }
+
+        const result = data.value?.result;
+
+        if (result === CZN_CONFIG.SUCCESS_RESULT) {
+            circuitBreaker.recordSuccess(this.gameId);
+            return this.createResult(code, true, 'Code redeemed! Check your in-game mailbox, Commander.');
+        }
+
+        const key = String(result ?? '');
+        const errorCode = CZN_RESULT_ERRORS[key] ?? 'Unknown';
+        const message =
+            CZN_ERROR_OVERRIDES[key] ??
+            ERROR_MESSAGES[errorCode] ??
+            data.value?.message ??
+            `Redemption failed (${key || 'no result code'})`;
+
+        // A business answer means STOVE is healthy; only treat genuine service
+        // problems as circuit-breaker failures.
+        const serviceErrors: CommonRedemptionError[] = ['UnavailableCode', 'Unknown'];
+        if (serviceErrors.includes(errorCode)) {
+            circuitBreaker.recordFailure(this.gameId);
+        } else {
+            circuitBreaker.recordSuccess(this.gameId);
+        }
+
+        return this.createResult(code, false, message, errorCode);
+    }
+
+    private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+        const maxRetries = GACHA_CONFIG.MAX_RETRIES;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), GACHA_CONFIG.API_TIMEOUT_MS);
+
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                // Retry only on server-side transport failures. Never retry a
+                // 200, because a 200 can be an invalid code and retrying that
+                // walks the account towards the six-hour lockout.
+                if (response.status >= 500 && attempt < maxRetries) {
+                    const backoff = Math.min(
+                        GACHA_CONFIG.INITIAL_BACKOFF_MS * GACHA_CONFIG.BACKOFF_MULTIPLIER ** (attempt - 1),
+                        GACHA_CONFIG.MAX_BACKOFF_MS
+                    );
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    continue;
+                }
+
+                return response;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (attempt === maxRetries) throw error;
+
+                const backoff = Math.min(
+                    GACHA_CONFIG.INITIAL_BACKOFF_MS * GACHA_CONFIG.BACKOFF_MULTIPLIER ** (attempt - 1),
+                    GACHA_CONFIG.MAX_BACKOFF_MS
+                );
+                await new Promise(resolve => setTimeout(resolve, backoff));
+            }
+        }
+
+        throw new Error('Max retries exceeded');
+    }
+
+    private createResult(code: string, success: boolean, message: string, errorCode?: string): RedemptionResult {
+        return {
+            success,
+            code: code.toUpperCase(),
+            gameId: this.gameId,
+            message,
+            timestamp: new Date().toISOString(),
+            errorCode,
+        };
+    }
+}
+
+/**
  * Service for handling coupon redemption across multiple gacha games
  */
 export class GachaRedemptionService {
@@ -322,11 +556,13 @@ export class GachaRedemptionService {
     private constructor() {
         // Register game-specific handlers
         this.handlers.set('bd2', new BD2RedemptionHandler());
+        this.handlers.set('czn', new CZNRedemptionHandler());
         // Add more handlers here as games are supported
         // this.handlers.set('nikke', new NikkeRedemptionHandler());
 
         // Per-game API call serialization to prevent rate limit races
         this.apiLimit.set('bd2', pLimit(1));
+        this.apiLimit.set('czn', pLimit(1));
     }
 
     /**
@@ -407,11 +643,12 @@ export class GachaRedemptionService {
      */
     public async redeemCode(
         gameId: GachaGameId,
-        gameUserId: string,
+        gameUser: RedemptionIdentityInput,
         code: string,
         options: { waitForCircuitBreaker?: boolean } = {}
     ): Promise<RedemptionResult> {
         const handler = this.handlers.get(gameId);
+        const identity = toIdentity(gameUser);
 
         if (!handler) {
             return {
@@ -421,6 +658,21 @@ export class GachaRedemptionService {
                 message: `Auto-redemption is not supported for ${getGameConfig(gameId).name}`,
                 timestamp: new Date().toISOString(),
                 errorCode: 'UnavailableCode',
+            };
+        }
+
+        // A code this game has already rejected is never sent again. CZN
+        // penalises invalid attempts with a six-hour lockout, so retrying a bad
+        // code across a subscriber list is the one mistake that can take the
+        // whole feature down for everyone.
+        if (this.isPoisonedCode(gameId, code)) {
+            return {
+                success: false,
+                code: code.toUpperCase(),
+                gameId,
+                message: ERROR_MESSAGES['InvalidCode'],
+                timestamp: new Date().toISOString(),
+                errorCode: 'InvalidCode',
             };
         }
 
@@ -435,12 +687,56 @@ export class GachaRedemptionService {
                     }
                 }
                 await this.enforceRateLimit(gameId);
-                return handler.redeem(gameUserId, code);
+                return this.recordIfPoisoned(gameId, await handler.redeem(identity, code));
             });
         }
 
         await this.enforceRateLimit(gameId);
-        return handler.redeem(gameUserId, code);
+        return this.recordIfPoisoned(gameId, await handler.redeem(identity, code));
+    }
+
+    /**
+     * Remembers codes the game has rejected as invalid, so they are not tried
+     * again for the remaining subscribers in the same run.
+     *
+     * Subscribers are processed with a concurrency of
+     * GACHA_CONFIG.CONCURRENT_SUBSCRIBER_LIMIT, so a bad code can still reach
+     * that many accounts before this takes effect — which is the point: it
+     * turns "every subscriber" into "at most a handful".
+     */
+    private poisonedCodes: Map<GachaGameId, Map<string, number>> = new Map();
+
+    private isPoisonedCode(gameId: GachaGameId, code: string): boolean {
+        const forGame = this.poisonedCodes.get(gameId);
+        if (!forGame) return false;
+
+        const seenAt = forGame.get(code.toUpperCase());
+        if (seenAt === undefined) return false;
+
+        // Expire with the coupon cache so a code fixed at the source gets
+        // another chance rather than being blocked until the next deploy.
+        if (Date.now() - seenAt > GACHA_CONFIG.CACHE_TTL) {
+            forGame.delete(code.toUpperCase());
+            return false;
+        }
+        return true;
+    }
+
+    private recordIfPoisoned(gameId: GachaGameId, result: RedemptionResult): RedemptionResult {
+        if (result.errorCode === 'InvalidCode') {
+            const forGame = this.poisonedCodes.get(gameId) ?? new Map<string, number>();
+            if (!forGame.has(result.code)) {
+                logger.warning`[${gameId}] code ${result.code} rejected as invalid; it will not be tried for other subscribers`;
+            }
+            forGame.set(result.code, Date.now());
+            this.poisonedCodes.set(gameId, forGame);
+        }
+        return result;
+    }
+
+    /** Test-only: forget rejected codes. */
+    public clearPoisonedCodes(): void {
+        this.poisonedCodes.clear();
     }
 
     /**
@@ -449,14 +745,14 @@ export class GachaRedemptionService {
      */
     public async redeemMultipleCodes(
         gameId: GachaGameId,
-        gameUserId: string,
+        gameUser: RedemptionIdentityInput,
         codes: string[],
         options: { waitForCircuitBreaker?: boolean } = {}
     ): Promise<RedemptionResult[]> {
         const results: RedemptionResult[] = [];
 
         for (const code of codes) {
-            const result = await this.redeemCode(gameId, gameUserId, code, options);
+            const result = await this.redeemCode(gameId, gameUser, code, options);
             results.push(result);
 
             // Only stop on hard network errors (server unreachable)
@@ -524,7 +820,7 @@ export class GachaRedemptionService {
 
                     const redemptionResults = await this.redeemMultipleCodes(
                         gameId,
-                        subscription.gameUserId,
+                        { userId: subscription.gameUserId, fields: subscription.gameUserFields },
                         codesToRedeem,
                         { waitForCircuitBreaker: true }
                     );
@@ -540,8 +836,14 @@ export class GachaRedemptionService {
                     const incorrectUserErrors = actualFailures.filter(r => r.errorCode === 'IncorrectUser');
                     if (incorrectUserErrors.length > 0 && successfulCodes.length === 0) {
                         const gameConfig = getGameConfig(gameId);
+                        // For a multi-field game the API cannot say which of
+                        // the identifiers was wrong, so name all of them.
+                        const identityLabel = gameConfig.extraUserFields?.length
+                            ? [gameConfig.userIdFieldName, ...gameConfig.extraUserFields.map(f => f.label)]
+                                .join(' / ')
+                            : gameConfig.userIdFieldName;
                         await dataService.unsubscribe(discordId, gameId);
-                        logger.warning`Auto-unsubscribed ${discordId} from ${gameId}: invalid ${gameConfig.userIdFieldName} "${subscription.gameUserId}"`;
+                        logger.warning`Auto-unsubscribed ${discordId} from ${gameId}: ${identityLabel} not recognised`;
 
                         // DM the user about the removal
                         if (!dmDisabled) {
@@ -550,8 +852,8 @@ export class GachaRedemptionService {
                                 const embed = new EmbedBuilder()
                                     .setTitle(`⚠️ ${gameConfig.shortName} Subscription Removed`)
                                     .setDescription(
-                                        `Your auto-redeem subscription for **${gameConfig.name}** has been removed because your ${gameConfig.userIdFieldName} \`${subscription.gameUserId}\` is not recognized by the game.\n\n` +
-                                        `Please re-subscribe with a valid ${gameConfig.userIdFieldName} using:\n` +
+                                        `Your auto-redeem subscription for **${gameConfig.name}** has been removed because your ${identityLabel} is not recognized by the game.\n\n` +
+                                        `Please re-subscribe with valid details using:\n` +
                                         `\`/redeem subscribe game:${gameId}\``
                                     )
                                     .setColor(0xFF0000)
@@ -674,7 +976,7 @@ export class GachaRedemptionService {
         bot: Client,
         discordId: string,
         gameId: GachaGameId,
-        gameUserId: string
+        gameUser: RedemptionIdentityInput
     ): Promise<{ successful: number; alreadyRedeemed: number; failed: number; total: number }> {
         if (!this.supportsAutoRedeem(gameId)) {
             return { successful: 0, alreadyRedeemed: 0, failed: 0, total: 0 };
@@ -688,10 +990,11 @@ export class GachaRedemptionService {
         }
 
         const codes = activeCoupons.map(c => c.code);
-        logger.debug`[Subscribe] Redeeming ${codes.length} codes for new subscriber ${gameUserId} in ${gameId}`;
+        const identity = toIdentity(gameUser);
+        logger.debug`[Subscribe] Redeeming ${codes.length} codes for new subscriber in ${gameId}`;
 
         // Redeem all codes (batch mode: wait for circuit breaker instead of failing)
-        const results = await this.redeemMultipleCodes(gameId, gameUserId, codes, { waitForCircuitBreaker: true });
+        const results = await this.redeemMultipleCodes(gameId, identity, codes, { waitForCircuitBreaker: true });
 
         // Categorize results
         const successful = results.filter(r => r.success);
@@ -718,7 +1021,7 @@ export class GachaRedemptionService {
         const hasRedeemed = successful.length > 0 || alreadyRedeemed.length > 0;
         if (hasRedeemed) {
             try {
-                await this.sendRedemptionResultsDM(bot, discordId, gameId, results, gameUserId);
+                await this.sendRedemptionResultsDM(bot, discordId, gameId, results, identity.userId);
             } catch (error) {
                 logger.error`[Subscribe] Failed to send redemption DM to ${discordId}: ${error}`;
             }
