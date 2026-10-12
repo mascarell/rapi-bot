@@ -4,7 +4,7 @@ import { getGachaRedemptionService } from './gachaRedemptionService.js';
 import { getGachaDataService } from './gachaDataService.js';
 import { getSupportedGameIds, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
-import { syncBD2PulseCodes, ScrapeResult } from './bd2PulseScraperService.js';
+import { syncCouponSources, CouponSyncResult, gamesWithNewCodes } from './couponSourceService.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -71,11 +71,11 @@ export class GachaCouponScheduler {
             try {
                 const result = await this.triggerCodeScraping();
                 if (result.success) {
-                    if (result.newCodes.length > 0) {
-                        logger.debug`[Startup] Found ${result.newCodes.length} new codes: ${result.newCodes.join(', ')}`;
+                    if (result.added.length > 0) {
+                        logger.debug`[Startup] Found ${result.added.length} new codes: ${result.added.map(a => `${a.gameId}:${a.code}`).join(', ')}`;
                     }
                 } else {
-                    logger.error`[Startup] Code scraping failed: ${result.error}`;
+                    logger.error`[Startup] Code scraping failed, every source: ${result.outcomes.map(o => `${o.source}/${o.gameId}: ${o.error}`).join('; ')}`;
                 }
             } catch (error) {
                 logger.error`[Startup] Code scraping error: ${error}`;
@@ -223,8 +223,9 @@ export class GachaCouponScheduler {
     }
 
     /**
-     * Schedule code scraping from BD2 Pulse - Every 30 minutes
-     * Fetches new codes and adds them to the database automatically
+     * Schedule code scraping from every coupon source - Every 30 minutes
+     * Gachafeed first (bd2, czn), then BD2 Pulse (bd2). New codes are added to
+     * the database automatically; see couponSourceService.
      */
     private scheduleCodeScraping(): void {
         const interval = this.devConfig.codeScrapingInterval;
@@ -240,27 +241,27 @@ export class GachaCouponScheduler {
 
             this.runningTasks.add(taskName);
             try {
-                const result = await syncBD2PulseCodes();
+                const result = await syncCouponSources();
 
                 if (result.success) {
-                    if (result.newCodes.length > 0) {
+                    if (result.added.length > 0) {
                         const redemptionService = getGachaRedemptionService();
                         const dataService = getGachaDataService();
 
                         // Notify subscribers for each new code (DMs + coupon alerts)
-                        for (const code of result.newCodes) {
+                        for (const { gameId, code } of result.added) {
                             try {
-                                const coupon = await dataService.getCoupon('bd2', code);
+                                const coupon = await dataService.getCoupon(gameId, code);
                                 if (coupon) {
                                     await redemptionService.notifyNewCode(this.bot, coupon);
                                 }
                             } catch (error) {
-                                logger.error`[BD2 Pulse] Failed to notify for code ${code}: ${error}`;
+                                logger.error`[Coupon sync] Failed to notify for ${gameId} code ${code}: ${error}`;
                             }
                         }
                     }
                 } else {
-                    logger.error`[BD2 Pulse] Scraping failed: ${result.error}`;
+                    logger.error`[Coupon sync] Every source failed: ${result.outcomes.map(o => `${o.source}/${o.gameId}: ${o.error}`).join('; ')}`;
                 }
             } catch (error) {
                 logger.error`Error running code scraping: ${error}`;
@@ -349,13 +350,14 @@ export class GachaCouponScheduler {
         }
     }
 
-    public async triggerCodeScraping(): Promise<ScrapeResult> {
-        const result = await syncBD2PulseCodes();
+    public async triggerCodeScraping(): Promise<CouponSyncResult> {
+        const result = await syncCouponSources();
 
-        if (result.success && result.newCodes.length > 0) {
-            // Trigger auto-redemption for new codes with notification enabled
-            const redemptionService = getGachaRedemptionService();
-            await redemptionService.processGameAutoRedemptions(this.bot, 'bd2', { hasNewCodes: true });
+        // Trigger auto-redemption, with notification, for each game that
+        // gained a code.
+        const redemptionService = getGachaRedemptionService();
+        for (const gameId of gamesWithNewCodes(result)) {
+            await redemptionService.processGameAutoRedemptions(this.bot, gameId, { hasNewCodes: true });
         }
 
         return result;

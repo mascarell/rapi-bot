@@ -9,7 +9,7 @@ import {
 } from 'discord.js';
 import { getGachaDataService } from '../services/gachaDataService';
 import { getGachaRedemptionService } from '../services/gachaRedemptionService';
-import { syncBD2PulseCodes } from '../services/bd2PulseScraperService';
+import { syncCouponSources } from '../services/couponSourceService';
 import {
     GachaCoupon,
     GachaGameId,
@@ -877,60 +877,72 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
-        const result = await syncBD2PulseCodes();
+        const result = await syncCouponSources();
+        const shortName = (gameId: GachaGameId) => getGameConfig(gameId).shortName;
 
         if (!result.success) {
-            await interaction.editReply({ content: `❌ Scraping failed: ${result.error}` });
+            const reasons = result.outcomes
+                .map(o => `${o.source} (${shortName(o.gameId)}): ${o.error}`)
+                .join('\n');
+            await interaction.editReply({ content: `❌ Every code source failed:\n${reasons}` });
             return;
         }
 
-        // Separate active and expired codes for display
-        const now = new Date();
-        const activeCodes = result.codes.filter(c => !c.expirationDate || new Date(c.expirationDate) > now);
-        const expiredCodes = result.codes.filter(c => c.expirationDate && new Date(c.expirationDate) <= now);
-
         // Build status message
         let statusMessage = '';
-        if (result.newCodes.length > 0) {
-            statusMessage = `✅ Added **${result.newCodes.length}** new code(s)!`;
-        } else if (result.skippedExisting.length > 0) {
-            statusMessage = `All ${activeCodes.length} active codes already tracked.`;
+        if (result.added.length > 0) {
+            statusMessage = `✅ Added **${result.added.length}** new code(s)!`;
+        } else if (result.codes.length > 0) {
+            statusMessage = `All ${result.codes.length} active codes already tracked.`;
         } else {
             statusMessage = 'No new redemption codes available.';
         }
 
         const embed = new EmbedBuilder()
-            .setColor(result.newCodes.length > 0 ? 0x00FF00 : 0x3498DB)
-            .setTitle('🔍 BD2 Pulse Sync')
+            .setColor(result.added.length > 0 ? 0x00FF00 : 0x3498DB)
+            .setTitle('🔍 Coupon Sync')
             .setDescription(statusMessage)
             .setTimestamp()
-            .setFooter({ text: 'BD2 Pulse • thebd2pulse.com', iconURL: ASSET_URLS.rapiBot.thumbnail });
+            .setFooter({ text: 'Gachafeed • gachafeed.moe · BD2 Pulse • thebd2pulse.com', iconURL: ASSET_URLS.rapiBot.thumbnail });
+
+        // One line per source, so a source that failed is visible even when
+        // another one covered for it.
+        const sourceLines = result.outcomes.map(o => o.success
+            ? `✅ ${o.source} · ${shortName(o.gameId)} — ${o.found} listed`
+            : `⚠️ ${o.source} · ${shortName(o.gameId)} — ${o.error}`
+        ).join('\n');
+        embed.addFields({ name: '📡 Sources', value: sourceLines.substring(0, 1024) });
 
         // Stats row
         embed.addFields(
-            { name: '📊 Active', value: `${activeCodes.length}`, inline: true },
-            { name: '⏰ Expired', value: `${expiredCodes.length}`, inline: true },
-            { name: '➕ New', value: `${result.newCodes.length}`, inline: true }
+            { name: '📊 Active', value: `${result.codes.length}`, inline: true },
+            { name: '⏰ Expired, skipped', value: `${result.skippedExpired.length}`, inline: true },
+            { name: '➕ New', value: `${result.added.length}`, inline: true }
         );
 
         // Show newly added codes
-        if (result.newCodes.length > 0) {
-            const newCodeDetails = result.newCodes.map(code => {
-                const codeData = result.codes.find(c => c.code === code);
-                if (codeData) {
-                    const expiry = codeData.expirationDate
-                        ? formatDate(codeData.expirationDate)
-                        : '∞';
-                    return `\`${code}\` → ${codeData.rewards} (${expiry})`;
-                }
-                return `\`${code}\``;
+        if (result.added.length > 0) {
+            const newCodeDetails = result.added.map(({ gameId, code, source }) => {
+                const codeData = result.codes.find(c => c.gameId === gameId && c.code === code);
+                const expiry = codeData?.expirationDate ? formatDate(codeData.expirationDate) : '∞';
+                const rewards = codeData ? ` → ${codeData.rewards}` : '';
+                return `**${shortName(gameId)}** \`${code}\`${rewards} (${expiry}) · ${source}`;
             }).join('\n');
             embed.addFields({ name: '🆕 New Codes Added', value: newCodeDetails.substring(0, 1024) });
         }
 
+        // Live according to a source but not trusted enough to auto-redeem —
+        // a moderator who has checked one can still add it with /redeem add.
+        if (result.heldBack.length > 0) {
+            const heldList = result.heldBack
+                .map(h => `**${shortName(h.gameId)}** \`${h.code}\` — ${h.reason}`)
+                .join('\n');
+            embed.addFields({ name: '✋ Held Back (not auto-redeemed)', value: heldList.substring(0, 1024) });
+        }
+
         // Show active codes in a cleaner table format
-        if (activeCodes.length > 0) {
-            const codeList = activeCodes
+        if (result.codes.length > 0) {
+            const codeList = [...result.codes]
                 .sort((a, b) => {
                     // Sort by expiration date (soonest first), then no-expiry last
                     if (!a.expirationDate && !b.expirationDate) return 0;
@@ -944,20 +956,11 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
                         ? new Date(c.expirationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                         : '∞';
                     const statusIcon = c.status === 'permanent' ? '🔒' : c.status === 'limited' ? '⏳' : '✨';
-                    return `${statusIcon} \`${c.code}\`\n   ↳ ${c.rewards} • ${expiry}`;
+                    return `${statusIcon} **${shortName(c.gameId)}** \`${c.code}\`\n   ↳ ${c.rewards} • ${expiry}`;
                 }).join('\n');
 
-            const moreText = activeCodes.length > 10 ? `\n\n*...and ${activeCodes.length - 10} more*` : '';
-            embed.addFields({ name: '✅ Active Codes', value: codeList + moreText });
-        }
-
-        // Show skipped info if relevant
-        if (result.skippedExpired.length > 0) {
-            embed.addFields({
-                name: '⏭️ Skipped',
-                value: `${result.skippedExpired.length} expired code(s) not added`,
-                inline: true
-            });
+            const moreText = result.codes.length > 10 ? `\n\n*...and ${result.codes.length - 10} more*` : '';
+            embed.addFields({ name: '✅ Active Codes', value: (codeList + moreText).substring(0, 1024) });
         }
 
         await interaction.editReply({ embeds: [embed] });
@@ -1099,7 +1102,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
                 '`/redeem remove` - Deactivate a coupon code',
                 '`/redeem list` - View all codes with stats',
                 '`/redeem trigger` - Manually trigger auto-redemption',
-                '`/redeem scrape` - Fetch codes from BD2 Pulse',
+                '`/redeem scrape` - Fetch new codes from Gachafeed and BD2 Pulse',
                 '`/redeem stats` - View analytics',
                 '`/redeem subscribers` - View paginated list of subscribers',
                 '`/redeem lookup` - View user subscription details',
@@ -1313,10 +1316,10 @@ export default {
                 .setRequired(true)
                 .addChoices(...GAME_CHOICES)))
 
-        // Mod: Scrape (fetch codes from BD2 Pulse)
+        // Mod: Scrape (fetch codes from Gachafeed, then BD2 Pulse)
         .addSubcommand(sub => sub
             .setName('scrape')
-            .setDescription('[Mod] Fetch new codes from BD2 Pulse'))
+            .setDescription('[Mod] Fetch new codes from Gachafeed and BD2 Pulse'))
 
         // Mod: Stats (analytics)
         .addSubcommand(sub => sub
