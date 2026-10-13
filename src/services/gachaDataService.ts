@@ -382,7 +382,8 @@ export class GachaDataService {
         discordId: string,
         gameId: GachaGameId,
         gameUserId: string,
-        mode: SubscriptionMode
+        mode: SubscriptionMode,
+        gameUserFields?: Record<string, string>
     ): Promise<void> {
         const { user, data } = await this.getOrCreateUserSubscription(discordId);
 
@@ -402,6 +403,9 @@ export class GachaDataService {
             mode,
             subscribedAt: new Date().toISOString(),
             redeemedCodes: [],
+            // Omitted entirely for single-identifier games, so existing
+            // records and new BD2/Lost Sword records stay byte-identical.
+            ...(gameUserFields ? { gameUserFields } : {}),
         };
 
         await this.saveData(data);

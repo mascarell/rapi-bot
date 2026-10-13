@@ -30,7 +30,27 @@
  * Add new games here as they are supported
  * TODO: Re-add 'nikke' | 'blue-archive' when those games are implemented
  */
-export type GachaGameId = 'bd2' | 'lost-sword';
+export type GachaGameId = 'bd2' | 'lost-sword' | 'czn';
+
+/**
+ * A user's in-game identity for a redemption request.
+ *
+ * Most games need one value (BD2: a nickname), which is `userId`. Chaos Zero
+ * Nightmare needs three — STOVE membership number, character nickname and
+ * world — so the extras live in `fields`, keyed by `GachaGameConfig.extraUserFields[].key`.
+ *
+ * Anywhere an identity is accepted, a bare string is still valid and means
+ * `{ userId: value }`, so existing single-field games and callers are unchanged.
+ */
+export interface RedemptionIdentity {
+    /** The primary identifier. See GachaGameConfig.userIdFieldName for its label. */
+    userId: string;
+    /** Additional game-specific identifiers, keyed by extraUserFields[].key */
+    fields?: Record<string, string>;
+}
+
+/** Either a bare primary identifier or a full multi-field identity. */
+export type RedemptionIdentityInput = string | RedemptionIdentity;
 
 /**
  * Configuration for a supported gacha game
@@ -66,6 +86,26 @@ export interface GachaGameConfig {
     userIdFieldName: string;
     /** Whether this game requires a user ID for subscription (e.g., for auto-redeem API calls) */
     requiresUserId: boolean;
+    /**
+     * Extra user-supplied identifiers this game needs beyond `userIdFieldName`.
+     *
+     * Stored on the subscription as `gameUserFields[key]` and read back by the
+     * game's redemption handler. Declared here so /redeem can validate and
+     * label them without the command knowing anything game-specific.
+     *
+     * Only Chaos Zero Nightmare uses this; a game with a single identifier
+     * leaves it undefined.
+     */
+    extraUserFields?: ReadonlyArray<{
+        /** Key under which the value is stored in GameSubscription.gameUserFields */
+        key: string;
+        /** Human label, used in prompts and error messages */
+        label: string;
+        /** Maximum accepted length, validated at subscribe time */
+        maxLength?: number;
+        /** Closed set of accepted values; when present, input must match one */
+        choices?: ReadonlyArray<{ label: string; value: string }>;
+    }>;
     /** Whether this game uses Discord channel monitoring for code announcements */
     hasChannelMonitor?: boolean;
     /** Regex patterns for parsing announcement messages */
@@ -122,6 +162,12 @@ export interface GameSubscription {
     gameId: GachaGameId;
     /** In-game identifier (nickname, UID, etc.) */
     gameUserId: string;
+    /**
+     * Extra identifiers for games whose config declares `extraUserFields`
+     * (currently only CZN: character nickname and world). Absent for
+     * single-identifier games, which keeps older records valid as-is.
+     */
+    gameUserFields?: Record<string, string>;
     /** Subscription mode: auto-redeem or notification-only */
     mode: SubscriptionMode;
     /** ISO timestamp when user subscribed */
