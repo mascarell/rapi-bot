@@ -111,8 +111,10 @@ dist
 *~
 .DS_Store
 
-# Claude Code
-.claude/
+# Claude Code - local session state, except the cloud setup hook, which is
+# committed on purpose (see scripts/cloud-session-start.sh).
+.claude/*
+!.claude/settings.json
 .claudesync/
 
 # TypeScript

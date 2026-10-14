@@ -268,11 +268,20 @@ await pagination.send(interaction);
 ```
 
 ## Environment Variables
+
+Every name below is read somewhere in `src/` or `scripts/`; there are no others.
+`S3_BUCKET` is a TypeScript constant in `src/utils/cdn/config.ts`, not an env var.
+
 ```
-WAIFUTOKEN, CLIENTID, CDN_DOMAIN_URL
-AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET
+WAIFUTOKEN, CLIENTID, WAIFUPORT        # Discord + express
+S3BUCKET, S3ACCESSKEYID, S3SECRETKEY   # DigitalOcean Spaces (the only datastore)
+CDN_DOMAIN_URL                         # asset URLs; unset breaks embed thumbnails
+TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET
 YOUTUBE_API_KEY
+NODE_ENV, LOG_LEVEL
 ```
+
+None of these are needed to run the gates — see "Cloud Sessions" below.
 
 ## Cron Jobs (index.ts)
 - Auto-redemption: every 6h (prod) / 3min (dev)
@@ -405,6 +414,34 @@ Test coverage includes:
 - **Graceful error handling**: Failed embed suppression doesn't stop reply
 - **Non-blocking**: Uses setTimeout for delayed suppression (doesn't block bot)
 - **Platform-agnostic**: Twitter ID 123 and Pixiv ID 123 are tracked separately
+
+## Cloud Sessions (Claude Code on the web)
+
+This repo is set up so it can be developed entirely from a cloud sandbox with no
+local machine. `scripts/cloud-setup.sh` provisions the box; the SessionStart hook
+in `.claude/settings.json` runs it, and exits immediately on local machines.
+
+What differs from a local session:
+
+- **`gh pr` and `gh issue` do not work.** The sandbox's GitHub proxy rejects
+  GraphQL, which those subcommands use. Use REST:
+  `gh api repos/mascarell/rapi-bot/pulls -f title=... -f head=... -f base=master`
+  to open one, `gh api repos/mascarell/rapi-bot/pulls --jq '.[].title'` to read.
+  The **Create PR** button in the web UI also works.
+- **Tests need no secrets.** `bunx tsc --noEmit` and `bun run test:run` both pass
+  on a clean clone with no `.env` at all. A test that needs a credential is a bug
+  in the test.
+- **`PUPPETEER_SKIP_DOWNLOAD=true` is required.** Chromium is ~1.3 GB and its CDN
+  is not on the default egress allowlist, so leaving it unset is the most likely
+  reason `bun install` fails. `src/services/bd2PulseScraperService.ts` is the only
+  consumer and cannot run in a sandbox without a Custom allowlist.
+- **Install bun from npm, not bun.sh.** `bun.sh` is not allowlisted; the Dockerfile's
+  `curl -fsSL https://bun.sh/install` hangs there. `npm install -g bun` works.
+- **No bot runtime.** Cloud VMs pause when idle, so never try to hold a Discord
+  gateway connection from one. Shipping is: merge to `master` -> CI -> Release ->
+  Deploy to the droplet, entirely on GitHub Actions.
+- **Push often.** Whether uncommitted work survives VM reclamation is not
+  documented anywhere.
 
 ## Pull Request Guidelines
 
