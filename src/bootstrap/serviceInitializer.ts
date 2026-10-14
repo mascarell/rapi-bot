@@ -11,6 +11,7 @@ import { pvpReminderServiceConfig } from '../utils/data/pvpEventsConfig.js';
 import { getNotificationSubscriptionService } from '../services/notificationSubscriptionService.js';
 import { GACHA_GAMES } from '../utils/data/gachaGamesConfig.js';
 import { AssetSyncScheduler } from '../services/assetSync/index.js';
+import { ensureHoneypotNotice } from '../handlers/honeypotHandler.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -125,6 +126,11 @@ export async function initializeServices(bot: Client): Promise<void> {
         });
         assetSyncScheduler.initializeSchedules();
         logger.info`Asset sync scheduler initialized`;
+
+        // Post/refresh the pinned warning in the honeypot channel. Guilds
+        // without the channel are skipped; the trap is inert there anyway.
+        const notice = await ensureHoneypotNotice(bot);
+        logger.info`Honeypot notice ensured in ${notice.posted} guild(s), ${notice.skipped} skipped`;
 
         logger.info`All services initialized successfully`;
     } catch (error) {
