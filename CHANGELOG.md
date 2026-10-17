@@ -1,3 +1,10 @@
+## [2.16.1](https://github.com/mascarell/rapi-bot/compare/v2.16.0...v2.16.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* read the czn server from the server option ([#252](https://github.com/mascarell/rapi-bot/issues/252)) ([eacd5d1](https://github.com/mascarell/rapi-bot/commit/eacd5d1d0b0d6d2eacbede752572f9ee2ecce042))
+
 # [2.16.0](https://github.com/mascarell/rapi-bot/compare/v2.15.1...v2.16.0) (2026-10-13)
 
 
