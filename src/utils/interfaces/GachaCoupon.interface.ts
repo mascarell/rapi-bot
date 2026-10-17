@@ -99,6 +99,12 @@ export interface GachaGameConfig {
     extraUserFields?: ReadonlyArray<{
         /** Key under which the value is stored in GameSubscription.gameUserFields */
         key: string;
+        /**
+         * Name of the /redeem subscribe option that supplies the value, when it
+         * differs from `key`. CZN stores `world` (STOVE's term) but asks for
+         * `server` (the player's term).
+         */
+        optionName?: string;
         /** Human label, used in prompts and error messages */
         label: string;
         /** Maximum accepted length, validated at subscribe time */

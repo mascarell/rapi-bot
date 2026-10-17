@@ -81,7 +81,7 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
     // config so this stays game-agnostic; today only CZN declares any.
     const extraFields: Record<string, string> = {};
     for (const field of gameConfig.extraUserFields ?? []) {
-        const raw = interaction.options.getString(field.key, false)?.trim();
+        const raw = interaction.options.getString(field.optionName ?? field.key, false)?.trim();
 
         if (!raw) {
             await interaction.reply({
