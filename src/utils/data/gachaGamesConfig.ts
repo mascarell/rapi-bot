@@ -86,6 +86,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
             },
             {
                 key: 'world',
+                optionName: 'server',
                 label: 'Server',
                 choices: [
                     { label: 'Global', value: 'world_live_global' },
