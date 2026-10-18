@@ -74,6 +74,8 @@ describe('/redeem subscribe extra identity fields', () => {
                     getString: vi.fn().mockImplementation((name: string) => options[name] ?? null),
                 } as any,
                 reply: vi.fn().mockResolvedValue({}),
+                deferReply: vi.fn().mockResolvedValue({}),
+                editReply: vi.fn().mockResolvedValue({}),
             };
             dataService = { subscribe: vi.fn().mockResolvedValue(undefined) };
             redemptionService = {
@@ -95,6 +97,21 @@ describe('/redeem subscribe extra identity fields', () => {
                 expect.anything(), 'user123', 'czn',
                 { userId: '12345678901', fields: { nickname: 'Tester', world: 'world_live_global' } }
             );
+        });
+
+        it('acknowledges Discord before redeeming, so several codes cannot time the reply out', async () => {
+            const order: string[] = [];
+            (interaction.deferReply as any).mockImplementation(async () => { order.push('defer'); });
+            redemptionService.redeemAllForUser.mockImplementation(async () => {
+                order.push('redeem');
+                return { total: 5, successful: 4, alreadyRedeemed: 1, failed: 0 };
+            });
+            (interaction.editReply as any).mockImplementation(async () => { order.push('answer'); });
+
+            await redeemCommand.execute(interaction as ChatInputCommandInteraction);
+
+            expect(order).toEqual(['defer', 'redeem', 'answer']);
+            expect(interaction.reply).not.toHaveBeenCalled();
         });
 
         it('still rejects a subscription with no server', async () => {
