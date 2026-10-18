@@ -1,3 +1,10 @@
+## [2.16.2](https://github.com/mascarell/rapi-bot/compare/v2.16.1...v2.16.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* answer redeem subscribe before redeeming codes ([#253](https://github.com/mascarell/rapi-bot/issues/253)) ([6d097ae](https://github.com/mascarell/rapi-bot/commit/6d097ae214afa7664b2a561c28f0bcd875e45a0a))
+
 ## [2.16.1](https://github.com/mascarell/rapi-bot/compare/v2.16.0...v2.16.1) (2026-10-17)
 
 
