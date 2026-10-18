@@ -397,9 +397,12 @@ describe('Redeem Command', () => {
             expect(mockDataService.subscribe).toHaveBeenCalledWith(
                 'user123', 'bd2', 'TestPlayer', 'auto-redeem'
             );
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
+            // Auto-redeem answers after redeeming, so it must defer first.
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
+            expect(mockInteraction.reply).not.toHaveBeenCalled();
         });
 
         it('should reject usernames that are too long', async () => {

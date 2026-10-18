@@ -154,8 +154,12 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
             { name: 'Mode', value: mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only', inline: true }
         );
 
-        // Immediately redeem all active codes for auto-redeem subscribers
-        if (mode === 'auto-redeem' && gameConfig.supportsAutoRedeem) {
+        // Immediately redeem all active codes for auto-redeem subscribers.
+        // Codes go out RATE_LIMIT_DELAY apart, so a handful of them outlasts
+        // Discord's 3-second reply window: acknowledge first, answer after.
+        const redeemNow = mode === 'auto-redeem' && gameConfig.supportsAutoRedeem;
+        if (redeemNow) {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const redemptionService = getGachaRedemptionService();
             const result = await redemptionService.redeemAllForUser(
                 interaction.client,
@@ -178,7 +182,11 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
 
         embed.addFields({ name: 'What happens now?', value: modeDescription });
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        if (redeemNow) {
+            await interaction.editReply({ embeds: [embed] });
+        } else {
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        }
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
