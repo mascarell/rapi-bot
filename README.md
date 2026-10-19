@@ -215,6 +215,32 @@ docker-compose up --build
 docker-compose down
 ```
 
+## ☁️ Cloud Development (Claude Code on the web)
+
+The gates pass on a clean clone with no `.env`, so this repo can be developed
+from a cloud sandbox with no local machine.
+
+```bash
+# On a bare Ubuntu box: build tools, bun, dependencies. Idempotent.
+bash scripts/cloud-setup.sh
+```
+
+Paste that script's contents into the **Setup script** box of a cloud environment
+at claude.ai/code, and set these environment variables there:
+
+```
+PUPPETEER_SKIP_DOWNLOAD=true    # required: Chromium is 1.3 GB and not allowlisted
+NODE_ENV=development
+LOG_LEVEL=debug
+```
+
+Nothing else is needed for `bunx tsc --noEmit` or `bun run test:run`. Secrets are
+only needed to actually run the bot, which a cloud VM cannot do — it pauses when
+idle. Fixes ship by merging to `master`, which triggers CI -> Release -> Deploy.
+
+See the "Cloud Sessions" section of `CLAUDE.md` for the sandbox's sharp edges
+(`gh pr` does not work there; use `gh api`).
+
 ## 🔗 Links
 
 - [Discord.js Documentation](https://discord.js.org/)
