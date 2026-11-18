@@ -53,4 +53,39 @@ export const SLUR_MOD_CONFIG = {
 
     /** Schema version expected for the slur list document. */
     SLUR_LIST_SCHEMA_VERSION: 1,
+
+    // ----- /mod slur (per-server lists) -----
+
+    /** S3 prefix for per-server lists; each server's list is `<prefix><guildId>.json`. */
+    GUILD_LIST_S3_PREFIX: isDevelopment
+        ? 'data/slur-moderation/dev-guild-lists/'
+        : 'data/slur-moderation/guild-lists/',
+
+    /** Schema version for a per-server list document. */
+    GUILD_LIST_SCHEMA_VERSION: 1,
+
+    /**
+     * Shortest term a moderator can add. A match deletes the message and times
+     * the author out, so a two-letter term is a server-wide outage waiting to
+     * happen even with word boundaries.
+     */
+    MIN_TERM_LENGTH: 3,
+
+    /** Longest term a moderator can add. */
+    MAX_TERM_LENGTH: 50,
+
+    /** Terms accepted by one `/mod slur add`. */
+    MAX_TERMS_PER_EDIT: 10,
+
+    /** Hard ceiling on one server's list; refuses adds beyond it. */
+    MAX_LIST_SIZE: 500,
+
+    /** How long the add confirmation buttons stay live. */
+    CONFIRM_TIMEOUT_MS: 60 * 1000,
+
+    /** Terms per page in `/mod slur list`. */
+    LIST_PAGE_SIZE: 20,
+
+    /** Offense history entries shown by `/mod slur history`. */
+    HISTORY_DISPLAY_LIMIT: 5,
 } as const;
