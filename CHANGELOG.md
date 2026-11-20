@@ -1,3 +1,10 @@
+# [2.17.0](https://github.com/mascarell/rapi-bot/compare/v2.16.2...v2.17.0) (2026-11-20)
+
+
+### Features
+
+* let moderators manage their server's slur list with /mod ([#254](https://github.com/mascarell/rapi-bot/issues/254)) ([d84a1dd](https://github.com/mascarell/rapi-bot/commit/d84a1dd57300866da63afcf77986b80962066c3d))
+
 ## [2.16.2](https://github.com/mascarell/rapi-bot/compare/v2.16.1...v2.16.2) (2026-10-18)
 
 
