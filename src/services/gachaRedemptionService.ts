@@ -1,6 +1,6 @@
 import { Client, EmbedBuilder, User, Message } from 'discord.js';
 import pLimit from 'p-limit';
-import { getGachaDataService } from './gachaDataService.js';
+import { getGachaDataService, type GachaDataService, type IdentityRejectionOutcome } from './gachaDataService.js';
 import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from './reactionConfirmationService.js';
 import { getChannelMonitorService } from './channelMonitorService.js';
 import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
@@ -42,11 +42,36 @@ const ERROR_MESSAGES: Record<CommonRedemptionError, string> = {
     'ExceededUses': 'This coupon has reached its maximum redemption limit',
     'UnavailableCode': 'This coupon is currently unavailable',
     'IncorrectUser': 'The provided ID does not match any account',
+    'RestrictedCode': 'This code is not available for your account\'s region or server',
     'ClaimRewardsFailed': 'Failed to deliver rewards - please try again later',
     'NetworkError': 'Unable to connect to game servers',
     'RateLimited': 'Too many requests - please try again later',
     'Unknown': 'An unknown error occurred',
 };
+
+/** What redeeming every active code for one user came to. */
+export interface UserRedemptionSummary {
+    successful: number;
+    alreadyRedeemed: number;
+    failed: number;
+    total: number;
+    /**
+     * The game didn't recognise the account on any attempt and accepted it on
+     * none. Only then is it the details that are wrong, rather than a code.
+     */
+    identityRejected: boolean;
+}
+
+/**
+ * The game rejected the account itself, not just some codes: at least one
+ * IncorrectUser answer, and no answer that shows the account was accepted.
+ * An "already used" counts as acceptance, since the game had to find the
+ * account to know it.
+ */
+export function isIdentityRejected(results: RedemptionResult[]): boolean {
+    const accepted = results.some(r => r.success || r.errorCode === 'AlreadyUsed');
+    return !accepted && results.some(r => r.errorCode === 'IncorrectUser');
+}
 
 /**
  * Circuit breaker state for a game API
@@ -761,6 +786,14 @@ export class GachaRedemptionService {
                 logger.debug`Stopping batch for ${gameId} due to network error`;
                 break;
             }
+
+            // The account itself wasn't recognised, so every remaining code
+            // would get the same answer. Don't send real codes against wrong
+            // details just to hear it again.
+            if (result.errorCode === 'IncorrectUser') {
+                logger.debug`Stopping batch for ${gameId}: account not recognised`;
+                break;
+            }
         }
 
         return results;
@@ -798,7 +831,7 @@ export class GachaRedemptionService {
         };
 
         // Collect batch updates for single S3 write
-        const batchUpdates: Array<{ discordId: string; gameId: GachaGameId; codes: string[] }> = [];
+        const batchUpdates: Parameters<GachaDataService['batchMarkCodesRedeemed']>[0] = [];
         // Collect history entries for batch write
         const historyEntries: RedemptionHistoryEntry[] = [];
 
@@ -818,9 +851,16 @@ export class GachaRedemptionService {
                         return { skipped: true, redemptions: 0, successful: 0, failed: 0, successfulCodes: [], historyEntries: [] };
                     }
 
+                    // Copy the details now: `subscription` is the cached
+                    // record, and a /redeem edit during this run changes it
+                    // in place. Every write below is checked against these.
+                    const used = {
+                        userId: subscription.gameUserId,
+                        fields: subscription.gameUserFields ? { ...subscription.gameUserFields } : undefined,
+                    };
                     const redemptionResults = await this.redeemMultipleCodes(
                         gameId,
-                        { userId: subscription.gameUserId, fields: subscription.gameUserFields },
+                        used,
                         codesToRedeem,
                         { waitForCircuitBreaker: true }
                     );
@@ -832,9 +872,9 @@ export class GachaRedemptionService {
                         !r.success && r.errorCode !== 'AlreadyUsed' && r.errorCode !== 'ExpiredCode'
                     );
 
-                    // Auto-unsubscribe users with invalid account IDs
-                    const incorrectUserErrors = actualFailures.filter(r => r.errorCode === 'IncorrectUser');
-                    if (incorrectUserErrors.length > 0 && successfulCodes.length === 0) {
+                    // The game didn't recognise the account at all this run.
+                    if (isIdentityRejected(redemptionResults)) {
+                        const incorrectUserErrors = actualFailures.filter(r => r.errorCode === 'IncorrectUser');
                         const gameConfig = getGameConfig(gameId);
                         // For a multi-field game the API cannot say which of
                         // the identifiers was wrong, so name all of them.
@@ -842,30 +882,29 @@ export class GachaRedemptionService {
                             ? [gameConfig.userIdFieldName, ...gameConfig.extraUserFields.map(f => f.label)]
                                 .join(' / ')
                             : gameConfig.userIdFieldName;
-                        await dataService.unsubscribe(discordId, gameId);
-                        logger.warning`Auto-unsubscribed ${discordId} from ${gameId}: ${identityLabel} not recognised`;
 
-                        // DM the user about the removal
-                        if (!dmDisabled) {
-                            try {
-                                const user = await bot.users.fetch(discordId);
-                                const embed = new EmbedBuilder()
-                                    .setTitle(`⚠️ ${gameConfig.shortName} Subscription Removed`)
-                                    .setDescription(
-                                        `Your auto-redeem subscription for **${gameConfig.name}** has been removed because your ${identityLabel} is not recognized by the game.\n\n` +
-                                        `Please re-subscribe with valid details using:\n` +
-                                        `\`/redeem subscribe game:${gameId}\``
-                                    )
-                                    .setColor(0xFF0000)
-                                    .setFooter({ text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL })
-                                    .setTimestamp();
-                                await sendDMSafe(user, { embeds: [embed] });
-                            } catch {
-                                // DM failed — non-critical
-                            }
+                        // Decided on the record as it is now, not as this run
+                        // read it: an account accepted before is kept, a
+                        // rejected edit falls back to the accepted details,
+                        // and only details never accepted are removed.
+                        const outcome = await dataService.resolveIdentityRejection(discordId, gameId, used);
+                        logger.warning`${gameId} didn't recognise ${discordId}'s ${identityLabel}: ${outcome}`;
+
+                        const notice = dmDisabled ? null : this.identityRejectionNotice(gameConfig, identityLabel, outcome);
+                        if (notice) {
+                            await this.sendDM(bot, discordId, notice);
                         }
 
-                        return { skipped: false, redemptions: 0, successful: 0, failed: incorrectUserErrors.length, successfulCodes: [], historyEntries: [] };
+                        return {
+                            skipped: false,
+                            redemptions: outcome === 'removed' ? 0 : redemptionResults.length,
+                            successful: 0,
+                            failed: incorrectUserErrors.length,
+                            successfulCodes: [],
+                            historyEntries: outcome === 'removed'
+                                ? []
+                                : this.createHistoryEntries(discordId, gameId, redemptionResults, 'auto'),
+                        };
                     }
 
                     // Log actual failures only (not already redeemed or expired)
@@ -899,6 +938,7 @@ export class GachaRedemptionService {
                         expired: expired.length,
                         failed: actualFailures.length,
                         successfulCodes: codesToMark,
+                        identity: used,
                         historyEntries: userHistoryEntries,
                     };
                 })
@@ -916,12 +956,15 @@ export class GachaRedemptionService {
                     result.successful += r.successful;
                     result.failed += r.failed;
 
-                    // Collect for batch update
-                    if (r.successfulCodes.length > 0 && r.discordId) {
+                    // Collect for batch update. Marked codes are all ones the
+                    // game answered for this account, so they also verify it.
+                    if (r.successfulCodes.length > 0 && r.discordId && 'identity' in r) {
                         batchUpdates.push({
                             discordId: r.discordId,
                             gameId,
                             codes: r.successfulCodes,
+                            verified: true,
+                            identity: r.identity,
                         });
                     }
 
@@ -977,16 +1020,19 @@ export class GachaRedemptionService {
         discordId: string,
         gameId: GachaGameId,
         gameUser: RedemptionIdentityInput
-    ): Promise<{ successful: number; alreadyRedeemed: number; failed: number; total: number }> {
+    ): Promise<UserRedemptionSummary> {
+        const none: UserRedemptionSummary = {
+            successful: 0, alreadyRedeemed: 0, failed: 0, total: 0, identityRejected: false,
+        };
         if (!this.supportsAutoRedeem(gameId)) {
-            return { successful: 0, alreadyRedeemed: 0, failed: 0, total: 0 };
+            return none;
         }
 
         const dataService = getGachaDataService();
         const activeCoupons = await dataService.getActiveCoupons(gameId);
 
         if (activeCoupons.length === 0) {
-            return { successful: 0, alreadyRedeemed: 0, failed: 0, total: 0 };
+            return none;
         }
 
         const codes = activeCoupons.map(c => c.code);
@@ -1007,8 +1053,9 @@ export class GachaRedemptionService {
             ...alreadyRedeemed.map(r => r.code)
         ];
 
+        // Any of these means the game accepted the account.
         if (codesToMark.length > 0) {
-            await dataService.markCodesRedeemed(discordId, gameId, codesToMark);
+            await dataService.markCodesRedeemed(discordId, gameId, codesToMark, { verified: true, identity });
         }
 
         // Log history entries
@@ -1031,8 +1078,69 @@ export class GachaRedemptionService {
             successful: successful.length,
             alreadyRedeemed: alreadyRedeemed.length,
             failed: failed.length,
-            total: results.length
+            total: results.length,
+            identityRejected: isIdentityRejected(results),
         };
+    }
+
+    /** What to tell a user after the game rejected their details; null for nothing. */
+    private identityRejectionNotice(
+        gameConfig: ReturnType<typeof getGameConfig>,
+        identityLabel: string,
+        outcome: IdentityRejectionOutcome
+    ): EmbedBuilder | null {
+        const footer = { text: 'Gacha Coupon System', iconURL: RAPI_BOT_THUMBNAIL_URL };
+        const together = gameConfig.extraUserFields?.length ? ' together' : '';
+
+        switch (outcome) {
+            case 'flagged':
+                return new EmbedBuilder()
+                    .setTitle(`⚠️ ${gameConfig.shortName}: account details not recognised`)
+                    .setDescription(
+                        `**${gameConfig.name}** stopped recognising your ${identityLabel}. ` +
+                        `They worked before, so your subscription is kept and the bot will keep trying.\n\n` +
+                        `If you changed your character name or server, update it with ` +
+                        `\`/redeem edit game:${gameConfig.id}\`.`
+                    )
+                    .setColor(0xFFA500)
+                    .setFooter(footer)
+                    .setTimestamp();
+            case 'reverted':
+                return new EmbedBuilder()
+                    .setTitle(`⚠️ ${gameConfig.shortName}: new details not recognised`)
+                    .setDescription(
+                        `**${gameConfig.name}** didn't recognise the ${identityLabel} you changed to${together}, ` +
+                        `so your previous details, which worked, are back in place.\n\n` +
+                        `To try again, use \`/redeem edit game:${gameConfig.id}\`.`
+                    )
+                    .setColor(0xFFA500)
+                    .setFooter(footer)
+                    .setTimestamp();
+            case 'removed':
+                return new EmbedBuilder()
+                    .setTitle(`⚠️ ${gameConfig.shortName} Subscription Removed`)
+                    .setDescription(
+                        `Your auto-redeem subscription for **${gameConfig.name}** has been removed because ` +
+                        `the game didn't recognise your ${identityLabel}${together}.\n\n` +
+                        `Subscribe again with \`/redeem subscribe game:${gameConfig.id}\`. ` +
+                        `A form will ask for each detail and show where to find it.`
+                    )
+                    .setColor(0xFF0000)
+                    .setFooter(footer)
+                    .setTimestamp();
+            default:
+                return null;
+        }
+    }
+
+    /** DM one embed; a closed DM is not an error worth surfacing. */
+    private async sendDM(bot: Client, discordId: string, embed: EmbedBuilder): Promise<void> {
+        try {
+            const user = await bot.users.fetch(discordId);
+            await sendDMSafe(user, { embeds: [embed] });
+        } catch {
+            // DM failed — non-critical
+        }
     }
 
     /**
@@ -1295,13 +1403,16 @@ export class GachaRedemptionService {
                 return;
             }
 
-            // Redeem all codes
-            const results = await this.redeemMultipleCodes(gameId, gameUserId, codes);
+            // Redeem all codes, with the full stored identity. Passing only
+            // the primary id made every CZN re-run fail for want of the
+            // character nickname and server.
+            const identity = { userId: subscription.gameUserId, fields: subscription.gameUserFields };
+            const results = await this.redeemMultipleCodes(gameId, identity, codes);
 
             // Mark successful codes as redeemed
             const successfulCodes = results.filter(r => r.success).map(r => r.code);
             if (successfulCodes.length > 0) {
-                await dataService.markCodesRedeemed(discordId, gameId, successfulCodes);
+                await dataService.markCodesRedeemed(discordId, gameId, successfulCodes, { verified: true, identity });
             }
 
             // Send results DM
@@ -1435,10 +1546,14 @@ export class GachaRedemptionService {
             const redeemResults = await Promise.allSettled(
                 autoRedeemSubs.map(({ discordId, subscription, dmDisabled }) =>
                     this.subscriberLimit(async () => {
-                        const result = await this.redeemCode(coupon.gameId, subscription.gameUserId, coupon.code);
+                        // Full identity: a bare id left CZN without its
+                        // nickname and server, so every new-code redemption
+                        // failed and only the six-hourly run worked.
+                        const identity = { userId: subscription.gameUserId, fields: subscription.gameUserFields };
+                        const result = await this.redeemCode(coupon.gameId, identity, coupon.code);
 
                         if (result.success) {
-                            await dataService.markCodesRedeemed(discordId, coupon.gameId, [coupon.code]);
+                            await dataService.markCodesRedeemed(discordId, coupon.gameId, [coupon.code], { verified: true, identity });
                         }
 
                         // Log history entry

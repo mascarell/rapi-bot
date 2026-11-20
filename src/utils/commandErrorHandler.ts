@@ -7,6 +7,7 @@
 
 import {
   ChatInputCommandInteraction,
+  RepliableInteraction,
   MessageFlags,
   InteractionReplyOptions,
   InteractionEditReplyOptions
@@ -57,7 +58,9 @@ function parseError(error: unknown): ErrorResponse {
  * @param context - Additional context about where the error occurred (e.g., command name, subcommand)
  */
 export async function handleCommandError(
-  interaction: ChatInputCommandInteraction,
+  // Any repliable interaction: a slash command, or a form or button that
+  // continues one. Only reply/editReply and their flags are used.
+  interaction: RepliableInteraction,
   error: unknown,
   context?: string
 ): Promise<void> {
@@ -84,7 +87,7 @@ export async function handleCommandError(
  * Notify user of error (handles both replied and non-replied interactions)
  */
 async function notifyUser(
-  interaction: ChatInputCommandInteraction,
+  interaction: RepliableInteraction,
   message: string
 ): Promise<void> {
   const content = message.startsWith('❌') ? message : `❌ ${message}`;

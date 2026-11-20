@@ -142,6 +142,14 @@ export function validateGameUserId(
     };
   }
 
+  // A game can ask for a stricter format (CZN: digits only)
+  if (config.userIdFormat && !config.userIdFormat.pattern.test(trimmedId)) {
+    return {
+      valid: false,
+      error: config.userIdFormat.message
+    };
+  }
+
   // Check for valid characters (alphanumeric, underscores, hyphens)
   if (!/^[a-zA-Z0-9_-]+$/.test(trimmedId)) {
     return {
