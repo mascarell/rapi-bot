@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  isModerator,
+  MOD_REQUIRED_MESSAGE,
   checkModPermission,
   requireModPermission,
   hasRole,
@@ -56,103 +58,117 @@ describe('permissionHelpers.ts', () => {
     };
   });
 
-  describe('checkModPermission', () => {
-    it('should return true if user has mods role', async () => {
-      const modsRole = { name: 'mods' } as any;
-      (mockMember.roles!.cache as Map<string, any>).set('role-1', modsRole);
+  describe('isModerator / checkModPermission', () => {
+    const roleLookup = new Map<string, any>([
+      ['role-mods', { name: 'mods' }],
+      ['role-Mods', { name: 'Mods' }],
+      ['role-MODS', { name: 'MODS' }],
+      ['role-fan', { name: 'fan' }]
+    ]);
 
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
+    /** Fields Discord sends with the interaction; no member fetch involved. */
+    function caller(opts: {
+      userId?: string;
+      perms?: bigint[];
+      roles?: 'cache';
+      roleIds?: string[];
+    }) {
+      const ids = opts.roleIds ?? [];
+      const roles =
+        opts.roles === 'cache' ? { cache: new Map(ids.map((id) => [id, {}])) } : ids;
+      return {
+        guild: { ownerId: 'owner-123', roles: { cache: roleLookup } },
+        user: { id: opts.userId ?? 'user-123' },
+        memberPermissions: { has: (p: bigint) => (opts.perms ?? []).includes(p) },
+        member: { roles }
+      } as any;
+    }
 
-      expect(result).toBe(true);
+    const both = async (interaction: any) => {
+      const sync = isModerator(interaction);
+      expect(await checkModPermission(interaction)).toBe(sync);
+      return sync;
+    };
+
+    it('is true for the server owner', async () => {
+      expect(await both(caller({ userId: 'owner-123' }))).toBe(true);
     });
 
-    it('should return true if user has Mods role (case insensitive)', async () => {
-      const modsRole = { name: 'Mods' } as any;
-      (mockMember.roles!.cache as Map<string, any>).set('role-1', modsRole);
-
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(true);
+    it('is true for Administrator', async () => {
+      expect(await both(caller({ perms: [PermissionFlagsBits.Administrator] }))).toBe(true);
     });
 
-    it('should return true if user has MODS role (uppercase)', async () => {
-      const modsRole = { name: 'MODS' } as any;
-      (mockMember.roles!.cache as Map<string, any>).set('role-1', modsRole);
-
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(true);
+    it('is true for Timeout Members', async () => {
+      expect(await both(caller({ perms: [PermissionFlagsBits.ModerateMembers] }))).toBe(true);
     });
 
-    it('should return true if user has Administrator permission', async () => {
-      mockMember.permissions!.has = vi.fn().mockReturnValue(true);
+    it.each(['role-mods', 'role-Mods', 'role-MODS'])(
+      'is true for a mods role (%s) given as an id array',
+      async (id) => {
+        expect(await both(caller({ roleIds: [id] }))).toBe(true);
+      }
+    );
 
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(true);
-      expect(mockMember.permissions!.has).toHaveBeenCalledWith(PermissionFlagsBits.Administrator);
+    it('is true for a mods role given as a roles cache', async () => {
+      expect(await both(caller({ roles: 'cache', roleIds: ['role-fan', 'role-mods'] }))).toBe(true);
     });
 
-    it('should return false if user has neither mods role nor admin permission', async () => {
-      const otherRole = { name: 'member' } as any;
-      (mockMember.roles!.cache as Map<string, any>).set('role-1', otherRole);
-      mockMember.permissions!.has = vi.fn().mockReturnValue(false);
-
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(false);
+    it('is false for a plain member', async () => {
+      expect(await both(caller({ roleIds: ['role-fan'] }))).toBe(false);
+      expect(await both(caller({ roles: 'cache', roleIds: ['role-fan'] }))).toBe(false);
+      expect(await both(caller({ perms: [PermissionFlagsBits.KickMembers] }))).toBe(false);
     });
 
-    it('should return false if guild is null', async () => {
-      mockInteraction.guild = null;
-
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(false);
+    it('is false when no member data is present', async () => {
+      const interaction = caller({});
+      interaction.member = null;
+      expect(await both(interaction)).toBe(false);
     });
 
-    it('should return false if fetching member fails', async () => {
-      mockGuild.members!.fetch = vi.fn().mockRejectedValue(new Error('Member not found'));
+    it('is false with no guild, even for the owner id', async () => {
+      const interaction = caller({ userId: 'owner-123', perms: [PermissionFlagsBits.Administrator] });
+      interaction.guild = null;
+      expect(await both(interaction)).toBe(false);
+    });
 
-      const result = await checkModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(false);
+    it('never fetches the member', async () => {
+      const interaction = caller({ roleIds: ['role-mods'] });
+      interaction.guild.members = { fetch: vi.fn() };
+      await checkModPermission(interaction);
+      expect(interaction.guild.members.fetch).not.toHaveBeenCalled();
     });
   });
 
   describe('requireModPermission', () => {
+    const interactionFor = (userId: string) =>
+      ({
+        guild: { ownerId: 'owner-123', roles: { cache: new Map() } },
+        user: { id: userId },
+        memberPermissions: { has: () => false },
+        member: { roles: [] },
+        reply: vi.fn().mockResolvedValue(undefined)
+      }) as any;
+
     it('should return true and not reply if user has permission', async () => {
-      const modsRole = { name: 'mods' } as any;
-      (mockMember.roles!.cache as Map<string, any>).set('role-1', modsRole);
-
-      const result = await requireModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(true);
-      expect(mockInteraction.reply).not.toHaveBeenCalled();
+      const interaction = interactionFor('owner-123');
+      expect(await requireModPermission(interaction)).toBe(true);
+      expect(interaction.reply).not.toHaveBeenCalled();
     });
 
-    it('should return false and reply with default message if user lacks permission', async () => {
-      mockMember.permissions!.has = vi.fn().mockReturnValue(false);
-
-      const result = await requireModPermission(mockInteraction as ChatInputCommandInteraction);
-
-      expect(result).toBe(false);
-      expect(mockInteraction.reply).toHaveBeenCalledWith({
-        content: '❌ You do not have permission to use this command.',
+    it('should return false and reply with the shared message if user lacks permission', async () => {
+      const interaction = interactionFor('user-123');
+      expect(await requireModPermission(interaction)).toBe(false);
+      expect(interaction.reply).toHaveBeenCalledWith({
+        content: MOD_REQUIRED_MESSAGE,
         flags: expect.any(Number)
       });
     });
 
     it('should reply with custom message if provided', async () => {
+      const interaction = interactionFor('user-123');
       const customMsg = 'Only mods can use this!';
-
-      const result = await requireModPermission(
-        mockInteraction as ChatInputCommandInteraction,
-        customMsg
-      );
-
-      expect(result).toBe(false);
-      expect(mockInteraction.reply).toHaveBeenCalledWith({
+      expect(await requireModPermission(interaction, customMsg)).toBe(false);
+      expect(interaction.reply).toHaveBeenCalledWith({
         content: customMsg,
         flags: expect.any(Number)
       });
@@ -367,6 +383,9 @@ describe('permissionHelpers.ts', () => {
       const modsRole = { name: 'mods' } as any;
       (mockMember.roles!.cache as Map<string, any>).set('role-1', modsRole);
 
+      (mockInteraction as any).memberPermissions = {
+        has: (p: bigint) => p === PermissionFlagsBits.ModerateMembers
+      };
       const checkResult = await PermissionHelper.checkMod(
         mockInteraction as ChatInputCommandInteraction
       );

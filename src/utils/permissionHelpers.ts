@@ -1,37 +1,60 @@
 /**
  * Permission helpers for Discord.js
  *
- * Provides reusable permission checking utilities to eliminate duplicate
- * permission logic across commands (currently only in redeem.ts).
+ * Provides reusable permission checking utilities. The moderator rule lives
+ * here once (`isModerator`) and is shared by /mod, /redeem and commandBase.
  */
 
 import {
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   PermissionFlagsBits,
-  GuildMember,
-  PermissionsBitField
+  GuildMember
 } from 'discord.js';
 import { replyEphemeral } from './interactionHelpers.js';
 
+/** Shown to a caller who fails the moderator check. */
+export const MOD_REQUIRED_MESSAGE =
+  '❌ This needs the Timeout Members or Administrator permission, or a role named `mods`.';
+
 /**
- * Check if a user has mod permissions (either 'mods' role or Administrator permission)
+ * Whether the caller is a moderator: the server owner, Administrator, Timeout
+ * Members, or a role named `mods` (case-insensitive). It's read from what
+ * Discord sent with the interaction, with no API call, so autocomplete stays
+ * inside its 3-second window.
+ */
+export function isModerator(
+  interaction: ChatInputCommandInteraction | AutocompleteInteraction
+): boolean {
+  const guild = interaction.guild;
+  if (!guild) return false;
+  if (interaction.user.id === guild.ownerId) return true;
+
+  const permissions = interaction.memberPermissions;
+  if (
+    permissions?.has(PermissionFlagsBits.Administrator) ||
+    permissions?.has(PermissionFlagsBits.ModerateMembers)
+  ) {
+    return true;
+  }
+
+  const member = interaction.member;
+  if (!member) return false;
+  const roleIds: string[] = Array.isArray(member.roles)
+    ? member.roles
+    : [...member.roles.cache.keys()];
+  return roleIds.some((id) => guild.roles.cache.get(id)?.name.toLowerCase() === 'mods');
+}
+
+/**
+ * Check if a user is a moderator (see `isModerator`: owner, Administrator,
+ * Timeout Members, or a `mods` role). Async for backwards compatibility; no
+ * member fetch is needed.
  */
 export async function checkModPermission(
   interaction: ChatInputCommandInteraction
 ): Promise<boolean> {
-  const guild = interaction.guild;
-  if (!guild) return false;
-
-  try {
-    const member = await guild.members.fetch(interaction.user.id);
-    return (
-      member.roles.cache.some((role) => role.name.toLowerCase() === 'mods') ||
-      member.permissions.has(PermissionFlagsBits.Administrator)
-    );
-  } catch (error) {
-    // If we can't fetch the member, they don't have permissions
-    return false;
-  }
+  return isModerator(interaction);
 }
 
 /**
@@ -44,10 +67,7 @@ export async function requireModPermission(
 ): Promise<boolean> {
   const hasMod = await checkModPermission(interaction);
   if (!hasMod) {
-    await replyEphemeral(
-      interaction,
-      customMessage || '❌ You do not have permission to use this command.'
-    );
+    await replyEphemeral(interaction, customMessage || MOD_REQUIRED_MESSAGE);
   }
   return hasMod;
 }

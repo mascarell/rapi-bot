@@ -139,8 +139,8 @@ need no migration.
 - ❌ Expired (in 24h grace period)
 
 ## Permission System
-- Mod commands require `mods` role OR Administrator permission
-- Check: `checkModPermission(interaction)` in redeem.ts
+- One moderator rule, `isModerator(interaction)` in `utils/permissionHelpers.ts`: server owner, Administrator, Timeout Members, or a role named `mods`
+- `checkModPermission(interaction)` (used by redeem.ts) returns the same rule; no member fetch
 - modCommands array: `['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers']`
 
 ## Moderator Commands (`/mod`)
@@ -148,13 +148,15 @@ need no migration.
 `src/commands/mod.ts`. Discord can hide a whole top-level command from members
 without a permission (`setDefaultMemberPermissions`), but **not a subcommand**,
 so moderator tools belong under `/mod` rather than as subcommands of
-member-facing commands like `/redeem` or `/spam`.
+member-facing commands like `/redeem` or `/spam`. Mod-only tools are being
+migrated here one command set at a time.
 
 - Hidden from members without **Timeout Members**; server-only (`setContexts(Guild)`).
 - Picker visibility is a convenience, not the check: admins can override it in
   Server Settings > Integrations. Every subcommand and the autocomplete re-check
-  the caller with `isFilterModerator()` (Administrator, Timeout Members, or a
-  role named `mods`) or the guild owner.
+  the caller with `isModerator()` (owner, Administrator, Timeout Members, or a
+  role named `mods`).
+- `/mod spam stats | reset` (logic in `commands/utils/spamModeration.ts`). `/spam stats` and `/spam reset` remain for one release as stubs that point here; `/spam check` stays for members.
 - **Everything acts on the calling server only.** The bot is open source and
   runs in other communities' servers.
 

@@ -25,6 +25,8 @@ import { EmbedTemplates } from '../utils/embedTemplates.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { createPaginatedMessage } from './utils/paginationBuilder.js';
 import { logger } from '../utils/logger.js';
+import { isModerator, MOD_REQUIRED_MESSAGE } from '../utils/permissionHelpers.js';
+import { handleSpamStats, handleSpamReset } from './utils/spamModeration.js';
 
 /**
  * /mod — moderator tools, hidden from everyone else.
@@ -69,31 +71,6 @@ function fitField(items: string[], separator: string): string {
 }
 
 const spoilerList = (terms: string[]) => fitField(terms.map(spoiler), ', ');
-
-/**
- * Whether the caller is a moderator: the server owner, Administrator, Timeout
- * Members, or a role named `mods` (the same rule as isFilterModerator). It's
- * read from what Discord sent with the interaction, with no API call, so
- * autocomplete stays inside its 3-second window.
- */
-function callerIsModerator(interaction: ChatInputCommandInteraction | AutocompleteInteraction): boolean {
-    const guild = interaction.guild;
-    if (!guild) return false;
-    if (interaction.user.id === guild.ownerId) return true;
-
-    const permissions = interaction.memberPermissions;
-    if (
-        permissions?.has(PermissionFlagsBits.Administrator) ||
-        permissions?.has(PermissionFlagsBits.ModerateMembers)
-    ) {
-        return true;
-    }
-
-    const member = interaction.member;
-    if (!member) return false;
-    const roleIds: string[] = Array.isArray(member.roles) ? member.roles : [...member.roles.cache.keys()];
-    return roleIds.some(id => guild.roles.cache.get(id)?.name.toLowerCase() === 'mods');
-}
 
 function findModLogChannel(guild: Guild): TextChannel | null {
     const channel = guild.channels.cache.find(
@@ -462,6 +439,19 @@ export default {
                 .addUserOption(opt => opt
                     .setName('user')
                     .setDescription('The member to look up')
+                    .setRequired(true))))
+        .addSubcommandGroup(group => group
+            .setName('spam')
+            .setDescription('Chat command spam protection')
+            .addSubcommand(sub => sub
+                .setName('stats')
+                .setDescription('Spam protection statistics for this server'))
+            .addSubcommand(sub => sub
+                .setName('reset')
+                .setDescription('Reset a member\'s chat command limit')
+                .addUserOption(opt => opt
+                    .setName('user')
+                    .setDescription('Member whose chat command limit to reset')
                     .setRequired(true)))),
 
     async execute(interaction: ChatInputCommandInteraction) {
@@ -470,24 +460,29 @@ export default {
             await interaction.reply({ content: '❌ This only works in a server.', flags: MessageFlags.Ephemeral });
             return;
         }
-        if (!callerIsModerator(interaction)) {
-            await interaction.reply({
-                content: '❌ This needs the Timeout Members or Administrator permission, or a role named `mods`.',
-                flags: MessageFlags.Ephemeral,
-            });
+        if (!isModerator(interaction)) {
+            await interaction.reply({ content: MOD_REQUIRED_MESSAGE, flags: MessageFlags.Ephemeral });
             return;
         }
 
         try {
-            switch (interaction.options.getSubcommand()) {
-                case 'list': return await handleList(interaction, guild);
-                case 'add': return await handleAdd(interaction, guild);
-                case 'remove': return await handleRemove(interaction, guild);
-                case 'test': return await handleTest(interaction, guild);
-                case 'history': return await handleHistory(interaction, guild);
-                default:
-                    await interaction.reply({ content: '❌ Unknown subcommand.', flags: MessageFlags.Ephemeral });
+            const group = interaction.options.getSubcommandGroup(false);
+            const sub = interaction.options.getSubcommand();
+            if (group === 'slur') {
+                switch (sub) {
+                    case 'list': return await handleList(interaction, guild);
+                    case 'add': return await handleAdd(interaction, guild);
+                    case 'remove': return await handleRemove(interaction, guild);
+                    case 'test': return await handleTest(interaction, guild);
+                    case 'history': return await handleHistory(interaction, guild);
+                }
+            } else if (group === 'spam') {
+                switch (sub) {
+                    case 'stats': return await handleSpamStats(interaction, guild);
+                    case 'reset': return await handleSpamReset(interaction, guild);
+                }
             }
+            await interaction.reply({ content: '❌ Unknown subcommand.', flags: MessageFlags.Ephemeral });
         } catch (error) {
             await handleCommandError(interaction, error, 'mod');
         }
@@ -500,8 +495,9 @@ export default {
             // anyone who can type the command, and suggestions are list terms.
             if (
                 !guild ||
+                interaction.options.getSubcommandGroup(false) !== 'slur' ||
                 interaction.options.getSubcommand(false) !== 'remove' ||
-                !callerIsModerator(interaction)
+                !isModerator(interaction)
             ) {
                 await interaction.respond([]);
                 return;
