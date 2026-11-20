@@ -268,59 +268,17 @@ describe('Redeem Command', () => {
             expect(subcommands).toContain('list');
             expect(subcommands).toContain('trigger');
         });
+
+        it('keeps the moved moderator subcommands as option-less pointers', () => {
+            for (const name of ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers']) {
+                const sub = (redeemCommand.data.toJSON() as any).options.find((o: any) => o.name === name);
+                expect(sub.options ?? []).toEqual([]);
+                expect(sub.description).toBe(`Moved to /mod redeem ${name}`);
+            }
+        });
     });
 
     describe('Permission Checks', () => {
-        it('should allow mod commands for users with mods role', async () => {
-            const modsRole = { name: 'mods' } as Role;
-            const mockRolesWithMods = new Collection<string, Role>();
-            mockRolesWithMods.set('modsRoleId', modsRole);
-            (mockMember.roles as any).cache = mockRolesWithMods;
-
-            (mockInteraction.options!.getSubcommand as any).mockReturnValue('list');
-            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
-                if (name === 'game') return 'bd2';
-                return null;
-            });
-
-            await redeemCommand.execute(mockInteraction);
-
-            // Should not show permission error
-            expect(mockInteraction.reply).not.toHaveBeenCalledWith(
-                expect.objectContaining({ content: expect.stringContaining('Timeout Members') })
-            );
-        });
-
-        it('should allow mod commands for administrators', async () => {
-            (mockMember.permissions as PermissionsBitField) = new PermissionsBitField(PermissionsBitField.Flags.Administrator);
-
-            (mockInteraction.options!.getSubcommand as any).mockReturnValue('list');
-            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
-                if (name === 'game') return 'bd2';
-                return null;
-            });
-
-            await redeemCommand.execute(mockInteraction);
-
-            // Should not show permission error
-            expect(mockInteraction.reply).not.toHaveBeenCalledWith(
-                expect.objectContaining({ content: expect.stringContaining('Timeout Members') })
-            );
-        });
-
-        it('should reject mod commands for users without permissions', async () => {
-            (mockInteraction.options!.getSubcommand as any).mockReturnValue('add');
-
-            await redeemCommand.execute(mockInteraction);
-
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('Timeout Members'),
-                    flags: MessageFlags.Ephemeral
-                })
-            );
-        });
-
         it('should allow user commands without mod role', async () => {
             (mockInteraction.options!.getSubcommand as any).mockReturnValue('subscribe');
             (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
@@ -708,7 +666,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockDataService.addCoupon).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -731,7 +689,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -750,7 +708,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockDataService.addCoupon).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -769,7 +727,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -797,7 +755,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockDataService.removeCoupon).toHaveBeenCalledWith('bd2', 'EXISTING');
             expect(mockInteraction.reply).toHaveBeenCalledWith(
@@ -814,7 +772,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -850,7 +808,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockDataService.getAllCoupons).toHaveBeenCalledWith('bd2');
             expect(mockDataService.getGameStats).toHaveBeenCalledWith('bd2');
@@ -877,7 +835,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
             expect(mockRedemptionService.processGameAutoRedemptions).toHaveBeenCalled();
@@ -892,7 +850,7 @@ describe('Redeem Command', () => {
                 return null;
             });
 
-            await redeemCommand.execute(mockInteraction);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -1032,7 +990,7 @@ describe('Redeem Command', () => {
                 { code: 'OTHER', rewards: '25 Gems' },
             ]);
 
-            await redeemCommand.autocomplete(mockAutocomplete);
+            await redeemCommandModule.autocompleteRedeemCode(mockAutocomplete as any);
 
             expect(mockAutocomplete.respond).toHaveBeenCalledWith([
                 { name: 'TESTCODE1 - 100 Gems', value: 'TESTCODE1' },
@@ -1049,9 +1007,38 @@ describe('Redeem Command', () => {
                 respond: vi.fn().mockResolvedValue({}),
             };
 
-            await redeemCommand.autocomplete(mockAutocomplete);
+            await redeemCommandModule.autocompleteRedeemCode(mockAutocomplete as any);
 
             expect(mockAutocomplete.respond).toHaveBeenCalledWith([]);
+        });
+    });
+
+    describe('Help Subcommand', () => {
+        const helpText = (): string =>
+            vi.mocked(EmbedBuilder).mock.results
+                .map(r => r.value as any)
+                .flatMap(e => e.addFields.mock.calls.flatMap((c: any[]) => c.map((f: any) => f.value)))
+                .join('\n');
+
+        it('lists the moderator tools under /mod redeem for moderators', async () => {
+            (mockMember.permissions as PermissionsBitField) = new PermissionsBitField(PermissionsBitField.Flags.Administrator);
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('help');
+
+            await redeemCommand.execute(mockInteraction as any);
+
+            const text = helpText();
+            for (const name of ['add', 'remove', 'list', 'trigger', 'scrape', 'stats', 'subscribers', 'lookup', 'unsub', 'update', 'reset']) {
+                expect(text).toContain(`/mod redeem ${name}`);
+                expect(text).not.toContain(`/redeem ${name}\``);
+            }
+        });
+
+        it('hides the moderator section from everyone else', async () => {
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('help');
+
+            await redeemCommand.execute(mockInteraction as any);
+
+            expect(helpText()).not.toContain('/mod redeem');
         });
     });
 });

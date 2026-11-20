@@ -279,13 +279,16 @@ This project is open source. See the repository for license information.
 New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-dust-2` / `#chaos-zero-nightmare` (or `#bd2` / `#czn`), with **Redeem for me**, **Copy code** and a link to the official coupon page, plus a reminder when a code has a day or less left. Add `announceChannelNames` to a game in `src/utils/data/gachaGamesConfig.ts` to post another game's codes.
 
 #### Moderator Commands
-- `/redeem add` - Add new coupon code
-- `/redeem remove` - Deactivate code
-- `/redeem list` - View all codes with status indicators
-- `/redeem stats` - View analytics
-- `/redeem subscribers` - View subscriber list
-- `/redeem trigger` - Manual auto-redemption
-- `/redeem scrape` - Fetch codes from BD2 Pulse
+- `/mod redeem add` - Add new coupon code
+- `/mod redeem remove` - Deactivate code
+- `/mod redeem list` - View all codes with status indicators
+- `/mod redeem stats` - View analytics
+- `/mod redeem subscribers` - View subscriber list
+- `/mod redeem trigger` - Manual auto-redemption
+- `/mod redeem scrape` - Fetch codes from BD2 Pulse
+- `/mod redeem lookup | unsub | update | reset` - Look up, unsubscribe, edit or reset a member's subscription
+
+The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that point to `/mod redeem`.
 
 #### Scheduled Tasks
 | Task | Production | Development |
@@ -368,6 +371,7 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 - `/mod` is hidden from members without the Timeout Members permission; server admins can narrow it further under Server Settings > Integrations
 - `/mod slur list | add | remove | test | history` manages this server's own slur list (see CLAUDE.md)
 - `/mod spam stats | reset` shows spam protection statistics and resets a member's chat command limit
+- `/mod redeem ...` holds the coupon moderator tools (add, remove, list, trigger, scrape, stats, subscribers, lookup, unsub, update, reset)
 
 **Rate Limiting:**
 - 3 chat commands per hour per user

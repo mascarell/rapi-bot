@@ -66,8 +66,8 @@ GachaCouponData {
 |---------|---------|-------------|
 | `/redeem subscribe` | `handleSubscribe` | Subscribe + immediate auto-redeem. Missing details open a form |
 | `/redeem edit` | `handleEdit` | Change account details in place (form, prefilled) |
-| `/redeem subscribers` | `handleModSubscribers` | Paginated subscriber list (mod) |
-| `/redeem list` | `handleModList` | Codes with status indicators |
+| `/mod redeem subscribers` | `handleModSubscribers` | Paginated subscriber list (mod) |
+| `/mod redeem list` | `handleModList` | Codes with status indicators |
 | `/redeem help` | `handleHelp` | FAQs (mod-aware) |
 
 ### Subscription Modes
@@ -133,15 +133,15 @@ The schema stays at version 1: every field added since (`gameUserFields`,
 `identityVerifiedAt`, `identityRejectedAt`, `previousIdentity`) is optional, so stored records
 need no migration.
 
-### Status Indicators (in /redeem list)
+### Status Indicators (in /mod redeem list)
 - ✅ Active (not expiring soon)
 - ⏰ Expiring within 24h
 - ❌ Expired (in 24h grace period)
 
 ## Permission System
 - One moderator rule, `isModerator(interaction)` in `utils/permissionHelpers.ts`: server owner, Administrator, Timeout Members, or a role named `mods`
-- `checkModPermission(interaction)` (used by redeem.ts) returns the same rule; no member fetch
-- modCommands array: `['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers']`
+- `checkModPermission(interaction)` (used by redeem.ts help) returns the same rule; no member fetch
+- Mod-only tools live under `/mod`, which checks `isModerator()` once before dispatching; `/redeem` has no mod gate left
 
 ## Moderator Commands (`/mod`)
 
@@ -157,6 +157,8 @@ migrated here one command set at a time.
   the caller with `isModerator()` (owner, Administrator, Timeout Members, or a
   role named `mods`).
 - `/mod spam stats | reset` (logic in `commands/utils/spamModeration.ts`). `/spam stats` and `/spam reset` remain for one release as stubs that point here; `/spam check` stays for members.
+- `/mod redeem add | remove | list | trigger | unsub | update | lookup | reset | scrape | stats | subscribers` (option builder `addModRedeemSubcommands`, dispatch `executeModRedeem`, code autocomplete `autocompleteRedeemCode`, all in `commands/redeem.ts`; same gacha server allowlist as `/redeem`). The same 11 names remain on `/redeem` for one release as option-less stubs replying "This moved to `/mod redeem <name>`"; member subcommands stay on `/redeem`.
+- A slash command definition is capped at 8000 characters; `commands/tests/modCommandSize.test.ts` checks `/mod` against it.
 - **Everything acts on the calling server only.** The bot is open source and
   runs in other communities' servers.
 
@@ -354,7 +356,7 @@ export const getMyService = (): MyService => MyService.getInstance();
 1. Add to SlashCommandBuilder (around line 1170-1220)
 2. Create `handleXxx` function
 3. Add to switch statement in `execute()`
-4. If mod-only, add to `modCommands` array
+4. If mod-only, add it to `addModRedeemSubcommands` and `executeModRedeem` (it runs as `/mod redeem <name>`) instead
 5. Update `handleHelp` if user-facing
 
 **Pagination Pattern** (`src/commands/utils/paginationBuilder.ts`):

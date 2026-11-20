@@ -7,6 +7,7 @@ vi.mock('../../utils/cdn/config', () => ({
 }));
 
 vi.mock('../../config/assets', () => ({
+    cacheBust: (url: string) => url,
     getAssetUrls: () => ({
         rapiBot: { thumbnail: 'https://example.com/thumb.png' },
         nikke: { logo: 'https://example.com/nikke.png' },
@@ -141,7 +142,7 @@ describe('/mod registration', () => {
     });
 
     it('carries the spam group with stats and reset', () => {
-        expect(json.options.map((o: any) => o.name)).toEqual(['slur', 'spam']);
+        expect(json.options.map((o: any) => o.name)).toEqual(['slur', 'spam', 'redeem']);
         const group = json.options.find((o: any) => o.name === 'spam');
         expect(group.options.map((o: any) => o.name)).toEqual(['stats', 'reset']);
         const reset = group.options.find((o: any) => o.name === 'reset');
