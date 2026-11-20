@@ -38,7 +38,7 @@ import {
 import { getGachaGuildConfigService } from '../services/gachaGuildConfigService';
 // Phase 1 & 2 utilities
 import { getAssetUrls } from '../config/assets.js';
-import { checkModPermission, requireModPermission } from '../utils/permissionHelpers.js';
+import { checkModPermission, requireModPermission, MOD_REQUIRED_MESSAGE } from '../utils/permissionHelpers.js';
 import { gachaEmbed } from '../utils/embedTemplates.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { formatDate, parseExpirationDate, isExpiringSoon, isExpired } from '../utils/dateHelpers.js';
@@ -2077,7 +2077,7 @@ export default {
         // Mod-only commands
         const modCommands = ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers'];
         if (modCommands.includes(subcommand)) {
-            if (!(await requireModPermission(interaction, 'You need the "mods" role or administrator permission for this command.'))) {
+            if (!(await requireModPermission(interaction, MOD_REQUIRED_MESSAGE))) {
                 return;
             }
         }

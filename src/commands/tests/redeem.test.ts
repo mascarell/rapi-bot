@@ -122,6 +122,14 @@ describe('Redeem Command', () => {
             members: {
                 fetch: vi.fn().mockResolvedValue(mockMember),
             } as any,
+            // The moderator check reads the resolved caller fields Discord sends
+            // with the interaction; derive them from mockMember so tests can
+            // keep granting roles/permissions there.
+            roles: {
+                get cache() {
+                    return mockMember.roles!.cache;
+                },
+            } as any,
         };
 
         // Setup mock interaction
@@ -129,6 +137,12 @@ describe('Redeem Command', () => {
             guild: mockGuild as Guild,
             guildId: '1065055945123708928', // Test server ID (allowed)
             user: { id: 'user123' } as any,
+            get member() {
+                return { roles: [...(mockMember.roles!.cache as Collection<string, Role>).keys()] };
+            },
+            get memberPermissions() {
+                return mockMember.permissions;
+            },
             client: {} as Client,
             options: {
                 getSubcommand: vi.fn(),
@@ -273,7 +287,7 @@ describe('Redeem Command', () => {
 
             // Should not show permission error
             expect(mockInteraction.reply).not.toHaveBeenCalledWith(
-                expect.objectContaining({ content: expect.stringContaining('need the "mods" role') })
+                expect.objectContaining({ content: expect.stringContaining('Timeout Members') })
             );
         });
 
@@ -290,7 +304,7 @@ describe('Redeem Command', () => {
 
             // Should not show permission error
             expect(mockInteraction.reply).not.toHaveBeenCalledWith(
-                expect.objectContaining({ content: expect.stringContaining('need the "mods" role') })
+                expect.objectContaining({ content: expect.stringContaining('Timeout Members') })
             );
         });
 
@@ -301,7 +315,7 @@ describe('Redeem Command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('need the "mods" role'),
+                    content: expect.stringContaining('Timeout Members'),
                     flags: MessageFlags.Ephemeral
                 })
             );

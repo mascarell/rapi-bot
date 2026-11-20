@@ -15,6 +15,11 @@ vi.mock('../../config/assets', () => ({
 
 vi.mock('../utils/paginationBuilder', () => ({ createPaginatedMessage: vi.fn() }));
 
+vi.mock('../utils/spamModeration', () => ({
+    handleSpamStats: vi.fn().mockResolvedValue(undefined),
+    handleSpamReset: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Keep the real validation; stub only the service instance.
 vi.mock('../../services/slurModerationService', async importOriginal => ({
     ...(await importOriginal<typeof import('../../services/slurModerationService')>()),
@@ -23,6 +28,7 @@ vi.mock('../../services/slurModerationService', async importOriginal => ({
 
 import { getSlurModerationService } from '../../services/slurModerationService';
 import { createPaginatedMessage } from '../utils/paginationBuilder';
+import { handleSpamStats, handleSpamReset } from '../utils/spamModeration';
 
 const modCommand = (await import('../mod')).default;
 
@@ -54,6 +60,7 @@ function callerFields(opts: { canModerate?: boolean; roleIds?: string[] }) {
 
 function makeInteraction(opts: {
     sub: string;
+    group?: string;
     strings?: Record<string, string>;
     isMod?: boolean;
     roleIds?: string[];
@@ -71,6 +78,7 @@ function makeInteraction(opts: {
         ...callerFields({ canModerate: opts.isMod ?? true, roleIds: opts.roleIds }),
         user: { id: 'u1', tag: 'Mod#0001', toString: () => '<@u1>' },
         options: {
+            getSubcommandGroup: () => opts.group ?? 'slur',
             getSubcommand: () => opts.sub,
             getString: (name: string) => opts.strings?.[name] ?? null,
             getUser: () => ({ id: 'u2', tag: 'Member#0002', toString: () => '<@u2>' }),
@@ -132,6 +140,14 @@ describe('/mod registration', () => {
         expect(group.options.map((o: any) => o.name)).toEqual(['list', 'add', 'remove', 'test', 'history']);
     });
 
+    it('carries the spam group with stats and reset', () => {
+        expect(json.options.map((o: any) => o.name)).toEqual(['slur', 'spam']);
+        const group = json.options.find((o: any) => o.name === 'spam');
+        expect(group.options.map((o: any) => o.name)).toEqual(['stats', 'reset']);
+        const reset = group.options.find((o: any) => o.name === 'reset');
+        expect(reset.options).toEqual([expect.objectContaining({ name: 'user', required: true })]);
+    });
+
     it('caps the length of every free-text term option', () => {
         const group = json.options.find((o: any) => o.name === 'slur');
         for (const sub of group.options) {
@@ -172,6 +188,38 @@ describe('/mod access', () => {
         await modCommand.execute(interaction);
         expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining('server') }));
         expect(service.getFilterOverview).not.toHaveBeenCalled();
+    });
+});
+
+describe('/mod spam', () => {
+    it.each([
+        ['stats', handleSpamStats, handleSpamReset],
+        ['reset', handleSpamReset, handleSpamStats],
+    ])('dispatches %s to the spam module', async (sub, expected, other) => {
+        const interaction = makeInteraction({ sub, group: 'spam' });
+        await modCommand.execute(interaction);
+        expect(expected).toHaveBeenCalledWith(interaction, interaction.guild);
+        expect(other).not.toHaveBeenCalled();
+        expect(service.getFilterOverview).not.toHaveBeenCalled();
+    });
+
+    it.each(['stats', 'reset'])('refuses a non-moderator for %s', async sub => {
+        const interaction = makeInteraction({ sub, group: 'spam', isMod: false });
+        await modCommand.execute(interaction);
+        expect(interaction.reply).toHaveBeenCalledWith(
+            expect.objectContaining({ content: expect.stringContaining('Timeout Members') })
+        );
+        expect(handleSpamStats).not.toHaveBeenCalled();
+        expect(handleSpamReset).not.toHaveBeenCalled();
+    });
+
+    it('does not run slur handlers for a same-named subcommand in another group', async () => {
+        const interaction = makeInteraction({ sub: 'list', group: 'spam' });
+        await modCommand.execute(interaction);
+        expect(service.getFilterOverview).not.toHaveBeenCalled();
+        expect(interaction.reply).toHaveBeenCalledWith(
+            expect.objectContaining({ content: expect.stringContaining('Unknown') })
+        );
     });
 });
 
@@ -315,16 +363,23 @@ describe('/mod slur remove, test, list', () => {
 });
 
 describe('/mod autocomplete', () => {
-    const makeAutocomplete = (isMod: boolean, sub = 'remove', focused = 'test') => ({
+    const makeAutocomplete = (isMod: boolean, sub = 'remove', focused = 'test', group = 'slur') => ({
         guild: makeGuild(),
         ...callerFields({ canModerate: isMod }),
         user: { id: 'u1' },
-        options: { getSubcommand: () => sub, getFocused: () => focused },
+        options: { getSubcommandGroup: () => group, getSubcommand: () => sub, getFocused: () => focused },
         respond: vi.fn().mockResolvedValue(undefined),
     });
 
     it('suggests nothing to a non-moderator and never reads the list', async () => {
         const interaction = makeAutocomplete(false);
+        await modCommand.autocomplete(interaction as any);
+        expect(interaction.respond).toHaveBeenCalledWith([]);
+        expect(service.getServerTerms).not.toHaveBeenCalled();
+    });
+
+    it('suggests nothing outside slur remove', async () => {
+        const interaction = makeAutocomplete(true, 'remove', 'test', 'spam');
         await modCommand.autocomplete(interaction as any);
         expect(interaction.respond).toHaveBeenCalledWith([]);
         expect(service.getServerTerms).not.toHaveBeenCalled();

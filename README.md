@@ -363,16 +363,17 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 ### Permissions
 
 **Moderator Commands:**
-- Require `mods` role OR Discord administrator permission
-- Check: `await checkModPermission(interaction)`
+- Server owner, Administrator or Timeout Members permission, or a role named `mods`
+- Check: `isModerator(interaction)` (or `await checkModPermission(interaction)`)
 - `/mod` is hidden from members without the Timeout Members permission; server admins can narrow it further under Server Settings > Integrations
 - `/mod slur list | add | remove | test | history` manages this server's own slur list (see CLAUDE.md)
+- `/mod spam stats | reset` shows spam protection statistics and resets a member's chat command limit
 
 **Rate Limiting:**
 - 3 chat commands per hour per user
 - Resets at top of every hour (UTC)
 - View status: `/spam check`
-- Mod stats: `/spam stats`
+- Mod stats: `/mod spam stats` (moderators; `/spam stats` and `/spam reset` now just point there)
 
 ---
 
