@@ -28,13 +28,13 @@ bun run start
 ## ✨ Core Features
 
 ### 1. **Gacha Coupon Redemption System**
-- **Auto-redemption**: Automatically redeem codes for BD2 (API-integrated)
-- **Multi-game support**: BD2, NIKKE, Blue Archive
+- **Auto-redemption**: Automatically redeem codes for Brown Dust 2 and Chaos Zero Nightmare
+- **Multi-game support**: BD2, Chaos Zero Nightmare, Lost Sword
 - **Smart notifications**: DM alerts for new codes, expiring codes, and weekly digests
 - **User preferences**: Customizable notification settings
 - **Mod tools**: Code management, subscriber analytics, manual triggers
 
-**Commands**: `/redeem subscribe`, `/redeem codes`, `/redeem status`, `/redeem preferences`
+**Commands**: `/redeem subscribe`, `/redeem edit`, `/redeem codes`, `/redeem status`, `/redeem preferences`
 
 ### 2. **URL Embed Fix (Twitter/X + Pixiv)**
 - Automatically improves embeds in art channels using proxy services
@@ -238,11 +238,12 @@ This project is open source. See the repository for license information.
 | Game | Auto-Redeem | Manual Redeem |
 |------|-------------|---------------|
 | Brown Dust 2 (BD2) | ✅ | ✅ |
-| NIKKE | ❌ | ✅ |
-| Blue Archive | ❌ | ✅ |
+| Chaos Zero Nightmare (CZN) | ✅ | ✅ |
+| Lost Sword | ❌ | ✅ (in game) |
 
 #### User Commands
-- `/redeem subscribe <game> <userid> <mode>` - Subscribe (auto-redeem or notification-only)
+- `/redeem subscribe <game>` - Subscribe. A form asks for any account details the game needs, with where to find them; mode defaults to auto-redeem
+- `/redeem edit <game>` - Change your account details without losing your subscription
 - `/redeem unsubscribe <game>` - Unsubscribe
 - `/redeem status [game]` - View subscription status
 - `/redeem codes <game>` - View active codes

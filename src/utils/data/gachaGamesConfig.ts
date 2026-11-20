@@ -29,6 +29,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         maxCodeLength: 30,
         userIdFieldName: 'nickname',
         requiresUserId: true,
+        userIdHint: 'Your in-game nickname, not your UID. In game: Profile, then your display name.',
     },
     'lost-sword': {
         id: 'lost-sword',
@@ -78,16 +79,26 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         // validates the pair together.
         userIdFieldName: 'STOVE membership number',
         requiresUserId: true,
+        // Menu path per GameWith's CZN codes guide, 2026-11-20.
+        userIdHint: 'In game: Lobby > Account > Account Settings. Use the copy button next to it.',
+        userIdFormat: {
+            pattern: /^\d+$/,
+            message:
+                'STOVE membership number is digits only. Copy it from ' +
+                'Lobby > Account > Account Settings in game.',
+        },
         extraUserFields: [
             {
                 key: 'nickname',
                 label: 'Character nickname',
+                hint: 'Shown at the top left of the Lobby. Type it exactly as it appears.',
                 maxLength: 20,
             },
             {
                 key: 'world',
                 optionName: 'server',
                 label: 'Server',
+                hint: 'The server your character is on.',
                 choices: [
                     { label: 'Global', value: 'world_live_global' },
                     { label: 'Asia', value: 'world_live_asia' },

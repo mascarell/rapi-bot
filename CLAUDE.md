@@ -64,7 +64,8 @@ GachaCouponData {
 ### Key Commands
 | Command | Handler | Description |
 |---------|---------|-------------|
-| `/redeem subscribe` | `handleSubscribe` | Subscribe + immediate auto-redeem |
+| `/redeem subscribe` | `handleSubscribe` | Subscribe + immediate auto-redeem. Missing details open a form |
+| `/redeem edit` | `handleEdit` | Change account details in place (form, prefilled) |
 | `/redeem subscribers` | `handleModSubscribers` | Paginated subscriber list (mod) |
 | `/redeem list` | `handleModList` | Codes with status indicators |
 | `/redeem help` | `handleHelp` | FAQs (mod-aware) |
@@ -78,6 +79,40 @@ GachaCouponData {
 2. **Expired code grace period**: 24h before `isActive=false`
 3. **DM skip logic**: No DM if only expired codes (no meaningful results)
 4. **Real-time filtering**: `getActiveCoupons()` filters by expiration date at runtime
+5. **Account details come from a form** (`runIdentityFlow` in redeem.ts). If any
+   detail a game needs is missing from the slash options, a Discord modal asks
+   for all of them, built from the game config: `userIdFieldName` +
+   `userIdHint`, then each `extraUserFields` entry (`hint`; `choices` become a
+   dropdown). All validation errors are shown at once with a **Fix details**
+   button that reopens the form prefilled, up to 3 tries. Typed options still
+   work and skip the form.
+6. **Details are checked as you subscribe or edit.** The immediate redemption
+   doubles as the check: if the game rejects the account
+   (`identityRejected`), subscribe removes the record and edit calls
+   `revertGameIdentity`, and the user is offered the form again. With no
+   active codes there's nothing to check against; never test identity with a
+   fake code (STOVE locks an account for ~6h after repeated invalid codes).
+   A run stops at the first `IncorrectUser` rather than sending every code.
+7. **Accepted accounts are kept.** `identityVerifiedAt` is stamped whenever the
+   game redeems a code or says it was already used on the account. An edit
+   keeps the old details in `previousIdentity` until the new ones are
+   accepted. When the game rejects an account, `resolveIdentityRejection`
+   decides on the record as it is *now*: a verified one is kept and DM'd once
+   (`identityRejectedAt`); a rejected edit falls back to `previousIdentity`;
+   only details never accepted are removed.
+   - **Runs take minutes and users edit meanwhile.** Every write from a run
+     carries the identity it used (`IdentityRef`) and is skipped if the record
+     no longer holds it, so old results never land on new details. Revert
+     touches only the account fields, never mode or preferences.
+8. **Always pass the full identity** (`{ userId, fields }`) to `redeemCode` /
+   `redeemMultipleCodes`. A bare id has no CZN nickname or server, so the
+   redemption fails before reaching STOVE.
+9. **CZN `5162`/`5164` are `RestrictedCode`**, not `IncorrectUser`: the code is
+   for another region or server. Only outer `-90009` means the account is wrong.
+
+The schema stays at version 1: every field added since (`gameUserFields`,
+`identityVerifiedAt`, `identityRejectedAt`, `previousIdentity`) is optional, so stored records
+need no migration.
 
 ### Status Indicators (in /redeem list)
 - ✅ Active (not expiring soon)

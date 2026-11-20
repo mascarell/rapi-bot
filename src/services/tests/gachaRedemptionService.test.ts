@@ -371,7 +371,7 @@ describe('GachaRedemptionService', () => {
             expect(result.failed).toBe(0);
             // Now uses batch write instead of individual calls
             expect(mockDataService.batchMarkCodesRedeemed).toHaveBeenCalledWith([
-                { discordId: 'user123', gameId: 'bd2', codes: ['CODE1', 'CODE2'] }
+                { discordId: 'user123', gameId: 'bd2', codes: ['CODE1', 'CODE2'], verified: true, identity: { userId: 'TestPlayer', fields: undefined } }
             ]);
         });
 
@@ -442,7 +442,7 @@ describe('GachaRedemptionService', () => {
             expect(result.failed).toBe(0);
             // Both successful codes and AlreadyUsed codes are marked to avoid retrying
             expect(mockDataService.batchMarkCodesRedeemed).toHaveBeenCalledWith([
-                { discordId: 'user123', gameId: 'bd2', codes: ['GOOD', 'BAD'] }
+                { discordId: 'user123', gameId: 'bd2', codes: ['GOOD', 'BAD'], verified: true, identity: { userId: 'TestPlayer', fields: undefined } }
             ]);
         });
 
@@ -483,7 +483,7 @@ describe('GachaRedemptionService', () => {
             expect(result.failed).toBe(1);
             // Only the successful code is marked (InvalidCode might be retried)
             expect(mockDataService.batchMarkCodesRedeemed).toHaveBeenCalledWith([
-                { discordId: 'user123', gameId: 'bd2', codes: ['GOOD'] }
+                { discordId: 'user123', gameId: 'bd2', codes: ['GOOD'], verified: true, identity: { userId: 'TestPlayer', fields: undefined } }
             ]);
         });
 
@@ -592,7 +592,7 @@ describe('GachaRedemptionService', () => {
             expect(result.alreadyRedeemed).toBe(0);
             expect(result.failed).toBe(0);
             expect(result.total).toBe(2);
-            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user123', 'bd2', ['CODE1', 'CODE2']);
+            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user123', 'bd2', ['CODE1', 'CODE2'], expect.objectContaining({ verified: true }));
         });
 
         it('should handle mixed results (some already redeemed)', async () => {
@@ -615,7 +615,7 @@ describe('GachaRedemptionService', () => {
             expect(result.failed).toBe(0);
             expect(result.total).toBe(2);
             // Both codes should be marked (successful + already redeemed)
-            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user123', 'bd2', ['NEW', 'USED']);
+            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user123', 'bd2', ['NEW', 'USED'], expect.objectContaining({ verified: true }));
         });
 
         it('should return zeros when no active codes exist', async () => {
@@ -722,7 +722,7 @@ describe('GachaRedemptionService', () => {
             await service.notifyNewCode(mockBot as Client, mockCoupon);
 
             expect(global.fetch).toHaveBeenCalled();
-            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user456', 'bd2', ['NEWCODE']);
+            expect(mockDataService.markCodesRedeemed).toHaveBeenCalledWith('user456', 'bd2', ['NEWCODE'], expect.objectContaining({ verified: true }));
         });
 
         it('should include expiration date in notification', async () => {

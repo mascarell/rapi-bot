@@ -63,9 +63,13 @@ export const CZN_RESULT_ERRORS: Record<string, CommonRedemptionError> = {
     '5155': 'ExceededUses',
     '6026': 'ExceededUses', // daily limit
 
-    // Account / region problems that are not a wrong identity
-    '5162': 'IncorrectUser', // region-restricted
-    '5164': 'IncorrectUser', // wrong World
+    // The code doesn't apply to this account's region or server. These are
+    // answers about the *code*: STOVE only reaches them after the identity
+    // passed the outer check (a wrong identity is outer -90009). Mapping them
+    // to IncorrectUser made the six-hourly run auto-unsubscribe valid
+    // accounts whenever the only new code was restricted to another server.
+    '5162': 'RestrictedCode', // region-restricted
+    '5164': 'RestrictedCode', // code not valid on this World
 
     // Lockout after repeated invalid attempts — six hours
     '5031': 'RateLimited',
@@ -104,8 +108,8 @@ export const CZN_ERROR_OVERRIDES: Partial<Record<string, string>> = {
         'You need to accept the in-game terms once before coupons can be ' +
         'redeemed. Log in, accept, then try again.',
     '5164':
-        'That code is not valid on your selected server. Check the server on ' +
-        'your subscription with `/redeem status game:czn`.',
+        'That code is not valid on your selected server. If your server is ' +
+        'wrong, fix it with `/redeem edit game:czn`.',
     '5162': 'That code is restricted to a different region.',
 };
 

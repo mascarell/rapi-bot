@@ -87,6 +87,15 @@ import { getGachaRedemptionService } from '../../services/gachaRedemptionService
 import { getGachaGuildConfigService } from '../../services/gachaGuildConfigService';
 import { getGameConfig, isValidGameId } from '../../utils/data/gachaGamesConfig';
 
+import { EmbedBuilder } from 'discord.js';
+
+/** Every title and description the command put into an embed. */
+const embedText = (): string =>
+    vi.mocked(EmbedBuilder).mock.results
+        .map(r => r.value as any)
+        .flatMap(e => [...e.setTitle.mock.calls, ...e.setDescription.mock.calls].map((c: any[]) => c[0]))
+        .join('\n');
+
 // Import the command - use dynamic import for ESM module
 const redeemCommandModule = await import('../redeem');
 const redeemCommand = redeemCommandModule.default;
@@ -126,9 +135,15 @@ describe('Redeem Command', () => {
                 getString: vi.fn(),
             } as any,
             reply: vi.fn().mockResolvedValue({}),
-            deferReply: vi.fn().mockResolvedValue({}),
-            editReply: vi.fn().mockResolvedValue({}),
-        };
+            deferReply: vi.fn().mockImplementation(async function (this: any) { this.deferred = true; }),
+            editReply: vi.fn().mockResolvedValue({
+                // No click on "Fix details" within the test: behaves as a timeout.
+                awaitMessageComponent: vi.fn().mockRejectedValue(new Error('time')),
+            }),
+            isModalSubmit: vi.fn().mockReturnValue(false),
+            showModal: vi.fn().mockResolvedValue(undefined),
+            awaitModalSubmit: vi.fn().mockRejectedValue(new Error('time')),
+        } as any;
 
         // Setup mock data service
         mockDataService = {
@@ -416,12 +431,8 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockDataService.subscribe).not.toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('24 characters or less'),
-                    flags: MessageFlags.Ephemeral
-                })
-            );
+            expect(embedText()).toContain('24 characters or less');
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
         });
 
         it('should reject usernames with invalid characters', async () => {
@@ -435,15 +446,10 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockDataService.subscribe).not.toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('only contain letters, numbers, underscores, and hyphens'),
-                    flags: MessageFlags.Ephemeral
-                })
-            );
+            expect(embedText()).toContain('only contain letters, numbers, underscores, and hyphens');
         });
 
-        it('should reject empty usernames for games that require userId', async () => {
+        it('opens the form instead of failing when a required detail is blank', async () => {
             (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
                 if (name === 'game') return 'bd2';
                 if (name === 'userid') return '   '; // Whitespace only
@@ -453,13 +459,10 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
+            expect(mockInteraction.showModal).toHaveBeenCalledTimes(1);
+            // The user closed the form: nothing is saved and nothing else is sent.
             expect(mockDataService.subscribe).not.toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('is required for'),
-                    flags: MessageFlags.Ephemeral
-                })
-            );
+            expect(mockInteraction.reply).not.toHaveBeenCalled();
         });
 
         it('should allow valid usernames with underscores and hyphens', async () => {
@@ -478,7 +481,7 @@ describe('Redeem Command', () => {
         });
 
         it('should handle already subscribed error', async () => {
-            mockDataService.subscribe.mockRejectedValue(new Error('You are already subscribed'));
+            mockDataService.getGameSubscription.mockResolvedValue({ gameId: 'bd2', gameUserId: 'TestPlayer' });
 
             (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
                 if (name === 'game') return 'bd2';
@@ -491,9 +494,26 @@ describe('Redeem Command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('already subscribed'),
+                    content: expect.stringContaining('/redeem edit game:bd2'),
                     flags: MessageFlags.Ephemeral
                 })
+            );
+            expect(mockDataService.subscribe).not.toHaveBeenCalled();
+        });
+
+        it('still reports a subscribe that fails after the check (a race)', async () => {
+            mockDataService.subscribe.mockRejectedValue(new Error('You are already subscribed'));
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'userid') return 'TestPlayer';
+                if (name === 'mode') return 'auto-redeem';
+                return null;
+            });
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ content: expect.stringContaining('already subscribed') })
             );
         });
     });

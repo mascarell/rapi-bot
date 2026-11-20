@@ -17,7 +17,79 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const DATA_KEY = isDevelopment
     ? `${GACHA_CONFIG.DATA_PATH}/dev-coupons.json`
     : `${GACHA_CONFIG.DATA_PATH}/coupons.json`;
+// Still 1. Fields added since (gameUserFields, identityVerifiedAt,
+// identityRejectedAt, previousIdentity) are optional, so every stored record
+// is already valid and nothing needs rewriting. Bump this only for a change
+// old records can't satisfy, and ship the migration with it.
 const CURRENT_SCHEMA_VERSION = 1;
+
+/** The account details a redemption was attempted with. */
+export interface IdentityRef {
+    userId: string;
+    fields?: Record<string, string>;
+}
+
+/** What `resolveIdentityRejection` did with a subscription the game rejected. */
+export type IdentityRejectionOutcome =
+    /** The user unsubscribed meanwhile. */
+    | 'gone'
+    /** The details were edited meanwhile; the rejection was for the old ones. */
+    | 'changed'
+    /** Accepted before, so kept; this is the first rejection. Tell the user. */
+    | 'flagged'
+    /** Accepted before, so kept; the user was already told. */
+    | 'already-flagged'
+    /** New details from an edit were rejected; the previous, accepted ones are back. */
+    | 'reverted'
+    /** Never accepted: removed. */
+    | 'removed';
+
+/** The game accepted this account: stamp it, and clear any earlier rejection. */
+function markVerified(gameSub: GameSubscription): void {
+    gameSub.identityVerifiedAt = new Date().toISOString();
+    delete gameSub.identityRejectedAt;
+    // The new details are proven, so there's nothing to fall back to.
+    delete gameSub.previousIdentity;
+}
+
+function sameFields(a?: Record<string, string>, b?: Record<string, string>): boolean {
+    const keysA = Object.keys(a ?? {});
+    const keysB = Object.keys(b ?? {});
+    return keysA.length === keysB.length && keysA.every(k => a![k] === b?.[k]);
+}
+
+/**
+ * Whether the stored record still holds the details a redemption used. Long
+ * runs act on what they read minutes earlier; if the user edited their
+ * details since, the answer belongs to the old ones and must not touch the
+ * record.
+ */
+function holdsIdentity(gameSub: GameSubscription, identity: IdentityRef): boolean {
+    return gameSub.gameUserId === identity.userId && sameFields(gameSub.gameUserFields, identity.fields);
+}
+
+/** Put back the details saved by the last edit. */
+function revertToPrevious(gameSub: GameSubscription): void {
+    const previous = gameSub.previousIdentity!;
+    gameSub.gameUserId = previous.gameUserId;
+    if (previous.gameUserFields) {
+        gameSub.gameUserFields = { ...previous.gameUserFields };
+    } else {
+        delete gameSub.gameUserFields;
+    }
+    gameSub.redeemedCodes = [...previous.redeemedCodes];
+    if (previous.identityVerifiedAt) {
+        gameSub.identityVerifiedAt = previous.identityVerifiedAt;
+    } else {
+        delete gameSub.identityVerifiedAt;
+    }
+    if (previous.identityRejectedAt) {
+        gameSub.identityRejectedAt = previous.identityRejectedAt;
+    } else {
+        delete gameSub.identityRejectedAt;
+    }
+    delete gameSub.previousIdentity;
+}
 
 /**
  * Service for managing gacha coupon data in S3
@@ -388,7 +460,10 @@ export class GachaDataService {
         const { user, data } = await this.getOrCreateUserSubscription(discordId);
 
         if (user.games[gameId]) {
-            throw new Error(`You are already subscribed to ${getGameConfig(gameId).name}. Use unsubscribe first to change.`);
+            throw new Error(
+                `You are already subscribed to ${getGameConfig(gameId).name}. ` +
+                `Use \`/redeem edit game:${gameId}\` to change your details, or \`/redeem switch\` to change mode.`
+            );
         }
 
         // Check if gameUserId is already taken by another user
@@ -474,7 +549,20 @@ export class GachaDataService {
     /**
      * Mark codes as redeemed for a user in a specific game
      */
-    public async markCodesRedeemed(discordId: string, gameId: GachaGameId, codes: string[]): Promise<boolean> {
+    /**
+     * @param options.verified - the game itself accepted this account (it
+     *   redeemed a code, or said the code was already used on it), as opposed
+     *   to a user marking a code done by hand. Stamps `identityVerifiedAt`.
+     * @param options.identity - the details the codes were redeemed with.
+     *   When given, nothing is written if the record has been edited since:
+     *   those codes belong to the old account, not the new one.
+     */
+    public async markCodesRedeemed(
+        discordId: string,
+        gameId: GachaGameId,
+        codes: string[],
+        options: { verified?: boolean; identity?: IdentityRef } = {}
+    ): Promise<boolean> {
         const data = await this.getData();
         const user = data.subscriptions.find(s => s.discordId === discordId);
         const gameSub = user?.games[gameId];
@@ -482,13 +570,163 @@ export class GachaDataService {
         if (!gameSub) {
             return false;
         }
+        if (options.identity && !holdsIdentity(gameSub, options.identity)) {
+            return false;
+        }
 
         const normalizedCodes = codes.map(c => c.toUpperCase());
         const newCodes = normalizedCodes.filter(c => !gameSub.redeemedCodes.includes(c));
         gameSub.redeemedCodes.push(...newCodes);
+        if (options.verified) {
+            markVerified(gameSub);
+        }
 
         await this.saveData(data);
         return true;
+    }
+
+    /**
+     * Change the account details on an existing subscription, keeping its
+     * mode, preferences and history.
+     *
+     * When the details actually change, the redeemed-codes list is cleared:
+     * those codes were claimed by the old account, and the new one should get
+     * them too. The verification stamps are cleared with it, since they
+     * described the old account.
+     *
+     * The old details are kept in `previousIdentity` until the game accepts
+     * the new ones, so a typo can't cost the user a working subscription:
+     * `revertGameIdentity` (an immediate rejection) or the six-hourly run (a
+     * later one) puts them back. If the details being replaced were never
+     * accepted but an earlier, accepted set is already saved, that earlier
+     * set is the one kept.
+     */
+    public async updateGameIdentity(
+        discordId: string,
+        gameId: GachaGameId,
+        gameUserId: string,
+        gameUserFields?: Record<string, string>
+    ): Promise<{ changed: boolean }> {
+        const data = await this.getData();
+        const user = data.subscriptions.find(s => s.discordId === discordId);
+        const gameSub = user?.games[gameId];
+
+        if (!gameSub) {
+            throw new Error(
+                `You are not subscribed to ${getGameConfig(gameId).name}. ` +
+                `Use \`/redeem subscribe game:${gameId}\` first.`
+            );
+        }
+
+        const nextUserId = gameUserId.trim();
+        const changed =
+            nextUserId !== gameSub.gameUserId ||
+            !sameFields(gameSub.gameUserFields, gameUserFields);
+
+        if (!changed) {
+            return { changed: false };
+        }
+
+        if (nextUserId.toLowerCase() !== gameSub.gameUserId.trim().toLowerCase()) {
+            const isTaken = await this.isGameUserIdTaken(gameId, nextUserId, discordId);
+            if (isTaken) {
+                throw new Error(
+                    `This game ID is already registered by another user. If this is your account, please contact a moderator or @strip3s to resolve.`
+                );
+            }
+        }
+
+        if (gameSub.identityVerifiedAt || !gameSub.previousIdentity) {
+            gameSub.previousIdentity = {
+                gameUserId: gameSub.gameUserId,
+                ...(gameSub.gameUserFields ? { gameUserFields: { ...gameSub.gameUserFields } } : {}),
+                redeemedCodes: [...gameSub.redeemedCodes],
+                ...(gameSub.identityVerifiedAt ? { identityVerifiedAt: gameSub.identityVerifiedAt } : {}),
+                ...(gameSub.identityRejectedAt ? { identityRejectedAt: gameSub.identityRejectedAt } : {}),
+            };
+        }
+
+        gameSub.gameUserId = nextUserId;
+        if (gameUserFields) {
+            gameSub.gameUserFields = { ...gameUserFields };
+        } else {
+            delete gameSub.gameUserFields;
+        }
+        gameSub.redeemedCodes = [];
+        delete gameSub.identityVerifiedAt;
+        delete gameSub.identityRejectedAt;
+
+        await this.saveData(data);
+        return { changed: true };
+    }
+
+    /**
+     * Undo an edit the game rejected: put back the details kept in
+     * `previousIdentity`. Only the account details are touched, so a mode
+     * switch or preference change made meanwhile survives. Does nothing (and
+     * returns false) if the record no longer holds `rejected` — the user
+     * edited again, a run already reverted it, or they unsubscribed.
+     */
+    public async revertGameIdentity(
+        discordId: string,
+        gameId: GachaGameId,
+        rejected: IdentityRef
+    ): Promise<boolean> {
+        const data = await this.getData();
+        const user = data.subscriptions.find(s => s.discordId === discordId);
+        const gameSub = user?.games[gameId];
+
+        if (!gameSub?.previousIdentity || !holdsIdentity(gameSub, rejected)) {
+            return false;
+        }
+
+        revertToPrevious(gameSub);
+        await this.saveData(data);
+        return true;
+    }
+
+    /**
+     * Decide what happens to a subscription after the game rejected the
+     * details in `used`, judged on the record as it is now rather than as a
+     * long run read it minutes ago.
+     *
+     * - Edited since: nothing; the rejection was for the old details.
+     * - Accepted before: kept, and the first rejection is recorded so the
+     *   user is told once.
+     * - New details from an edit, with accepted ones saved: those go back.
+     * - Never accepted: removed.
+     */
+    public async resolveIdentityRejection(
+        discordId: string,
+        gameId: GachaGameId,
+        used: IdentityRef
+    ): Promise<IdentityRejectionOutcome> {
+        const data = await this.getData();
+        const user = data.subscriptions.find(s => s.discordId === discordId);
+        const gameSub = user?.games[gameId];
+
+        if (!user || !gameSub) return 'gone';
+        if (!holdsIdentity(gameSub, used)) return 'changed';
+
+        if (gameSub.identityVerifiedAt) {
+            if (gameSub.identityRejectedAt) return 'already-flagged';
+            gameSub.identityRejectedAt = new Date().toISOString();
+            await this.saveData(data);
+            return 'flagged';
+        }
+
+        if (gameSub.previousIdentity?.identityVerifiedAt) {
+            revertToPrevious(gameSub);
+            await this.saveData(data);
+            return 'reverted';
+        }
+
+        delete user.games[gameId];
+        if (Object.keys(user.games).length === 0) {
+            data.subscriptions.splice(data.subscriptions.indexOf(user), 1);
+        }
+        await this.saveData(data);
+        return 'removed';
     }
 
     /**
@@ -577,8 +815,21 @@ export class GachaDataService {
      * Batch mark codes as redeemed for multiple users
      * Reduces S3 operations from N to 1 for batch processing
      */
+    /**
+     * One S3 write for a whole auto-redeem run.
+     *
+     * `verified`: the game accepted the account this run (see markCodesRedeemed).
+     * `identity`: the details the run used. A run takes minutes, so a record
+     * edited meanwhile is skipped: its results belong to the old details.
+     */
     public async batchMarkCodesRedeemed(
-        updates: Array<{ discordId: string; gameId: GachaGameId; codes: string[] }>
+        updates: Array<{
+            discordId: string;
+            gameId: GachaGameId;
+            codes: string[];
+            verified?: boolean;
+            identity?: IdentityRef;
+        }>
     ): Promise<{ success: number; failed: number }> {
         if (updates.length === 0) {
             return { success: 0, failed: 0 };
@@ -592,7 +843,7 @@ export class GachaDataService {
             const user = data.subscriptions.find(s => s.discordId === update.discordId);
             const gameSub = user?.games[update.gameId];
 
-            if (!gameSub) {
+            if (!gameSub || (update.identity && !holdsIdentity(gameSub, update.identity))) {
                 failed++;
                 continue;
             }
@@ -600,6 +851,9 @@ export class GachaDataService {
             const normalizedCodes = update.codes.map(c => c.toUpperCase());
             const newCodes = normalizedCodes.filter(c => !gameSub.redeemedCodes.includes(c));
             gameSub.redeemedCodes.push(...newCodes);
+            if (update.verified) {
+                markVerified(gameSub);
+            }
             success++;
         }
 

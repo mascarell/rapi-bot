@@ -74,10 +74,17 @@ describe('/redeem subscribe extra identity fields', () => {
                     getString: vi.fn().mockImplementation((name: string) => options[name] ?? null),
                 } as any,
                 reply: vi.fn().mockResolvedValue({}),
-                deferReply: vi.fn().mockResolvedValue({}),
+                deferReply: vi.fn().mockImplementation(async function (this: any) { this.deferred = true; }),
                 editReply: vi.fn().mockResolvedValue({}),
+                isModalSubmit: vi.fn().mockReturnValue(false),
+                showModal: vi.fn().mockResolvedValue(undefined),
+                // The user closes the form without submitting.
+                awaitModalSubmit: vi.fn().mockRejectedValue(new Error('time')),
+            } as any;
+            dataService = {
+                subscribe: vi.fn().mockResolvedValue(undefined),
+                getGameSubscription: vi.fn().mockResolvedValue(null),
             };
-            dataService = { subscribe: vi.fn().mockResolvedValue(undefined) };
             redemptionService = {
                 redeemAllForUser: vi.fn().mockResolvedValue({ total: 0, successful: 0, alreadyRedeemed: 0, failed: 0 }),
             };
@@ -104,7 +111,7 @@ describe('/redeem subscribe extra identity fields', () => {
             (interaction.deferReply as any).mockImplementation(async () => { order.push('defer'); });
             redemptionService.redeemAllForUser.mockImplementation(async () => {
                 order.push('redeem');
-                return { total: 5, successful: 4, alreadyRedeemed: 1, failed: 0 };
+                return { total: 5, successful: 4, alreadyRedeemed: 1, failed: 0, identityRejected: false };
             });
             (interaction.editReply as any).mockImplementation(async () => { order.push('answer'); });
 
@@ -114,16 +121,20 @@ describe('/redeem subscribe extra identity fields', () => {
             expect(interaction.reply).not.toHaveBeenCalled();
         });
 
-        it('still rejects a subscription with no server', async () => {
+        it('opens the form, prefilled with what was typed, when the server is missing', async () => {
             options.server = null;
 
             await redeemCommand.execute(interaction as ChatInputCommandInteraction);
 
+            expect(interaction.showModal).toHaveBeenCalledTimes(1);
+            const modal = (interaction.showModal as any).mock.calls[0][0].toJSON();
+            const inputs = modal.components.map((label: any) => label.component);
+            expect(inputs.find((c: any) => c.custom_id === 'userid').value).toBe('12345678901');
+            expect(inputs.find((c: any) => c.custom_id === 'nickname').value).toBe('Tester');
+            // Nothing was picked, so no server option is preselected.
+            expect(inputs.find((c: any) => c.custom_id === 'world').options.some((o: any) => o.default)).toBe(false);
+            // Closed without submitting: nothing saved.
             expect(dataService.subscribe).not.toHaveBeenCalled();
-            expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
-                content: expect.stringContaining('Server is required'),
-                flags: MessageFlags.Ephemeral,
-            }));
         });
     });
 });

@@ -87,6 +87,18 @@ export interface GachaGameConfig {
     /** Whether this game requires a user ID for subscription (e.g., for auto-redeem API calls) */
     requiresUserId: boolean;
     /**
+     * Where a player finds their `userIdFieldName`, shown under the field in
+     * the subscribe form and in /redeem help. At most 100 characters, which
+     * is Discord's limit for a form field's description.
+     */
+    userIdHint?: string;
+    /**
+     * Stricter format for the primary identifier than the default
+     * letters/digits/`_`/`-` check, with the message shown when it fails.
+     * Applied to new input only; stored subscriptions are never re-validated.
+     */
+    userIdFormat?: { pattern: RegExp; message: string };
+    /**
      * Extra user-supplied identifiers this game needs beyond `userIdFieldName`.
      *
      * Stored on the subscription as `gameUserFields[key]` and read back by the
@@ -107,6 +119,8 @@ export interface GachaGameConfig {
         optionName?: string;
         /** Human label, used in prompts and error messages */
         label: string;
+        /** Where to find the value; shown under the field in the form (max 100 chars) */
+        hint?: string;
         /** Maximum accepted length, validated at subscribe time */
         maxLength?: number;
         /** Closed set of accepted values; when present, input must match one */
@@ -159,6 +173,15 @@ export interface GachaCoupon {
  */
 export type SubscriptionMode = 'auto-redeem' | 'notification-only';
 
+/** The account-specific part of a subscription, as saved before an edit. */
+export interface StoredIdentity {
+    gameUserId: string;
+    gameUserFields?: Record<string, string>;
+    redeemedCodes: string[];
+    identityVerifiedAt?: string;
+    identityRejectedAt?: string;
+}
+
 /**
  * Represents a user's subscription for a specific game
  * NoSQL Key: { discordId (PK), gameId (SK) }
@@ -188,6 +211,25 @@ export interface GameSubscription {
     lastForceRerun?: string;
     /** Optional: Total successful redemptions count */
     totalRedemptions?: number;
+    /**
+     * ISO timestamp of the last time the game accepted this identity: a code
+     * was redeemed, or the game said it was already used on this account.
+     * Absent until that first happens. Optional and additive, so records
+     * written before it existed stay valid with no migration.
+     */
+    identityVerifiedAt?: string;
+    /**
+     * ISO timestamp of when the game first stopped recognising an identity it
+     * had previously accepted. Set once, so the user is told once; cleared by
+     * the next acceptance or by editing the details.
+     */
+    identityRejectedAt?: string;
+    /**
+     * The account details as they were before the last `/redeem edit`, kept
+     * until the game accepts the new ones. If it rejects them instead, these
+     * go back in rather than the subscription being deleted.
+     */
+    previousIdentity?: StoredIdentity;
     /** Whether DMs are disabled for this user (failed to send) */
     dmDisabled?: boolean;
     /** ISO timestamp when DM failure was first detected */
@@ -272,6 +314,7 @@ export type CommonRedemptionError =
     | 'ExceededUses'
     | 'UnavailableCode'
     | 'IncorrectUser'
+    | 'RestrictedCode'
     | 'ClaimRewardsFailed'
     | 'NetworkError'
     | 'RateLimited'

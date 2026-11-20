@@ -30,8 +30,8 @@ import { CZN_CONFIG } from '../../utils/data/cznCouponConfig.js';
 const ENDPOINT = 'https://api.onstove.com/pub-comm/v1.0/common/coupons';
 
 const IDENTITY = {
-    userId: '20026387683',
-    fields: { nickname: 'Bryant', world: 'world_live_global' },
+    userId: '12345678901',
+    fields: { nickname: 'Tester', world: 'world_live_global' },
 };
 
 /** STOVE always answers HTTP 200; failure lives in the body. */
@@ -85,8 +85,8 @@ describe('CZN redemption', () => {
                 game_code: 'STOVE_CHAOSZERO',
                 game_id: 'czn',
                 lang_code: 'en',
-                guid: '20026387683',
-                nick_name: 'Bryant',
+                guid: '12345678901',
+                nick_name: 'Tester',
                 world_id: 'world_live_global',
             });
         });
@@ -134,6 +134,31 @@ describe('CZN redemption', () => {
             const r = await redeem('OLDCODE');
 
             expect(r.errorCode).toBe('ExpiredCode');
+        });
+
+        // 5162 and 5164 come back *inside* a successful outer answer, so the
+        // account was found: they're about the code. Calling them
+        // IncorrectUser let the six-hourly run unsubscribe valid accounts
+        // whenever the only new code was for another region or server.
+        it.each([
+            ['5162', 'restricted to a different region'],
+            ['5164', 'not valid on your selected server'],
+        ])('maps %s to RestrictedCode, not IncorrectUser', async (result, text) => {
+            fetchMock.mockResolvedValue(okOuter(result));
+
+            const r = await redeem('REGIONCODE');
+
+            expect(r.success).toBe(false);
+            expect(r.errorCode).toBe('RestrictedCode');
+            expect(r.message).toContain(text);
+        });
+
+        it('points a wrong-server answer at /redeem edit, which can fix it', async () => {
+            fetchMock.mockResolvedValue(okOuter('5164'));
+
+            const r = await redeem('REGIONCODE');
+
+            expect(r.message).toContain('/redeem edit game:czn');
         });
 
         it('maps outer -90009 to IncorrectUser without leaking STOVE Korean text', async () => {
@@ -188,7 +213,7 @@ describe('CZN redemption', () => {
 
     describe('identity validation', () => {
         it('refuses to call STOVE when the nickname is missing', async () => {
-            const r = await redeem('CODE', { userId: '20026387683', fields: { world: 'world_live_global' } });
+            const r = await redeem('CODE', { userId: '12345678901', fields: { world: 'world_live_global' } });
 
             expect(fetchMock).not.toHaveBeenCalled();
             expect(r.errorCode).toBe('ValidationFailed');
@@ -196,14 +221,14 @@ describe('CZN redemption', () => {
         });
 
         it('refuses to call STOVE when the server is missing', async () => {
-            const r = await redeem('CODE', { userId: '20026387683', fields: { nickname: 'Bryant' } });
+            const r = await redeem('CODE', { userId: '12345678901', fields: { nickname: 'Tester' } });
 
             expect(fetchMock).not.toHaveBeenCalled();
             expect(r.message).toContain('server');
         });
 
         it('refuses a bare string identity, which cannot carry the extra fields', async () => {
-            const r = await redeem('CODE', '20026387683');
+            const r = await redeem('CODE', '12345678901');
 
             expect(fetchMock).not.toHaveBeenCalled();
             expect(r.errorCode).toBe('ValidationFailed');
