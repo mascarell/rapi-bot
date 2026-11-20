@@ -109,6 +109,25 @@ GachaCouponData {
    redemption fails before reaching STOVE.
 9. **CZN `5162`/`5164` are `RestrictedCode`**, not `IncorrectUser`: the code is
    for another region or server. Only outer `-90009` means the account is wrong.
+10. **New codes are posted in the game's channel** (`couponAnnouncementService`),
+    in allowlisted servers, to the first of `announceChannelNames` that exists
+    (CZN `chaos-zero-nightmare`/`czn`, BD2 `brown-dust-2`/`bd2`). Buttons:
+    **Redeem for me** (opens the subscribe form if not subscribed), **Copy
+    code** (ephemeral, just the code), and a link to `manualRedeemUrl`. Custom
+    ids are `coupon:<action>:<game>[:<code>]`, routed globally in `discord.ts`,
+    so buttons on old posts keep working after a restart. The daily 09:00 UTC
+    expiry run posts a warning for codes with a day or less left. Posting never
+    throws into the DMs and redemptions that follow it.
+11. **One member, one code, one send at a time** (`pendingRedemptions`): the
+    new-code fan-out claims its subscribers before posting, and the six-hourly
+    run claims each code until its batch write; a button press for a claimed
+    pair is told it's in progress. A failed press isn't sent again for 6 h
+    (10 min for network errors), and nothing is sent for details the game has
+    flagged (`identityRejectedAt`).
+12. **A form opened from a public message must be answered ephemerally.**
+    `acknowledge()` only uses `deferUpdate` when the source message is
+    ephemeral; otherwise the reply would overwrite the public post with one
+    member's account details.
 
 The schema stays at version 1: every field added since (`gameUserFields`,
 `identityVerifiedAt`, `identityRejectedAt`, `previousIdentity`) is optional, so stored records

@@ -30,6 +30,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         userIdFieldName: 'nickname',
         requiresUserId: true,
         userIdHint: 'Your in-game nickname, not your UID. In game: Profile, then your display name.',
+        announceChannelNames: ['brown-dust-2', 'bd2'],
     },
     'lost-sword': {
         id: 'lost-sword',
@@ -81,6 +82,7 @@ export const GACHA_GAMES: Record<GachaGameId, GachaGameConfig> = {
         requiresUserId: true,
         // Menu path per GameWith's CZN codes guide, 2026-11-20.
         userIdHint: 'In game: Lobby > Account > Account Settings. Use the copy button next to it.',
+        announceChannelNames: ['chaos-zero-nightmare', 'czn'],
         userIdFormat: {
             pattern: /^\d+$/,
             message:

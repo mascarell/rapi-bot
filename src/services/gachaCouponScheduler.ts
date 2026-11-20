@@ -2,6 +2,7 @@ import { Client } from 'discord.js';
 import schedule from 'node-schedule';
 import { getGachaRedemptionService } from './gachaRedemptionService.js';
 import { getGachaDataService } from './gachaDataService.js';
+import { getCouponAnnouncementService } from './couponAnnouncementService.js';
 import { getSupportedGameIds, getAutoRedeemGames } from '../utils/data/gachaGamesConfig';
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { syncCouponSources, CouponSyncResult, gamesWithNewCodes } from './couponSourceService.js';
@@ -352,6 +353,16 @@ export class GachaCouponScheduler {
 
     public async triggerCodeScraping(): Promise<CouponSyncResult> {
         const result = await syncCouponSources();
+
+        // Post each new code in its game's channel. This path redeems through
+        // the batch run below rather than notifyNewCode, so it has to post
+        // them itself, or codes found at startup would never be posted.
+        const announcer = getCouponAnnouncementService();
+        const dataService = getGachaDataService();
+        for (const { gameId, code } of result.added ?? []) {
+            const coupon = await dataService.getCoupon(gameId, code).catch(() => null);
+            if (coupon) await announcer.announce(this.bot, coupon);
+        }
 
         // Trigger auto-redemption, with notification, for each game that
         // gained a code.
