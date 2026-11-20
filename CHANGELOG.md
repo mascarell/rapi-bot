@@ -1,3 +1,10 @@
+# [2.18.0](https://github.com/mascarell/rapi-bot/compare/v2.17.0...v2.18.0) (2026-11-20)
+
+
+### Features
+
+* make Chaos Zero Nightmare subscribing a form, and keep valid accounts ([#255](https://github.com/mascarell/rapi-bot/issues/255)) ([52d39c8](https://github.com/mascarell/rapi-bot/commit/52d39c8a1685664b5418858cac87e7ce853514e4))
+
 # [2.17.0](https://github.com/mascarell/rapi-bot/compare/v2.16.2...v2.17.0) (2026-11-20)
 
 
