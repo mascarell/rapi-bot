@@ -99,6 +99,14 @@ export interface GachaGameConfig {
      */
     userIdFormat?: { pattern: RegExp; message: string };
     /**
+     * Channels a new code is posted to, for everyone to see, with buttons to
+     * redeem it, copy it, or open `manualRedeemUrl`. In each allowlisted
+     * server the first name that exists is used; a server with none of them
+     * is skipped. Leave undefined to post nowhere. Turning it on for another
+     * game is this one line.
+     */
+    announceChannelNames?: ReadonlyArray<string>;
+    /**
      * Extra user-supplied identifiers this game needs beyond `userIdFieldName`.
      *
      * Stored on the subscription as `gameUserFields[key]` and read back by the

@@ -25,6 +25,8 @@ import { logger } from './utils/logger.js';
 // Import new modular handlers and services
 import { handleMessage, handleMessageUpdate } from './handlers/messageHandler.js';
 import { handleSlashCommand, handleAutocomplete } from './handlers/slashCommandHandler.js';
+import { handleCouponButton } from './commands/redeem.js';
+import { COUPON_BUTTON_PREFIX } from './services/couponAnnouncementService.js';
 import { initializeServices } from './bootstrap/serviceInitializer.js';
 import { chatCommands } from './chatCommands/index.js';
 
@@ -339,6 +341,10 @@ async function initDiscordBot() {
                     await handleSlashCommand(interaction, bot);
                 } else if (interaction.isAutocomplete()) {
                     await handleAutocomplete(interaction, bot);
+                } else if (interaction.isButton() && interaction.customId.startsWith(`${COUPON_BUTTON_PREFIX}:`)) {
+                    // Buttons under coupon posts in game channels. Every other
+                    // button is answered by the collector that created it.
+                    await handleCouponButton(interaction);
                 }
             });
 

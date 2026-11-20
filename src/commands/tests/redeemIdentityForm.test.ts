@@ -114,6 +114,8 @@ function scriptedUser(opts: {
                 isModalSubmit: () => true,
                 // A form opened from our button belongs to that message.
                 isFromMessage: () => id.startsWith('click-'),
+                // ...which, for "Fix details", is our ephemeral reply.
+                message: { flags: { has: (flag: number) => flag === MessageFlags.Ephemeral } },
                 fields: {
                     getTextInputValue: (key: string) => typed[key] ?? '',
                     getStringSelectValues: (key: string) => (typed[key] ? [typed[key]] : []),

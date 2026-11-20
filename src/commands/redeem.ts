@@ -20,7 +20,8 @@ import {
     ComponentType
 } from 'discord.js';
 import { getGachaDataService } from '../services/gachaDataService';
-import { getGachaRedemptionService, UserRedemptionSummary } from '../services/gachaRedemptionService';
+import { getGachaRedemptionService, UserRedemptionSummary, type SingleRedemptionOutcome } from '../services/gachaRedemptionService';
+import { couponButtonId, parseCouponButtonId } from '../services/couponAnnouncementService';
 import { syncCouponSources } from '../services/couponSourceService';
 import {
     GachaCoupon,
@@ -252,10 +253,19 @@ async function askForIdentity(
  * Acknowledge, so slow work (redeeming several codes) can't outlast Discord's
  * three seconds. A form opened from our own "Fix details" button updates that
  * message in place rather than stacking a new one under it.
+ *
+ * Only when that message is ephemeral, i.e. one of ours shown to this user
+ * alone. A form opened from a channel post's "Redeem for me" also comes "from
+ * a message", and updating that would overwrite the public post, for
+ * everyone, with this user's account details.
  */
 async function acknowledge(responder: Responder): Promise<void> {
     if (responder.deferred || responder.replied) return;
-    if (responder.isModalSubmit() && responder.isFromMessage()) {
+    if (
+        responder.isModalSubmit() &&
+        responder.isFromMessage() &&
+        responder.message.flags.has(MessageFlags.Ephemeral)
+    ) {
         await responder.deferUpdate();
     } else {
         await responder.deferReply({ flags: MessageFlags.Ephemeral });
@@ -338,7 +348,8 @@ type ApplyOutcome = { done: true } | { retry: EmbedBuilder };
  * offer the form again, prefilled with what the user typed last.
  */
 async function runIdentityFlow(opts: {
-    interaction: ChatInputCommandInteraction;
+    /** The slash command, or a channel post's "Redeem for me" button. */
+    interaction: ChatInputCommandInteraction | ButtonInteraction;
     gameId: GachaGameId;
     config: GameConfig;
     initial: IdentityInput;
@@ -491,11 +502,34 @@ async function handleSubscribe(interaction: ChatInputCommandInteraction): Promis
         return;
     }
 
+    await subscribeFlow(interaction, gameId, mode, identityFromOptions(interaction, gameConfig));
+}
+
+/**
+ * Open the subscribe form from a channel post's "Redeem for me" button, for
+ * someone who isn't subscribed yet. Subscribing redeems every active code,
+ * this one included. The caller has already checked they aren't subscribed,
+ * and this must be its first reply: a form can't follow any other.
+ */
+export async function subscribeFromButton(interaction: ButtonInteraction, gameId: GachaGameId): Promise<void> {
+    const config = getGameConfig(gameId);
+    const mode: SubscriptionMode = config.supportsAutoRedeem ? 'auto-redeem' : 'notification-only';
+    await subscribeFlow(interaction, gameId, mode, { userId: '', fields: {} });
+}
+
+async function subscribeFlow(
+    interaction: ChatInputCommandInteraction | ButtonInteraction,
+    gameId: GachaGameId,
+    mode: SubscriptionMode,
+    initial: IdentityInput
+): Promise<void> {
+    const gameConfig = getGameConfig(gameId);
+
     await runIdentityFlow({
         interaction,
         gameId,
         config: gameConfig,
-        initial: identityFromOptions(interaction, gameConfig),
+        initial,
         askFirst: false,
         apply: async (responder, input, canRetry) => {
             const hasExtraFields = Object.keys(input.fields).length > 0;
@@ -1505,6 +1539,134 @@ async function handleModSubscribers(interaction: ChatInputCommandInteraction): P
         });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem');
+    }
+}
+
+// ==================== Channel post buttons ====================
+
+/** What a "Redeem for me" press came to, in words. */
+function singleRedemptionText(gameId: GachaGameId, code: string, outcome: SingleRedemptionOutcome): string {
+    const config = getGameConfig(gameId);
+    switch (outcome.status) {
+        case 'unsupported':
+            return `${config.name} codes can't be redeemed automatically. Use **Copy code** and redeem it in game.`;
+        case 'not-subscribed':
+            return `You haven't set up ${config.name} yet.`;
+        case 'inactive':
+            return `⌛ \`${code}\` has expired or been withdrawn.`;
+        case 'in-progress':
+            return `⏳ Rapi is already redeeming \`${code}\` for you. You'll get a DM with the result.`;
+        case 'already-redeemed':
+            return `✅ \`${code}\` is already redeemed on your account.`;
+        case 'details-rejected':
+            return (
+                `⚠️ ${config.name} stopped recognising your saved details, so Rapi didn't send \`${code}\`. ` +
+                `Check them with \`/redeem edit game:${gameId}\`.`
+            );
+        case 'cooling-down':
+            return (
+                `⏸️ Rapi tried \`${code}\` for you and ${config.name} said: ${outcome.result.message}. ` +
+                `To protect your account it won't try again until <t:${Math.ceil(outcome.until / 1000)}:R>.`
+            );
+        case 'done': {
+            const { result } = outcome;
+            if (result.success) {
+                return `✅ Redeemed \`${code}\`. The rewards are in your in-game mailbox.`;
+            }
+            if (result.errorCode === 'AlreadyUsed') {
+                return `✅ \`${code}\` was already redeemed on your account.`;
+            }
+            if (result.errorCode === 'IncorrectUser') {
+                return (
+                    `⚠️ ${config.name} didn't recognise your saved details, so \`${code}\` wasn't redeemed. ` +
+                    `Check them with \`/redeem edit game:${gameId}\`.`
+                );
+            }
+            return `❌ \`${code}\` wasn't redeemed: ${result.message}`;
+        }
+    }
+}
+
+/** "Set up" button, for when we couldn't tell in time whether they're subscribed. */
+function setUpRow(gameId: GachaGameId) {
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+            .setCustomId(couponButtonId('subscribe', gameId))
+            .setLabel(`Set up ${getGameConfig(gameId).shortName}`)
+            .setEmoji('📝')
+            .setStyle(ButtonStyle.Primary)
+    );
+}
+
+/**
+ * The buttons under a channel post (see couponAnnouncementService). Every
+ * answer is visible to the presser only.
+ */
+export async function handleCouponButton(interaction: ButtonInteraction): Promise<void> {
+    const parsed = parseCouponButtonId(interaction.customId);
+    if (!parsed) return;
+    const { action, gameId, code } = parsed;
+
+    try {
+        if (action === 'copy') {
+            // Just the code, so a long-press on mobile copies exactly it.
+            await interaction.reply({ content: code, flags: MessageFlags.Ephemeral });
+            return;
+        }
+
+        // Posts only go to allowlisted servers, but one can be removed from
+        // the list after its posts went up. Copy stays harmless anywhere.
+        // Both reads share one budget, in parallel: a form must still open
+        // within Discord's three seconds.
+        const [allowed, existing] = await Promise.all([
+            withinMs(getGachaGuildConfigService().isGuildAllowed(interaction.guildId), PRECHECK_BUDGET_MS),
+            withinMs(getGachaDataService().getGameSubscription(interaction.user.id, gameId), PRECHECK_BUDGET_MS),
+        ]);
+        if (allowed === false) {
+            await interaction.reply({ content: '❌ Coupon redemption isn\'t available in this server.', flags: MessageFlags.Ephemeral });
+            return;
+        }
+
+        // Redeem for me, or Set up. Not set up yet: open the form straight
+        // away, since a form has to be the first reply. If the read is too
+        // slow to know in time, carry on and offer a "Set up" button instead.
+        if (existing === null && getGameConfig(gameId).supportsAutoRedeem) {
+            await subscribeFromButton(interaction, gameId);
+            return;
+        }
+        if (action === 'subscribe') {
+            await interaction.reply({
+                content: existing
+                    ? `✅ You're already set up for ${getGameConfig(gameId).name}. Press **Redeem for me** on the code again.`
+                    : '⏳ Discord is slow right now. Press **Set up** again in a moment.',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const outcome = await getGachaRedemptionService().redeemOneForUser(interaction.user.id, gameId, code);
+
+        const reply = outcome.status === 'not-subscribed'
+            ? {
+                content:
+                    `${singleRedemptionText(gameId, code, outcome)} ` +
+                    'Press **Set up** to add your account. Rapi will redeem this code and every other active one.',
+                components: [setUpRow(gameId)],
+            }
+            : { content: singleRedemptionText(gameId, code, outcome) };
+
+        try {
+            await interaction.editReply(reply);
+        } catch (error) {
+            // The press may have queued behind a big run for longer than
+            // Discord keeps the reply open (15 minutes). The work is done,
+            // so tell them by DM instead.
+            if (outcome.status !== 'done') throw error;
+            await interaction.user.send({ content: reply.content }).catch(() => undefined);
+        }
+    } catch (error) {
+        await handleCommandError(interaction, error, `coupon:${action}`);
     }
 }
 

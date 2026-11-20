@@ -4,6 +4,7 @@ import { getGachaDataService, type GachaDataService, type IdentityRejectionOutco
 import { getReactionConfirmationService, CONFIRMATION_EMOJIS } from './reactionConfirmationService.js';
 import { getChannelMonitorService } from './channelMonitorService.js';
 import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
+import { getCouponAnnouncementService } from './couponAnnouncementService.js';
 import {
     RedemptionResult,
     GachaCoupon,
@@ -48,6 +49,26 @@ const ERROR_MESSAGES: Record<CommonRedemptionError, string> = {
     'RateLimited': 'Too many requests - please try again later',
     'Unknown': 'An unknown error occurred',
 };
+
+/** What a "Redeem for me" press came to. */
+export type SingleRedemptionOutcome =
+    | { status: 'unsupported' }
+    | { status: 'not-subscribed' }
+    | { status: 'inactive' }
+    | { status: 'in-progress' }
+    | { status: 'details-rejected' }
+    | { status: 'cooling-down'; result: RedemptionResult; until: number }
+    | { status: 'already-redeemed'; gameUserId: string }
+    | { status: 'done'; result: RedemptionResult; gameUserId: string };
+
+/**
+ * After a failed "Redeem for me", how long before the same member's press
+ * sends that code again. Long when the game refused the code or the account,
+ * since CZN locks an account for about six hours after repeated invalid
+ * codes; short when the failure was ours or the network's.
+ */
+const PRESS_RETRY_REJECTED_MS = 6 * 60 * 60 * 1000;
+const PRESS_RETRY_TRANSIENT_MS = 10 * 60 * 1000;
 
 /** What redeeming every active code for one user came to. */
 export interface UserRedemptionSummary {
@@ -577,6 +598,14 @@ export class GachaRedemptionService {
     private handlers: Map<GachaGameId, GameRedemptionHandler> = new Map();
     private subscriberLimit = pLimit(GACHA_CONFIG.CONCURRENT_SUBSCRIBER_LIMIT);
     private apiLimit: Map<GachaGameId, ReturnType<typeof pLimit>> = new Map();
+    /**
+     * `discordId:gameId:CODE` for every redemption queued or running for one
+     * member and one code, from a new-code fan-out or a "Redeem for me" press.
+     * A second request for the same pair is answered instead of sent again.
+     */
+    private pendingRedemptions = new Set<string>();
+    /** Last failed "Redeem for me" per `discordId:gameId:CODE`, and when it may be tried again. */
+    private pressFailures = new Map<string, { result: RedemptionResult; until: number }>();
 
     private constructor() {
         // Register game-specific handlers
@@ -813,6 +842,23 @@ export class GachaRedemptionService {
         gameId: GachaGameId,
         options: { notifyAllRedeemed?: boolean; hasNewCodes?: boolean } = {}
     ): Promise<BatchRedemptionResult> {
+        // Codes this run claims for a member stay claimed until its single
+        // write at the end has recorded them, so a "Redeem for me" press in
+        // between is told it's on the way rather than sent again.
+        const runClaims: string[] = [];
+        try {
+            return await this.runGameAutoRedemptions(bot, gameId, options, runClaims);
+        } finally {
+            runClaims.forEach(key => this.pendingRedemptions.delete(key));
+        }
+    }
+
+    private async runGameAutoRedemptions(
+        bot: Client,
+        gameId: GachaGameId,
+        options: { notifyAllRedeemed?: boolean; hasNewCodes?: boolean },
+        runClaims: string[]
+    ): Promise<BatchRedemptionResult> {
         const dataService = getGachaDataService();
         // Use optimized batch method that includes preferences and DM status
         const subscribers = await dataService.getSubscribersForNotification(gameId, 'auto-redeem');
@@ -839,9 +885,23 @@ export class GachaRedemptionService {
         const processingResults = await Promise.allSettled(
             subscribers.map(({ discordId, subscription, dmDisabled }) =>
                 this.subscriberLimit(async () => {
-                    const codesToRedeem = activeCoupons
+                    const unredeemed = activeCoupons
                         .filter(c => !subscription.redeemedCodes.includes(c.code.toUpperCase()))
                         .map(c => c.code);
+                    // Skip a code a button press or the new-code fan-out is
+                    // sending for this member right now; claim the rest.
+                    const codesToRedeem = unredeemed.filter(code => {
+                        const key = this.pendingKey(discordId, gameId, code);
+                        if (this.pendingRedemptions.has(key)) return false;
+                        this.pendingRedemptions.add(key);
+                        runClaims.push(key);
+                        return true;
+                    });
+
+                    if (codesToRedeem.length === 0 && unredeemed.length > 0) {
+                        // All in hand elsewhere; that path sends the DM.
+                        return { skipped: true, redemptions: 0, successful: 0, failed: 0, successfulCodes: [], historyEntries: [] };
+                    }
 
                     if (codesToRedeem.length === 0) {
                         // Only send "all codes redeemed" DM when explicitly enabled and DMs are not disabled
@@ -1442,18 +1502,49 @@ export class GachaRedemptionService {
      * Respects user notification preferences and DM status
      */
     public async notifyNewCode(bot: Client, coupon: GachaCoupon): Promise<void> {
-        const dataService = getGachaDataService();
-        const gameConfig = getGameConfig(coupon.gameId);
-        const reactionService = getReactionConfirmationService();
-        const channelMonitorService = getChannelMonitorService();
-
         // Skip notification if code is already expired (handles edge case of codes added with past dates)
         if (coupon.expirationDate && new Date(coupon.expirationDate) <= new Date()) {
             return;
         }
 
         // Use optimized batch method that includes preferences and DM status
-        const subscribers = await dataService.getSubscribersForNotification(coupon.gameId);
+        const subscribers = await getGachaDataService().getSubscribersForNotification(coupon.gameId);
+
+        // Claim every auto-redeem subscriber's redemption of this code before
+        // the channel post goes up, so a "Redeem for me" press from any of
+        // them, at any point in the fan-out, is told it's on the way rather
+        // than sent a second time. Released as each one is redeemed, and all
+        // at the end whatever happens.
+        const claimed = this.supportsAutoRedeem(coupon.gameId)
+            ? subscribers
+                .filter(s => s.subscription.mode === 'auto-redeem')
+                .map(s => this.pendingKey(s.discordId, coupon.gameId, coupon.code))
+                .filter(key => !this.pendingRedemptions.has(key))
+            : [];
+        claimed.forEach(key => this.pendingRedemptions.add(key));
+
+        try {
+            await this.notifyNewCodeClaimed(bot, coupon, subscribers, claimed);
+        } finally {
+            claimed.forEach(key => this.pendingRedemptions.delete(key));
+        }
+    }
+
+    private async notifyNewCodeClaimed(
+        bot: Client,
+        coupon: GachaCoupon,
+        subscribers: Awaited<ReturnType<GachaDataService['getSubscribersForNotification']>>,
+        claimed: string[]
+    ): Promise<void> {
+        const dataService = getGachaDataService();
+        const gameConfig = getGameConfig(coupon.gameId);
+        const reactionService = getReactionConfirmationService();
+        const channelMonitorService = getChannelMonitorService();
+
+        // Post it in the game's channel first: it's quick, everyone sees it,
+        // and the DMs and redemptions below can take minutes. A failure here
+        // is logged and never stops them.
+        await getCouponAnnouncementService().announce(bot, coupon);
 
         // Check if this game uses reaction-based confirmation (no auto-redeem)
         const usesReactionConfirmation = reactionService.supportsReactionConfirmation(coupon.gameId);
@@ -1546,30 +1637,36 @@ export class GachaRedemptionService {
             const redeemResults = await Promise.allSettled(
                 autoRedeemSubs.map(({ discordId, subscription, dmDisabled }) =>
                     this.subscriberLimit(async () => {
-                        // Full identity: a bare id left CZN without its
-                        // nickname and server, so every new-code redemption
-                        // failed and only the six-hourly run worked.
-                        const identity = { userId: subscription.gameUserId, fields: subscription.gameUserFields };
-                        const result = await this.redeemCode(coupon.gameId, identity, coupon.code);
+                        const key = this.pendingKey(discordId, coupon.gameId, coupon.code);
+                        if (!claimed.includes(key)) return; // a button press got there first
+                        try {
+                            // Full identity: a bare id left CZN without its
+                            // nickname and server, so every new-code redemption
+                            // failed and only the six-hourly run worked.
+                            const identity = { userId: subscription.gameUserId, fields: subscription.gameUserFields };
+                            const result = await this.redeemCode(coupon.gameId, identity, coupon.code);
 
-                        if (result.success) {
-                            await dataService.markCodesRedeemed(discordId, coupon.gameId, [coupon.code], { verified: true, identity });
-                        }
+                            if (result.success) {
+                                await dataService.markCodesRedeemed(discordId, coupon.gameId, [coupon.code], { verified: true, identity });
+                            }
 
-                        // Log history entry
-                        historyEntries.push({
-                            discordId,
-                            gameId: coupon.gameId,
-                            code: coupon.code,
-                            timestamp: result.timestamp,
-                            success: result.success,
-                            errorCode: result.errorCode,
-                            method: 'auto',
-                        });
+                            // Log history entry
+                            historyEntries.push({
+                                discordId,
+                                gameId: coupon.gameId,
+                                code: coupon.code,
+                                timestamp: result.timestamp,
+                                success: result.success,
+                                errorCode: result.errorCode,
+                                method: 'auto',
+                            });
 
-                        // Send DM only if not disabled
-                        if (!dmDisabled) {
-                            await this.sendRedemptionResultsDM(bot, discordId, coupon.gameId, [result], subscription.gameUserId);
+                            // Send DM only if not disabled
+                            if (!dmDisabled) {
+                                await this.sendRedemptionResultsDM(bot, discordId, coupon.gameId, [result], subscription.gameUserId);
+                            }
+                        } finally {
+                            this.pendingRedemptions.delete(key);
                         }
                     })
                 )
@@ -1590,6 +1687,83 @@ export class GachaRedemptionService {
 
         // Send notification to coupon-alert subscribers (separate from gacha subscriptions)
         await this.sendCouponAlertNotification(bot, coupon, embed);
+    }
+
+    private pendingKey(discordId: string, gameId: GachaGameId, code: string): string {
+        return `${discordId}:${gameId}:${code.toUpperCase()}`;
+    }
+
+    /**
+     * Redeem one code for one member, on request: the "Redeem for me" button
+     * under a channel post. Only codes currently active in our own store are
+     * sent, never a code taken from the button, because CZN locks an account
+     * after repeated invalid codes.
+     *
+     * A rejected account is reported, not acted on: the six-hourly run is the
+     * one place that decides to keep or remove a subscription.
+     */
+    public async redeemOneForUser(discordId: string, gameId: GachaGameId, code: string): Promise<SingleRedemptionOutcome> {
+        if (!this.supportsAutoRedeem(gameId)) return { status: 'unsupported' };
+
+        const dataService = getGachaDataService();
+        const subscription = await dataService.getGameSubscription(discordId, gameId);
+        if (!subscription) return { status: 'not-subscribed' };
+
+        const wanted = code.toUpperCase();
+        const coupon = (await dataService.getActiveCoupons(gameId)).find(c => c.code.toUpperCase() === wanted);
+        if (!coupon) return { status: 'inactive' };
+
+        if (subscription.redeemedCodes.some(c => c.toUpperCase() === wanted)) {
+            return { status: 'already-redeemed', gameUserId: subscription.gameUserId };
+        }
+
+        // The game has stopped recognising these details: don't send
+        // anything until they're fixed with /redeem edit.
+        if (subscription.identityRejectedAt) return { status: 'details-rejected' };
+
+        const key = this.pendingKey(discordId, gameId, coupon.code);
+        if (this.pendingRedemptions.has(key)) return { status: 'in-progress' };
+
+        // A code that just failed for this member isn't sent again until the
+        // cooldown is over, however often the button is pressed.
+        const failure = this.pressFailures.get(key);
+        if (failure && failure.until > Date.now()) {
+            return { status: 'cooling-down', result: failure.result, until: failure.until };
+        }
+        this.pressFailures.delete(key);
+
+        this.pendingRedemptions.add(key);
+
+        try {
+            const identity = { userId: subscription.gameUserId, fields: subscription.gameUserFields };
+            const result = await this.redeemCode(gameId, identity, coupon.code);
+
+            if (!result.success && result.errorCode !== 'AlreadyUsed') {
+                const transient = ['NetworkError', 'RateLimited', 'Unknown', 'ClaimRewardsFailed'].includes(result.errorCode ?? 'Unknown');
+                this.pressFailures.set(key, {
+                    result,
+                    until: Date.now() + (transient ? PRESS_RETRY_TRANSIENT_MS : PRESS_RETRY_REJECTED_MS),
+                });
+            }
+
+            // Either answer means the game accepted the account.
+            if (result.success || result.errorCode === 'AlreadyUsed') {
+                await dataService.markCodesRedeemed(discordId, gameId, [coupon.code], { verified: true, identity });
+            }
+            await dataService.addRedemptionHistory({
+                discordId,
+                gameId,
+                code: coupon.code,
+                timestamp: result.timestamp,
+                success: result.success,
+                errorCode: result.errorCode,
+                method: 'manual',
+            });
+
+            return { status: 'done', result, gameUserId: subscription.gameUserId };
+        } finally {
+            this.pendingRedemptions.delete(key);
+        }
     }
 
     /**
@@ -1628,6 +1802,10 @@ export class GachaRedemptionService {
         const gameConfig = getGameConfig(gameId);
         const reactionService = getReactionConfirmationService();
         const channelMonitorService = getChannelMonitorService();
+
+        // Last-day warning in the game's channel, for everyone to see.
+        await getCouponAnnouncementService().warnExpiring(bot, gameId);
+
         const expiringCoupons = await dataService.getExpiringCoupons(gameId, 3);
 
         if (expiringCoupons.length === 0) return;

@@ -276,6 +276,8 @@ This project is open source. See the repository for license information.
 - `/redeem preferences <game>` - Configure notifications
 - `/redeem help` - View help and FAQs
 
+New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-dust-2` / `#chaos-zero-nightmare` (or `#bd2` / `#czn`), with **Redeem for me**, **Copy code** and a link to the official coupon page, plus a reminder when a code has a day or less left. Add `announceChannelNames` to a game in `src/utils/data/gachaGamesConfig.ts` to post another game's codes.
+
 #### Moderator Commands
 - `/redeem add` - Add new coupon code
 - `/redeem remove` - Deactivate code
