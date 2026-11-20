@@ -1,3 +1,10 @@
+# [2.20.0](https://github.com/mascarell/rapi-bot/compare/v2.19.0...v2.20.0) (2026-11-20)
+
+
+### Features
+
+* **mod:** move /spam moderator tools to /mod spam and share one moderator rule ([#257](https://github.com/mascarell/rapi-bot/issues/257)) ([3e4b472](https://github.com/mascarell/rapi-bot/commit/3e4b4721aaf742a6b90dbf7418d3afedb4babad6))
+
 # [2.19.0](https://github.com/mascarell/rapi-bot/compare/v2.18.0...v2.19.0) (2026-11-20)
 
 
