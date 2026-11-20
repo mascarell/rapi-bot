@@ -1,3 +1,10 @@
+# [2.19.0](https://github.com/mascarell/rapi-bot/compare/v2.18.0...v2.19.0) (2026-11-20)
+
+
+### Features
+
+* post new coupon codes in the game's channel, with a Redeem for me button ([#256](https://github.com/mascarell/rapi-bot/issues/256)) ([e8863c2](https://github.com/mascarell/rapi-bot/commit/e8863c284cdc2d2abc68518d7a0ea0e9b74e8892)), closes [#chaos-zero-nightmare](https://github.com/mascarell/rapi-bot/issues/chaos-zero-nightmare) [#czn](https://github.com/mascarell/rapi-bot/issues/czn) [#brown-dust-2](https://github.com/mascarell/rapi-bot/issues/brown-dust-2) [#bd2](https://github.com/mascarell/rapi-bot/issues/bd2)
+
 # [2.18.0](https://github.com/mascarell/rapi-bot/compare/v2.17.0...v2.18.0) (2026-11-20)
 
 
