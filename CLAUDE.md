@@ -89,6 +89,51 @@ GachaCouponData {
 - Check: `checkModPermission(interaction)` in redeem.ts
 - modCommands array: `['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers']`
 
+## Moderator Commands (`/mod`)
+
+`src/commands/mod.ts`. Discord can hide a whole top-level command from members
+without a permission (`setDefaultMemberPermissions`), but **not a subcommand**,
+so moderator tools belong under `/mod` rather than as subcommands of
+member-facing commands like `/redeem` or `/spam`.
+
+- Hidden from members without **Timeout Members**; server-only (`setContexts(Guild)`).
+- Picker visibility is a convenience, not the check: admins can override it in
+  Server Settings > Integrations. Every subcommand and the autocomplete re-check
+  the caller with `isFilterModerator()` (Administrator, Timeout Members, or a
+  role named `mods`) or the guild owner.
+- **Everything acts on the calling server only.** The bot is open source and
+  runs in other communities' servers.
+
+### `/mod slur`: per-server slur lists
+
+| Subcommand | What it does |
+|---|---|
+| `list` | This server's terms (spoilered, paginated) and a *count* of built-in terms |
+| `add terms:` | Up to 10 comma-separated terms; validates, then asks to confirm with buttons |
+| `remove term:` | Removes one of this server's terms (autocomplete, moderators only) |
+| `test text: [term:]` | Dry run through the live matcher; names server matches, counts built-in ones; `term` tries a candidate without saving |
+| `history user:` | A member's auto-moderation record in this server |
+
+- **Built-in list:** `data/slur-moderation/slur-list.json`. Applies everywhere,
+  maintainer-only, edited in S3, never written by a command.
+- **Server list:** `data/slur-moderation/guild-lists/<guildId>.json`
+  (`{ schemaVersion, guildId, lastUpdated, updatedBy, terms[] }`). Applies only
+  in that server.
+- Edits re-read from S3 under a lock and are refused if the read fails, so a
+  list is never rewritten from cache. A change is live immediately.
+- Terms must be 3 to 50 characters with a letter or digit, and must not contain
+  `\ [ ] ? |` (obscenity pattern syntax).
+- **Every term must match its own spelling** (`matcherReading()`). obscenity
+  transforms messages but not terms: it collapses most doubled letters, reads
+  digits and some symbols as letters, and drops accents. A doubled-letter term
+  is compiled in its collapsed form, so `kitty` works. A term nothing can match
+  (accented or non-Latin letters, digits) is refused at `add`, and skipped with
+  a logged count if it's on the built-in list. Known limit: numeric codes and
+  CJK terms can't be listed.
+- **The built-in list is never shown to servers.** Only a count appears in
+  `list` and `test`, because anyone can create a server and moderate it.
+- Changes are noted in `#moderator-only` when the server has it.
+
 ## Testing
 ```bash
 bun run test:run        # Run all tests

@@ -49,6 +49,8 @@ bun run start
 - Warning messages before resets
 
 ### 4. **Community Moderation**
+- Slur auto-moderation: delete, DM, 30-minute timeout, mod-log embed
+- `/mod slur` lets each server's moderators keep their own slur list alongside the built-in one, hidden from regular members
 - Rate limiting for chat commands (3 per hour)
 - Sensitive terms checking with timeout enforcement
 - Spam statistics and violation tracking
@@ -334,6 +336,8 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 **Moderator Commands:**
 - Require `mods` role OR Discord administrator permission
 - Check: `await checkModPermission(interaction)`
+- `/mod` is hidden from members without the Timeout Members permission; server admins can narrow it further under Server Settings > Integrations
+- `/mod slur list | add | remove | test | history` manages this server's own slur list (see CLAUDE.md)
 
 **Rate Limiting:**
 - 3 chat commands per hour per user

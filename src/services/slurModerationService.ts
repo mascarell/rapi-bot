@@ -33,6 +33,53 @@ interface SlurListDocument {
     slurs: string[];
 }
 
+/** One server's own list, edited through `/mod slur`. */
+interface GuildFilterDocument {
+    schemaVersion: number;
+    guildId: string;
+    lastUpdated: string;
+    /** Who made the last change, as `tag (id)`. */
+    updatedBy?: string;
+    terms: string[];
+}
+
+interface GuildFilterEntry {
+    built: BuiltMatcher | null;
+    terms: string[];
+    expiry: number;
+}
+
+export interface FilterOverview {
+    /** Count only; the built-in terms are not shown to server moderators. */
+    builtInCount: number;
+    builtInLoaded: boolean;
+    builtInDegraded: boolean;
+    server: { terms: string[]; lastUpdated?: string; updatedBy?: string };
+}
+
+export interface FilterPreview {
+    /** How many built-in terms matched (not which). */
+    builtInMatches: number;
+    /** This server's terms that matched. */
+    serverMatches: string[];
+    /** Candidate terms that matched (and aren't already on the server list). */
+    candidateMatches: string[];
+    builtInLoaded: boolean;
+}
+
+export interface FilterEditResult {
+    /** Terms actually added or removed. */
+    changed: string[];
+    /** Terms already on this server's list (add) or not on it (remove). */
+    unchanged: string[];
+    /** Terms on the built-in list, which a server can neither add nor remove. */
+    builtIn: string[];
+    /** Server list size after the edit. */
+    total: number;
+}
+
+export type TermValidation = { ok: true; term: string } | { ok: false; reason: string };
+
 interface OffenseHistoryEntry {
     at: string;
     matchedTerms: string[];
@@ -70,6 +117,211 @@ function capFieldValue(value: string, max = 1024): string {
     return `${value.slice(0, max - 1)}…`;
 }
 
+/** Comparison form of a list entry: trimmed, lowercased, single-spaced. */
+function canonicalTerm(raw: string): string {
+    return raw.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Characters that are pattern syntax in obscenity, not literals: `?` is a
+ * wildcard, `[...]` is optional, `\` escapes and `|` is a word boundary. A
+ * moderator typing `wh?t` would get a wildcard, and a stray `\` or an
+ * all-optional `[x]` makes the matcher throw.
+ */
+const PATTERN_SYNTAX = /[\\[\]?|]/;
+
+/**
+ * Punctuation hugging the edge of a word is replaced with a neutral `.`
+ * rather than deleted. obscenity's leetspeak transformer reads `!` as `i` and
+ * `(` as `c`, so `term!` became `termi` and `(term)` became `cterm`, and both
+ * slipped past the word boundary. Replacing (not deleting) keeps sentence
+ * breaks intact, so a two-word term can't be stitched together across
+ * `foo, bar` or `foo (bar)`. Mid-word leetspeak (`t3rm`, `te$t`) is untouched
+ * here and still caught by the transformers on the unmodified text.
+ */
+function neutraliseEdgePunctuation(text: string): string {
+    return text
+        .replace(/(^|\s)[^\p{L}\p{N}\s]+/gu, '$1.')
+        .replace(/[^\p{L}\p{N}\s]+(?=\s|$)/gu, '.');
+}
+
+/** The same preprocessing the live message path applies. */
+function preprocessForMatch(text: string): string {
+    return preprocessMessage(text, { unwrapCodeBlocks: true, unwrapSpoilers: true });
+}
+
+function compileOne(pattern: string): RegExpMatcher {
+    // Word-boundary assertions (`|...|`) prevent the Scunthorpe problem:
+    // `spic` no longer matches inside `spicy`, `coon` doesn't match `tycoon`,
+    // `paki` doesn't match `Pakistan`, `fag` doesn't match `flag`, etc.
+    return new RegExpMatcher({
+        blacklistedTerms: assignIncrementingIds([parseRawPattern(`|${pattern}|`)]),
+        ...englishRecommendedTransformers,
+    });
+}
+
+const MAX_DOUBLED_RUNS = 6;
+
+/**
+ * The spelling to compile so that `term` matches messages containing `term`,
+ * or null if no spelling does.
+ *
+ * obscenity transforms the message but not the term: it collapses most
+ * doubled letters, reads digits and some symbols as letters, and drops
+ * accents. So a term like `kitty` compiles fine and then never matches, not
+ * even the word `kitty`. The fix is to compile the spelling the matcher will
+ * actually see. Rather than hard-code obscenity's rules, this tries the term
+ * and then collapsed variants of its doubled letters, fewest collapses first,
+ * and keeps the first one that matches the term's own spelling. A term
+ * nothing matches (accented letters, non-Latin scripts) returns null.
+ */
+export function matcherReading(term: string): string | null {
+    const text = preprocessForMatch(term);
+    const matchesSelf = (spelling: string) => {
+        try {
+            const matcher = compileOne(spelling);
+            return matcher.hasMatch(text) || matcher.hasMatch(neutraliseEdgePunctuation(text));
+        } catch {
+            return false;
+        }
+    };
+
+    if (matchesSelf(term)) return term;
+
+    const runs = [...term.matchAll(/(\p{L})\1+/gu)].map(m => ({ at: m.index!, length: m[0].length }));
+    if (runs.length === 0 || runs.length > MAX_DOUBLED_RUNS) return null;
+
+    const subsets = Array.from({ length: (1 << runs.length) - 1 }, (_, i) => i + 1).sort(
+        (a, b) => popcount(a) - popcount(b) || a - b
+    );
+    for (const subset of subsets) {
+        let spelling = '';
+        let cursor = 0;
+        runs.forEach((run, i) => {
+            spelling += term.slice(cursor, run.at);
+            spelling += subset & (1 << i) ? term[run.at] : term.slice(run.at, run.at + run.length);
+            cursor = run.at + run.length;
+        });
+        spelling += term.slice(cursor);
+        if (matchesSelf(spelling)) return spelling;
+    }
+    return null;
+}
+
+function popcount(n: number): number {
+    let count = 0;
+    for (; n; n &= n - 1) count++;
+    return count;
+}
+
+/**
+ * Validate and normalise a term a moderator wants to add. Shared by the
+ * command (to explain a rejection before confirming) and the service (which
+ * never writes an unvalidated term). Reasons read after "it".
+ */
+export function normalizeFilterTerm(raw: string): TermValidation {
+    if (!/[\p{L}\p{N}]/u.test(raw)) {
+        return { ok: false, reason: 'has no letters or digits' };
+    }
+    if (PATTERN_SYNTAX.test(raw.trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))) {
+        return { ok: false, reason: 'contains one of \\ [ ] ? | which the matcher treats as pattern syntax' };
+    }
+    // Punctuation at either end can never be part of a match ("zorb!" is read
+    // as "zorbi"), so the moderator almost certainly meant the word itself.
+    const term = canonicalTerm(raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''));
+    if (term.length < SLUR_MOD_CONFIG.MIN_TERM_LENGTH) {
+        return {
+            ok: false,
+            reason: `is shorter than ${SLUR_MOD_CONFIG.MIN_TERM_LENGTH} characters, which would catch far too many messages`,
+        };
+    }
+    if (term.length > SLUR_MOD_CONFIG.MAX_TERM_LENGTH) {
+        return { ok: false, reason: `is longer than ${SLUR_MOD_CONFIG.MAX_TERM_LENGTH} characters` };
+    }
+    if (matcherReading(term) === null) {
+        return {
+            ok: false,
+            reason:
+                "can't be matched as typed. The matcher reads accented and non-Latin letters, and digits or " +
+                'symbols used as letters, differently, so this would never catch anything. Use plain letters: ' +
+                'swaps like 0 for o are already caught',
+        };
+    }
+    return { ok: true, term };
+}
+
+/**
+ * Who counts as a moderator: exempt from auto-moderation, and allowed to use
+ * `/mod`. Discord permissions come first so this works in any server the bot
+ * is in; the `mods` role is the home servers' convention and still counts.
+ */
+export function isFilterModerator(member: Pick<GuildMember, 'permissions' | 'roles'>): boolean {
+    return (
+        member.permissions.has(PermissionFlagsBits.Administrator) ||
+        member.permissions.has(PermissionFlagsBits.ModerateMembers) ||
+        member.roles.cache.some(r => r.name.toLowerCase() === 'mods')
+    );
+}
+
+interface BuiltMatcher {
+    matcher: RegExpMatcher;
+    termIdToWord: Map<number, string>;
+    /** Entries left out: not strings, unparseable, or never able to match. */
+    skipped: string[];
+}
+
+/**
+ * Compile a list into a word-boundary matcher. Each entry is compiled and
+ * checked on its own (see matcherReading), so one malformed or unmatchable
+ * entry, possible in a hand-edited S3 document, is skipped and reported
+ * instead of taking every other term down with it.
+ */
+function buildMatcher(entries: unknown[]): BuiltMatcher {
+    const terms: string[] = [];
+    const patterns: ReturnType<typeof parseRawPattern>[] = [];
+    const skipped: string[] = [];
+    const seen = new Set<string>();
+
+    for (const entry of entries) {
+        if (typeof entry !== 'string') {
+            skipped.push(String(entry));
+            continue;
+        }
+        const term = canonicalTerm(entry);
+        if (term.length === 0 || seen.has(term)) continue;
+        seen.add(term);
+
+        const reading = matcherReading(term);
+        if (reading === null) {
+            skipped.push(entry);
+            continue;
+        }
+        patterns.push(parseRawPattern(`|${reading}|`));
+        terms.push(term);
+    }
+
+    const blacklistedTerms = assignIncrementingIds(patterns);
+    return {
+        matcher: new RegExpMatcher({ blacklistedTerms, ...englishRecommendedTransformers }),
+        // Report the term as listed, not the spelling compiled for it.
+        termIdToWord: new Map(blacklistedTerms.map((bt, idx) => [bt.id, terms[idx]])),
+        skipped,
+    };
+}
+
+/** Every distinct list term found in `text`, checking both readings of it. */
+function findMatchedTerms(built: Pick<BuiltMatcher, 'matcher' | 'termIdToWord'>, text: string): string[] {
+    const seen = new Set<string>();
+    const variants = new Set([text, neutraliseEdgePunctuation(text)]);
+    for (const variant of variants) {
+        for (const match of built.matcher.getAllMatches(variant)) {
+            const word = built.termIdToWord.get(match.termId);
+            if (word) seen.add(word);
+        }
+    }
+    return [...seen];
+}
+
 /* ==========================================================================
  *  Service
  * ========================================================================== */
@@ -80,7 +332,17 @@ export class SlurModerationService {
     // ----- slur list / matcher state -----
     private matcher: RegExpMatcher | null = null;
     private termIdToWord: Map<number, string> = new Map();
+    /** The compiled terms, kept so a dry run can add a candidate to them. */
+    private currentTerms: string[] = [];
     private cachedListHash: string | null = null;
+    /** Serialises list edits: two moderators must not each overwrite the other's change. */
+    private listWriteChain: Promise<unknown> = Promise.resolve();
+    /** Per-server lists, keyed by guild id. One small entry per server that sees messages. */
+    private guildFilters = new Map<string, GuildFilterEntry>();
+    /** In-flight fetches per server, so concurrent cache misses share one S3 read. */
+    private guildFetches = new Map<string, Promise<GuildFilterEntry>>();
+    /** Bumped on every saved edit; a fetch begun before the bump is discarded. */
+    private guildGeneration = new Map<string, number>();
     private listCacheExpiry = 0;
     private lastFetchFailed = false;
     private lastDegradedNotifyAt = 0;
@@ -128,19 +390,16 @@ export class SlurModerationService {
             // Step 5: snapshot content BEFORE any await so edit-and-undo can't bypass logging
             const snapshot = message.content;
 
-            // Step 6: ensure matcher is loaded; on S3 failure with no cache, no-op
+            // Step 6: load the built-in list and this server's own list. On S3
+            // failure with nothing cached for either, no-op.
             await this.ensureMatcher(message.guild);
-            if (!this.matcher) return;
+            const guildFilter = await this.ensureGuildFilter(message.guild.id);
+            if (!this.matcher && !guildFilter.built) return;
 
-            // Step 7: preprocess + match
-            const preprocessed = preprocessMessage(snapshot, {
-                unwrapCodeBlocks: true,
-                unwrapSpoilers: true,
-            });
-            const matches = this.matcher.getAllMatches(preprocessed);
-            if (matches.length === 0) return;
-
-            const matchedTerms = this.extractMatchedTerms(matches);
+            // Step 7: preprocess + match against both
+            const preprocessed = preprocessForMatch(snapshot);
+            const matchedTerms = this.matchAll(preprocessed, guildFilter);
+            if (matchedTerms.length === 0) return;
 
             // Step 8: independent action steps — each wrapped so a failure in one
             // doesn't unwind the others. Order: timeout → DM the offender →
@@ -179,7 +438,12 @@ export class SlurModerationService {
     public clearCache(): void {
         this.matcher = null;
         this.termIdToWord.clear();
+        this.currentTerms = [];
         this.cachedListHash = null;
+        this.listWriteChain = Promise.resolve();
+        this.guildFilters.clear();
+        this.guildFetches.clear();
+        this.guildGeneration.clear();
         this.listCacheExpiry = 0;
         this.offenseCache = null;
         this.offenseCacheExpiry = 0;
@@ -201,13 +465,12 @@ export class SlurModerationService {
     }
 
     /* --------------------------------------------------------------------
-     * Privilege check (member-based, since checkModPermission is interaction-only)
+     * Privilege check
      * -------------------------------------------------------------------- */
 
     private isPrivilegedMember(member: GuildMember, guild: Guild): boolean {
         if (member.id === guild.ownerId) return true;
-        if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
-        return member.roles.cache.some(r => r.name.toLowerCase() === 'mods');
+        return isFilterModerator(member);
     }
 
     /* --------------------------------------------------------------------
@@ -236,14 +499,24 @@ export class SlurModerationService {
             this.lastFetchFailed = false;
         }
         this.lastSuccessfulFetchAt = Date.now();
+        // Set before compiling, so a list that fails to compile is retried on
+        // the TTL rather than refetched on every message.
+        this.listCacheExpiry = Date.now() + SLUR_MOD_CONFIG.CACHE_TTL_MS;
 
         const newHash = this.hashList(document.slurs);
         if (newHash !== this.cachedListHash) {
-            this.rebuildMatcher(document.slurs);
-            this.cachedListHash = newHash;
-            logger.info`[slur-mod] slur list loaded — ${document.slurs.length} entries`;
+            try {
+                this.rebuildMatcher(document.slurs);
+                this.cachedListHash = newHash;
+                logger.info`[slur-mod] slur list loaded — ${document.slurs.length} entries`;
+            } catch (error) {
+                // Entries are checked one by one in buildMatcher, so this is a
+                // last line of defence. Keep the previous matcher and tell the mods.
+                const reason = `List could not be compiled: ${this.errorReason(error)}`;
+                logger.error`[slur-mod] ${reason}`;
+                await this.notifyDegraded(guild, reason);
+            }
         }
-        this.listCacheExpiry = Date.now() + SLUR_MOD_CONFIG.CACHE_TTL_MS;
     }
 
     private async fetchSlurListFromS3(): Promise<SlurListDocument> {
@@ -276,45 +549,314 @@ export class SlurModerationService {
         return doc as SlurListDocument;
     }
 
-    private rebuildMatcher(slurs: string[]): void {
-        const normalized = slurs
-            .map(s => s.trim().toLowerCase())
-            .filter(s => s.length > 0);
-
-        // Word-boundary assertions (`|...|`) prevent the Scunthorpe problem:
-        // `spic` no longer matches inside `spicy`, `coon` doesn't match `tycoon`,
-        // `paki` doesn't match `Pakistan`, `fag` doesn't match `flag`, etc.
-        // `|` is a literal in obscenity's pattern syntax used only at term
-        // boundaries — strip any embedded pipes from the input as a safety guard
-        // since slur terms shouldn't contain pipes anyway.
-        const blacklistedTerms = assignIncrementingIds(
-            normalized.map(s => parseRawPattern(`|${s.replace(/\|/g, '')}|`))
-        );
-
-        this.termIdToWord = new Map(
-            blacklistedTerms.map((bt, idx) => [bt.id, normalized[idx]])
-        );
-
-        this.matcher = new RegExpMatcher({
-            blacklistedTerms,
-            ...englishRecommendedTransformers,
-        });
+    private rebuildMatcher(slurs: unknown[]): void {
+        const built = buildMatcher(slurs);
+        if (built.skipped.length > 0) {
+            // Count only: the list is not printed into logs.
+            logger.warn`[slur-mod] skipped ${built.skipped.length} built-in list entr${built.skipped.length === 1 ? 'y' : 'ies'} that can never match (malformed, or accented / non-Latin text)`;
+        }
+        this.matcher = built.matcher;
+        this.termIdToWord = built.termIdToWord;
+        this.currentTerms = [...built.termIdToWord.values()];
     }
 
-    private hashList(list: string[]): string {
-        const sorted = [...list].map(s => s.trim().toLowerCase()).sort().join('\n');
+    private hashList(list: unknown[]): string {
+        const sorted = list
+            .map(s => (typeof s === 'string' ? canonicalTerm(s) : String(s)))
+            .sort()
+            .join('\n');
         return createHash('sha256').update(sorted).digest('hex');
     }
 
-    private extractMatchedTerms(
-        matches: ReturnType<RegExpMatcher['getAllMatches']>
-    ): string[] {
-        const seen = new Set<string>();
-        for (const m of matches) {
-            const word = this.termIdToWord.get(m.termId);
-            if (word) seen.add(word);
+    /* --------------------------------------------------------------------
+     * Per-server lists (`/mod slur`)
+     *
+     * The built-in list above is Rapi's own, applies in every server, and is
+     * edited only in S3 by the maintainer. Each server's moderators keep a
+     * second list of their own, which applies only in that server. That split
+     * is what makes the commands safe to offer to every server the bot is in:
+     * nothing a moderator does reaches anyone else's community.
+     *
+     * Every edit re-reads the server's document from S3 rather than trusting
+     * the cache, and edits go through one in-process lock so two moderators
+     * editing at once both land. If the read fails for any reason except
+     * "this server has no list yet", the edit is refused: writing a list
+     * rebuilt from cache would silently drop whatever the cache had missed.
+     * -------------------------------------------------------------------- */
+
+    private guildListKey(guildId: string): string {
+        // Guild IDs come from Discord, but this is an S3 key: refuse anything
+        // that isn't a snowflake rather than trust it.
+        if (!/^\d{1,25}$/.test(guildId)) throw new Error(`Invalid guild id: ${guildId}`);
+        return `${SLUR_MOD_CONFIG.GUILD_LIST_S3_PREFIX}${guildId}.json`;
+    }
+
+    /** The server's document, or null when it has never had a list. */
+    private async fetchGuildList(guildId: string): Promise<GuildFilterDocument | null> {
+        let body: string | undefined;
+        try {
+            const response = await s3Client.send(
+                new GetObjectCommand({ Bucket: S3_BUCKET, Key: this.guildListKey(guildId) })
+            );
+            body = await response.Body?.transformToString();
+        } catch (error: any) {
+            if (error?.name === 'NoSuchKey' || error?.Code === 'NoSuchKey') return null;
+            throw error;
         }
-        return [...seen];
+        if (!body) throw new Error('S3 returned an empty body for the server list');
+
+        let parsed: Partial<GuildFilterDocument>;
+        try {
+            parsed = JSON.parse(body);
+        } catch (error) {
+            throw new Error(`JSON parse error: ${(error as Error).message}`);
+        }
+        if (
+            typeof parsed !== 'object' ||
+            parsed === null ||
+            parsed.schemaVersion !== SLUR_MOD_CONFIG.GUILD_LIST_SCHEMA_VERSION ||
+            parsed.guildId !== guildId ||
+            !Array.isArray(parsed.terms)
+        ) {
+            throw new Error(
+                `Malformed server list — expected schemaVersion ${SLUR_MOD_CONFIG.GUILD_LIST_SCHEMA_VERSION}, this guild's id and string[] terms`
+            );
+        }
+        return parsed as GuildFilterDocument;
+    }
+
+    private setGuildFilter(guildId: string, terms: unknown[]): GuildFilterEntry {
+        const built = terms.length > 0 ? buildMatcher(terms) : null;
+        if (built && built.skipped.length > 0) {
+            logger.warn`[slur-mod] guild ${guildId}: skipped ${built.skipped.length} list entries that can never match`;
+        }
+        const entry: GuildFilterEntry = {
+            built,
+            terms: built ? [...built.termIdToWord.values()] : [],
+            expiry: Date.now() + SLUR_MOD_CONFIG.CACHE_TTL_MS,
+        };
+        this.guildFilters.set(guildId, entry);
+        return entry;
+    }
+
+    /**
+     * The server's compiled list, refreshed on the same TTL as the built-in
+     * one. A server with no list is cached as empty, so the hundreds of
+     * servers that never use the feature cost one S3 miss per TTL, not one per
+     * message. On a failed fetch the previous list stays in force.
+     *
+     * Concurrent misses for one server share a single fetch. A fetch that
+     * started before an edit was saved is discarded when it lands: otherwise
+     * a slow read could put back a term a moderator had just removed, and it
+     * would keep timing people out until the next refresh.
+     */
+    private ensureGuildFilter(guildId: string): Promise<GuildFilterEntry> {
+        const cached = this.guildFilters.get(guildId);
+        if (cached && Date.now() < cached.expiry) return Promise.resolve(cached);
+
+        const inFlight = this.guildFetches.get(guildId);
+        if (inFlight) return inFlight;
+
+        const generation = this.guildGeneration.get(guildId) ?? 0;
+        const fetch = (async () => {
+            try {
+                const doc = await this.fetchGuildList(guildId);
+                if ((this.guildGeneration.get(guildId) ?? 0) !== generation) {
+                    return this.guildFilters.get(guildId)!;
+                }
+                return this.setGuildFilter(guildId, doc?.terms ?? []);
+            } catch (error) {
+                logger.warn`[slur-mod] guild ${guildId} list fetch failed: ${this.errorReason(error)}`;
+                const kept: GuildFilterEntry = this.guildFilters.get(guildId) ?? { built: null, terms: [], expiry: 0 };
+                kept.expiry = Date.now() + SLUR_MOD_CONFIG.CACHE_TTL_MS;
+                this.guildFilters.set(guildId, kept);
+                return kept;
+            } finally {
+                this.guildFetches.delete(guildId);
+            }
+        })();
+        this.guildFetches.set(guildId, fetch);
+        return fetch;
+    }
+
+    /** Built-in matches plus this server's matches, de-duplicated. */
+    private matchAll(text: string, guildFilter: GuildFilterEntry): string[] {
+        const found = new Set<string>();
+        if (this.matcher) {
+            for (const t of findMatchedTerms({ matcher: this.matcher, termIdToWord: this.termIdToWord }, text)) found.add(t);
+        }
+        if (guildFilter.built) {
+            for (const t of findMatchedTerms(guildFilter.built, text)) found.add(t);
+        }
+        return [...found];
+    }
+
+    private withListLock<T>(work: () => Promise<T>): Promise<T> {
+        const run = this.listWriteChain.then(work, work);
+        this.listWriteChain = run.catch(() => {});
+        return run;
+    }
+
+    private async readGuildListForEdit(guildId: string): Promise<GuildFilterDocument> {
+        try {
+            return (
+                (await this.fetchGuildList(guildId)) ?? {
+                    schemaVersion: SLUR_MOD_CONFIG.GUILD_LIST_SCHEMA_VERSION,
+                    guildId,
+                    lastUpdated: new Date().toISOString(),
+                    terms: [],
+                }
+            );
+        } catch (error) {
+            throw new Error(
+                `Couldn't read this server's slur list, so nothing was changed. ${this.errorReason(error)}`
+            );
+        }
+    }
+
+    private async writeGuildList(doc: GuildFilterDocument): Promise<void> {
+        await s3Client.send(
+            new PutObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: this.guildListKey(doc.guildId),
+                Body: JSON.stringify(doc, null, 2),
+                ContentType: 'application/json',
+            })
+        );
+        // Any fetch already in flight read the old list; make it stand down.
+        this.guildGeneration.set(doc.guildId, (this.guildGeneration.get(doc.guildId) ?? 0) + 1);
+        // Live straight away rather than after the cache TTL.
+        this.setGuildFilter(doc.guildId, doc.terms);
+    }
+
+    /**
+     * This server's list as S3 has it now, and how many built-in terms are in
+     * force. The built-in terms themselves are not returned: the bot is public,
+     * anyone can make a server and become its moderator, and the list should
+     * not be readable by everyone who does.
+     */
+    public async getFilterOverview(guild: Guild): Promise<FilterOverview> {
+        await this.ensureMatcher(guild);
+        const doc = await this.readGuildListForEdit(guild.id);
+        return {
+            builtInCount: this.currentTerms.length,
+            builtInLoaded: this.matcher !== null,
+            builtInDegraded: this.lastFetchFailed,
+            server: {
+                terms: doc.terms.filter((s): s is string => typeof s === 'string').map(canonicalTerm),
+                lastUpdated: doc.terms.length > 0 ? doc.lastUpdated : undefined,
+                updatedBy: doc.updatedBy,
+            },
+        };
+    }
+
+    /** This server's terms from cache, for autocomplete (which must answer in 3 s). */
+    public async getServerTerms(guildId: string): Promise<string[]> {
+        return [...(await this.ensureGuildFilter(guildId)).terms];
+    }
+
+    public async addServerTerms(guild: Guild, rawTerms: string[], actor: string): Promise<FilterEditResult> {
+        const terms = rawTerms.map(raw => {
+            const result = normalizeFilterTerm(raw);
+            if (!result.ok) throw new Error(`"${raw}" can't be added: it ${result.reason}.`);
+            return result.term;
+        });
+        await this.ensureMatcher(guild);
+        const builtInSet = new Set(this.currentTerms);
+
+        return this.withListLock(async () => {
+            const doc = await this.readGuildListForEdit(guild.id);
+            const existing = new Set(
+                doc.terms.filter((s): s is string => typeof s === 'string').map(canonicalTerm)
+            );
+            const result: FilterEditResult = { changed: [], unchanged: [], builtIn: [], total: doc.terms.length };
+            for (const term of terms) {
+                if (builtInSet.has(term)) {
+                    if (!result.builtIn.includes(term)) result.builtIn.push(term);
+                } else if (existing.has(term)) {
+                    if (!result.unchanged.includes(term)) result.unchanged.push(term);
+                } else {
+                    existing.add(term);
+                    result.changed.push(term);
+                }
+            }
+            if (result.changed.length === 0) return result;
+
+            if (doc.terms.length + result.changed.length > SLUR_MOD_CONFIG.MAX_LIST_SIZE) {
+                throw new Error(
+                    `This server's list is capped at ${SLUR_MOD_CONFIG.MAX_LIST_SIZE} terms and has ${doc.terms.length}.`
+                );
+            }
+            const updated: GuildFilterDocument = {
+                ...doc,
+                terms: [...doc.terms, ...result.changed],
+                lastUpdated: new Date().toISOString(),
+                updatedBy: actor,
+            };
+            await this.writeGuildList(updated);
+            logger.info`[slur-mod] guild ${guild.id}: ${actor} added ${result.changed.length} term(s); list now ${updated.terms.length}`;
+            return { ...result, total: updated.terms.length };
+        });
+    }
+
+    public async removeServerTerms(guild: Guild, rawTerms: string[], actor: string): Promise<FilterEditResult> {
+        const targets = [...new Set(rawTerms.map(canonicalTerm).filter(t => t.length > 0))];
+        await this.ensureMatcher(guild);
+        const builtInSet = new Set(this.currentTerms);
+
+        return this.withListLock(async () => {
+            const doc = await this.readGuildListForEdit(guild.id);
+            const present = new Set(
+                doc.terms.filter((s): s is string => typeof s === 'string').map(canonicalTerm)
+            );
+            const result: FilterEditResult = { changed: [], unchanged: [], builtIn: [], total: doc.terms.length };
+            for (const term of targets) {
+                if (present.has(term)) result.changed.push(term);
+                else if (builtInSet.has(term)) result.builtIn.push(term);
+                else result.unchanged.push(term);
+            }
+            if (result.changed.length === 0) return result;
+
+            const removing = new Set(result.changed);
+            const updated: GuildFilterDocument = {
+                ...doc,
+                terms: doc.terms.filter(s => typeof s !== 'string' || !removing.has(canonicalTerm(s))),
+                lastUpdated: new Date().toISOString(),
+                updatedBy: actor,
+            };
+            await this.writeGuildList(updated);
+            logger.info`[slur-mod] guild ${guild.id}: ${actor} removed ${result.changed.length} term(s); list now ${updated.terms.length}`;
+            return { ...result, total: updated.terms.length };
+        });
+    }
+
+    /**
+     * Dry run: which terms would `text` trip in this server, through exactly
+     * the live matching path (preprocessing, word boundaries, leetspeak, edge
+     * punctuation). `candidates` count for this check only, so a moderator can
+     * see what a term would catch before saving it. Takes no action.
+     *
+     * Built-in matches are counted, not named, for the reason given on
+     * getFilterOverview.
+     */
+    public async previewMatches(guild: Guild, text: string, candidates: string[] = []): Promise<FilterPreview> {
+        await this.ensureMatcher(guild);
+        const guildFilter = await this.ensureGuildFilter(guild.id);
+        const preprocessed = preprocessForMatch(text);
+
+        const builtIn = this.matcher
+            ? findMatchedTerms({ matcher: this.matcher, termIdToWord: this.termIdToWord }, preprocessed)
+            : [];
+        const server = guildFilter.built ? findMatchedTerms(guildFilter.built, preprocessed) : [];
+        const candidate =
+            candidates.length > 0 ? findMatchedTerms(buildMatcher(candidates), preprocessed) : [];
+
+        return {
+            builtInMatches: builtIn.length,
+            serverMatches: server,
+            candidateMatches: candidate.filter(t => !server.includes(t)),
+            builtInLoaded: this.matcher !== null,
+        };
     }
 
     /* --------------------------------------------------------------------

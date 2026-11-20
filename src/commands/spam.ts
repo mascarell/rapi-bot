@@ -163,12 +163,12 @@ export default {
                 },
                 {
                     name: '⚠️ Violation Tracking',
-                    value: `• **Violators:** ${stats.topViolators.length}\n• **Violation Rate:** ${violatorPercentage}%\n• **Threshold:** 5+ attempts`,
+                    value: `• **Violators:** ${stats.topViolators.length}\n• **Violation Rate:** ${violatorPercentage}%\n• **Threshold:** ${CHAT_COMMAND_RATE_LIMIT.violatorThreshold}+ attempts`,
                     inline: true
                 },
                 {
                     name: '⚙️ System Health',
-                    value: `• **Rate Limit:** 3/hour\n• **Window:** 1 hour\n• **Cleanup:** 2 hours`,
+                    value: `• **Rate Limit:** ${CHAT_COMMAND_RATE_LIMIT.maxCommands}/hour\n• **Window:** 1 hour\n• **Cleanup:** ${CHAT_COMMAND_RATE_LIMIT.cleanupIntervalMs / 3_600_000} hours`,
                     inline: true
                 }
             )
