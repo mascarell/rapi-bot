@@ -216,7 +216,7 @@ describe('/mod media list', () => {
     const keys = (n: number, prefix = 'commands/booty/') =>
         Array.from({ length: n }, (_, k) => `${prefix}unit${String(k).padStart(2, '0')}_booty.gif`);
 
-    it('defers ephemerally and paginates 20 names per page with the total', async () => {
+    it('defers ephemerally and shows one gif per page with the total', async () => {
         existing = keys(45);
         const i = pageInteraction({});
         await modCommand.execute(i);
@@ -224,10 +224,14 @@ describe('/mod media list', () => {
         const reply = i.editReply.mock.calls[0][0];
         const first = reply.embeds[0].toJSON();
         expect(first.title).toBe('booty? files');
-        expect(first.description.split('\n')).toHaveLength(20);
+        expect(first.description).toContain('`unit00_booty.gif`');
+        expect(first.image.url).toContain('commands/booty/unit00_booty.gif');
+        expect(first.thumbnail).toBeUndefined();
+        expect(first.url).toBe(first.image.url);
+        expect(first.description).toContain(`[Open / download](${first.image.url})`);
         expect(first.footer.text).toBe('45 files in total');
         const labels = reply.components[0].toJSON().components.map((c: any) => c.label);
-        expect(labels).toEqual(['Previous', 'Page 1 of 3', 'Next']);
+        expect(labels).toEqual(['Previous', 'Page 1 of 45', 'Next']);
     });
 
     it('only lists the chosen pool', async () => {
@@ -235,7 +239,7 @@ describe('/mod media list', () => {
         const i = pageInteraction({});
         await modCommand.execute(i);
         const embed = i.editReply.mock.calls[0][0].embeds[0].toJSON();
-        expect(embed.description).toBe('`rapi_booty.gif`');
+        expect(embed.description).toContain('`rapi_booty.gif`');
         expect(embed.footer.text).toBe('1 file in total');
     });
 
@@ -245,7 +249,8 @@ describe('/mod media list', () => {
         await modCommand.execute(i);
         const embed = i.editReply.mock.calls[0][0].embeds[0].toJSON();
         expect(embed.title).toBe('booty? files: Anis');
-        expect(embed.description).toBe('`anis_2_booty.gif`\n`anis_booty.gif`');
+        expect(embed.description).toContain('`anis_2_booty.gif`');
+        expect(embed.footer.text).toBe('2 files in total');
     });
 
     it('says so when the pool is empty', async () => {

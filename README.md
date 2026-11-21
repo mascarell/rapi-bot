@@ -284,7 +284,7 @@ New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-d
 
 #### Moderator Commands
 - `/mod media add` - Add a `.gif` to the `booba?` or `booty?` pool (Rapi home server only; gif only, 25 MB max; named `<character>[_<variant>]_<oppai|booty>.gif`; asks you to confirm before uploading)
-- `/mod media list` - List a pool's gifs, optionally one character's (home server only)
+- `/mod media list` - Browse a pool's gifs one per page, with a link to open or download each, optionally one character's (home server only)
 - `/mod media remove` - Remove a gif from a pool, with a preview and confirm first (home server only)
 - `/mod redeem add` - Add new coupon code
 - `/mod redeem remove` - Deactivate code
