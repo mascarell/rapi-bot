@@ -61,6 +61,7 @@ vi.mock('../../utils/data/gachaGamesConfig', () => ({
 
 import { GachaRedemptionService, getGachaRedemptionService, _testResetCircuitBreaker } from '../gachaRedemptionService';
 import { getGachaDataService } from '../gachaDataService';
+import { GACHA_CONFIG } from '../../utils/data/gachaConfig';
 import { getGameConfig, getAutoRedeemGames } from '../../utils/data/gachaGamesConfig';
 import { GachaCoupon, GameSubscription, GachaGameId } from '../../utils/interfaces/GachaCoupon.interface';
 
@@ -1012,15 +1013,28 @@ describe('GachaRedemptionService', () => {
                 .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) } as Response)
                 .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) } as Response);
 
-            const service = getGachaRedemptionService();
+            // Fake timers: measuring two real 2.5 s waits was slow and flaked
+            // (timed out or missed its window) when the machine was busy.
+            vi.useFakeTimers();
+            try {
+                const service = getGachaRedemptionService();
 
-            const start = Date.now();
-            await service.redeemCode('bd2', 'TestUser', 'CODE1');
-            await service.redeemCode('bd2', 'TestUser', 'CODE2');
-            const elapsed = Date.now() - start;
+                await service.redeemCode('bd2', 'TestUser', 'CODE1');
+                expect(global.fetch).toHaveBeenCalledTimes(1);
 
-            // Should have at least ~2000ms delay between calls
-            expect(elapsed).toBeGreaterThanOrEqual(1900); // Allow some tolerance
+                const second = service.redeemCode('bd2', 'TestUser', 'CODE2');
+
+                // Held back until RATE_LIMIT_DELAY has passed since the first call...
+                await vi.advanceTimersByTimeAsync(GACHA_CONFIG.RATE_LIMIT_DELAY - 1);
+                expect(global.fetch).toHaveBeenCalledTimes(1);
+
+                // ...and sent as soon as it has.
+                await vi.advanceTimersByTimeAsync(1);
+                await second;
+                expect(global.fetch).toHaveBeenCalledTimes(2);
+            } finally {
+                vi.useRealTimers();
+            }
         });
     });
 
