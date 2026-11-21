@@ -1,3 +1,10 @@
+# [2.24.0](https://github.com/mascarell/rapi-bot/compare/v2.23.1...v2.24.0) (2026-11-21)
+
+
+### Features
+
+* **mod:** register /mod per server; allowlist check never waits on storage ([#268](https://github.com/mascarell/rapi-bot/issues/268)) ([f17f251](https://github.com/mascarell/rapi-bot/commit/f17f251a222cc4080e708f1fcf083d9e23112194))
+
 ## [2.23.1](https://github.com/mascarell/rapi-bot/compare/v2.23.0...v2.23.1) (2026-11-21)
 
 
