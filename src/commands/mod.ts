@@ -1,5 +1,6 @@
 import {
     SlashCommandBuilder,
+    SlashCommandStringOption,
     ChatInputCommandInteraction,
     AutocompleteInteraction,
     PermissionFlagsBits,
@@ -27,9 +28,14 @@ import { createPaginatedMessage } from './utils/paginationBuilder.js';
 import { logger } from '../utils/logger.js';
 import { isModerator, MOD_REQUIRED_MESSAGE } from '../utils/permissionHelpers.js';
 import { handleSpamStats, handleSpamReset } from './utils/spamModeration.js';
-import { handleMediaAdd, autocompleteMediaCharacter, isMediaHomeGuild, MEDIA_HOME_ONLY_MESSAGE } from './utils/modMedia.js';
+import { handleMediaAdd, handleMediaList, handleMediaRemove, autocompleteMediaCharacter, autocompleteMediaFile, isMediaHomeGuild, MEDIA_HOME_ONLY_MESSAGE } from './utils/modMedia.js';
 import { MEDIA_POOLS, MAX_VARIANT_LENGTH } from '../utils/data/mediaPoolConfig.js';
 import { addModRedeemSubcommands, executeModRedeem, autocompleteRedeemCode } from './redeem.js';
+
+const addMediaPoolChoices = (opt: SlashCommandStringOption) =>
+    opt.addChoices(
+        { name: MEDIA_POOLS.booba.label, value: 'booba' },
+        { name: MEDIA_POOLS.booty.label, value: 'booty' });
 
 /**
  * /mod — moderator tools, hidden from everyone else.
@@ -482,7 +488,31 @@ export default {
                     .setName('variant')
                     .setDescription('Optional, such as a skin name')
                     .setRequired(false)
-                    .setMaxLength(MAX_VARIANT_LENGTH))))
+                    .setMaxLength(MAX_VARIANT_LENGTH)))
+            .addSubcommand(sub => sub
+                .setName('list')
+                .setDescription('List the files in the booba? or booty? pool')
+                .addStringOption(opt => addMediaPoolChoices(opt
+                    .setName('pool')
+                    .setDescription('Which pool')
+                    .setRequired(true)))
+                .addStringOption(opt => opt
+                    .setName('character')
+                    .setDescription('Only this character\'s files')
+                    .setRequired(false)
+                    .setAutocomplete(true)))
+            .addSubcommand(sub => sub
+                .setName('remove')
+                .setDescription('Remove a gif from the booba? or booty? pool (asks you to confirm)')
+                .addStringOption(opt => addMediaPoolChoices(opt
+                    .setName('pool')
+                    .setDescription('Which pool')
+                    .setRequired(true)))
+                .addStringOption(opt => opt
+                    .setName('file')
+                    .setDescription('The file to remove, searchable by name')
+                    .setRequired(true)
+                    .setAutocomplete(true))))
         .addSubcommandGroup(group => addModRedeemSubcommands(
             group.setName('redeem').setDescription('Coupon codes and subscribers'))),
 
@@ -519,6 +549,8 @@ export default {
                     return;
                 }
                 if (sub === 'add') return await handleMediaAdd(interaction, guild, findModLogChannel);
+                if (sub === 'list') return await handleMediaList(interaction, guild);
+                if (sub === 'remove') return await handleMediaRemove(interaction, guild, findModLogChannel);
             } else if (group === 'redeem') {
                 return await executeModRedeem(interaction);
             }
@@ -540,8 +572,12 @@ export default {
                 await interaction.respond([]);
                 return;
             }
-            if (group === 'media' && sub === 'add') {
+            if (group === 'media' && (sub === 'add' || sub === 'list')) {
                 await autocompleteMediaCharacter(interaction);
+                return;
+            }
+            if (group === 'media' && sub === 'remove') {
+                await autocompleteMediaFile(interaction);
                 return;
             }
             if (group === 'redeem' && sub === 'remove') {

@@ -15,8 +15,11 @@ import {
     findFreeFileName,
     getNikkeCharacters,
     isGifBytes,
+    listPoolFiles,
+    removeMediaFromPool,
     resetMediaPoolCaches,
     searchCharacters,
+    searchFileNames,
     slugify,
     validateAttachment,
 } from '../mediaPoolService';
@@ -203,5 +206,96 @@ describe('addMediaToPool', () => {
         await addMediaToPool('booty', 'anis', null, attachment());
         await getRandomCdnMediaUrl('commands/booty/', 'g1');
         expect(lists()).toBe(2); // re-listed
+    });
+});
+
+describe('listPoolFiles', () => {
+    function fakeList(pages: Array<{ keys: string[]; next?: string }>) {
+        send.mockImplementation(async (command: any) => {
+            const token = command.input.ContinuationToken;
+            const page = pages[token ? Number(token) : 0];
+            return {
+                Contents: page.keys.map(Key => ({ Key })),
+                IsTruncated: page.next !== undefined,
+                NextContinuationToken: page.next,
+            };
+        });
+    }
+
+    it('follows continuation tokens, strips the prefix and sorts', async () => {
+        fakeList([
+            { keys: ['commands/booty/b_booty.gif', 'commands/booty/'], next: '1' },
+            { keys: ['commands/booty/a_booty.gif'] },
+        ]);
+        expect(await listPoolFiles('booty')).toEqual(['a_booty.gif', 'b_booty.gif']);
+        expect(send.mock.calls[0][0].input).toMatchObject({ Bucket: 'test-bucket', Prefix: 'commands/booty/' });
+        expect(send.mock.calls[1][0].input.ContinuationToken).toBe('1');
+    });
+
+    it('filters to one character by slug prefix', async () => {
+        fakeList([{ keys: ['commands/booba/anis_oppai.gif', 'commands/booba/anis_2_oppai.gif', 'commands/booba/anisa_oppai.gif'] }]);
+        expect(await listPoolFiles('booba', 'anis')).toEqual(['anis_2_oppai.gif', 'anis_oppai.gif']);
+    });
+
+    it('returns an empty list for an empty pool', async () => {
+        send.mockResolvedValue({});
+        expect(await listPoolFiles('booba')).toEqual([]);
+    });
+});
+
+describe('searchFileNames', () => {
+    it('matches case-insensitively and caps the result', () => {
+        expect(searchFileNames(['a_oppai.gif', 'B_oppai.gif', 'c_oppai.gif'], 'B_')).toEqual(['B_oppai.gif']);
+        expect(searchFileNames(['a', 'aa', 'aaa'], 'a', 2)).toEqual(['a', 'aa']);
+    });
+});
+
+describe('removeMediaFromPool', () => {
+    it('deletes the file, then drops the cached listing', async () => {
+        const deletes: any[] = [];
+        send.mockImplementation(async (command: any) => {
+            const name = command.constructor.name;
+            if (name === 'HeadObjectCommand') return {};
+            if (name === 'DeleteObjectCommand') {
+                deletes.push(command.input);
+                return {};
+            }
+            throw new Error(`unexpected ${name}`);
+        });
+        const result = await removeMediaFromPool('booba', 'rapi_oppai.gif');
+        expect(deletes).toEqual([{ Bucket: 'test-bucket', Key: 'commands/booba/rapi_oppai.gif' }]);
+        expect(result.url).toBe('https://cdn.example.com/commands/booba/rapi_oppai.gif');
+    });
+
+    it.each(['../booty/rapi_booty.gif', 'sub/rapi_oppai.gif', 'a\\b.gif', '..', ''])(
+        'rejects the unsafe name %j without touching S3',
+        async name => {
+            await expect(removeMediaFromPool('booba', name)).rejects.toThrow('not a valid file name');
+            expect(send).not.toHaveBeenCalled();
+        }
+    );
+
+    it('rejects a file that does not exist and deletes nothing', async () => {
+        fakeS3();
+        await expect(removeMediaFromPool('booba', 'rapi_oppai.gif')).rejects.toThrow('not in this pool');
+        expect(send.mock.calls.some(c => c[0].constructor.name === 'DeleteObjectCommand')).toBe(false);
+    });
+});
+
+describe('removeMediaFromPool cache', () => {
+    it('invalidates the pool listing cache so the file stops being picked', async () => {
+        fakeS3(['commands/booba/a_oppai.gif']);
+        const lists = () => send.mock.calls.filter(c => c[0].constructor.name === 'ListObjectsV2Command').length;
+        await getRandomCdnMediaUrl('commands/booba/', 'g1');
+        await getRandomCdnMediaUrl('commands/booba/', 'g1');
+        expect(lists()).toBe(1);
+        send.mockImplementation(async (command: any) => {
+            const name = command.constructor.name;
+            if (name === 'HeadObjectCommand' || name === 'DeleteObjectCommand') return {};
+            return { Contents: [{ Key: 'commands/booba/a_oppai.gif', Size: 10 }] };
+        });
+        await removeMediaFromPool('booba', 'a_oppai.gif');
+        await getRandomCdnMediaUrl('commands/booba/', 'g1');
+        expect(lists()).toBe(2);
     });
 });
