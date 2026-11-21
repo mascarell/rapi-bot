@@ -51,15 +51,19 @@ bun run start
 ### 4. **Community Moderation**
 - Slur auto-moderation: delete, DM, 30-minute timeout, mod-log embed
 - `/mod slur` lets each server's moderators keep their own slur list alongside the built-in one, hidden from regular members
-- Rate limiting for chat commands (3 per hour)
+- Chat commands work in `#rapi-bot`; the `ccp` ones also work elsewhere, 3 per hour, and 8 blocked tries in an hour is a 5-minute timeout
 - Sensitive terms checking with timeout enforcement
 - Spam statistics and violation tracking
 - Permission-based command access
 
 ### 5. **Chat Commands**
-- 35+ fun response commands (media and text)
-- Dynamic rate limiting
-- Usage analytics and leaderboards
+- 35+ fun response commands (media and text), listed by `/help`
+- Only in `#rapi-bot`, except the `ccp` family (servers without a `#rapi-bot` channel have no limit)
+- Moderators in the home server add gifs to the `booba?` / `booty?` pools with `/mod media add`
+
+### 6. **Server Rules**
+- `/rules` shows the home server's rules there; other servers get a pointer to their own `#rules` channel
+- On startup the rules message in the home server's `#rules` is posted or updated
 
 ## 📁 Project Structure
 
@@ -169,10 +173,10 @@ WAIFUPORT=8080
 
 ### Adding a New Command
 
-1. Create `src/commands/command-name.ts` using standard command structure
-2. Import in `src/discord.ts` and add to command collection
-3. Add tests in `src/commands/tests/`
-4. Update `/help` command if user-facing
+1. Create `src/commands/command-name.ts` using standard command structure, server-only (`.setContexts(InteractionContextType.Guild)`); every file there is loaded automatically
+2. Add tests in `src/commands/tests/`
+3. If user-facing, add it to `SLASH_COMMANDS` in `src/commands/help.ts`
+4. If mod-only, add it under `/mod` instead
 
 ### Adding a New Service
 
@@ -276,7 +280,7 @@ This project is open source. See the repository for license information.
 - `/redeem preferences <game>` - Configure notifications
 - `/redeem help` - View help and FAQs
 
-New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-dust-2` / `#chaos-zero-nightmare` (or `#bd2` / `#czn`), with **Redeem for me**, **Copy code** and a link to the official coupon page, plus a reminder when a code has a day or less left. Add `announceChannelNames` to a game in `src/utils/data/gachaGamesConfig.ts` to post another game's codes.
+New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-dust-2` / `#chaos-zero-nightmare` (or `#bd2` / `#czn`), with **Redeem for me**, **Copy code** and a link to the official coupon page, plus a reminder when a code has a day or less left. Rapi pins each new-code post (she needs Pin Messages in that channel) and unpins it once the code expires or is removed. Add `announceChannelNames` to a game in `src/utils/data/gachaGamesConfig.ts` to post another game's codes.
 
 #### Moderator Commands
 - `/mod media add` - Add a `.gif` to the `booba?` or `booty?` pool (Rapi home server only; gif only, 25 MB max; named `<character>[_<variant>]_<oppai|booty>.gif`; asks you to confirm before uploading)
@@ -286,8 +290,11 @@ New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-d
 - `/mod redeem stats` - View analytics
 - `/mod redeem subscribers` - View subscriber list
 - `/mod redeem trigger` - Manual auto-redemption
-- `/mod redeem scrape` - Fetch codes from BD2 Pulse
-- `/mod redeem lookup | unsub | update | reset` - Look up, unsubscribe, edit or reset a member's subscription
+- `/mod redeem scrape` - Fetch codes from Gachafeed and BD2 Pulse now
+- `/mod redeem lookup | unsub | reset` - Look up, unsubscribe or reset a member's subscription
+- `/mod redeem update` - Change a member's account details (`userid`, `nickname`, `server`); anything left out stays as it is
+
+Every `/mod redeem` tool except `list` works in the Rapi home server only, because codes and subscriptions are shared by every server. In other servers `/mod` doesn't show them at all.
 
 The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that point to `/mod redeem`.
 
@@ -299,6 +306,7 @@ The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that 
 | Expiration Warnings | Daily 09:00 | Every 5min |
 | Weekly Digest | Sundays 12:00 | Every 10min |
 | Expired Cleanup | Daily 00:00 | Every 15min |
+| Unpin finished code posts | :05 and :35 | Every 2min |
 
 #### Adding a New Game
 
@@ -369,14 +377,17 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 **Moderator Commands:**
 - Server owner, Administrator or Timeout Members permission, or a role named `mods`
 - Check: `isModerator(interaction)` (or `await checkModPermission(interaction)`)
-- `/mod` is hidden from members without the Timeout Members permission; server admins can narrow it further under Server Settings > Integrations
+- `/mod` is hidden from members without the Timeout Members permission. To show it to a `mods` role without that permission, add the role to `/mod` under Server Settings > Integrations > Rapi
+- `/mod` is registered per server: the home server gets every tool, other servers get it without `media` and with only `redeem list`. Everything else is registered globally
+- Every slash command is server-only (none work in DMs)
 - `/mod slur list | add | remove | test | history` manages this server's own slur list (see CLAUDE.md)
 - `/mod spam stats | reset` shows spam protection statistics and resets a member's chat command limit
-- `/mod redeem ...` holds the coupon moderator tools (add, remove, list, trigger, scrape, stats, subscribers, lookup, unsub, update, reset)
+- `/mod redeem ...` holds the coupon moderator tools (add, remove, list, trigger, scrape, stats, subscribers, lookup, unsub, update, reset); home server only except `list`
+- `/mod media add` adds a gif to a chat command pool; home server only
 
 **Rate Limiting:**
-- 3 chat commands per hour per user
-- Resets at top of every hour (UTC)
+- Outside `#rapi-bot`, 3 `ccp` chat commands per hour per user; other chat commands only run in `#rapi-bot`
+- Resets at top of every hour (UTC); 8 blocked attempts in an hour is a 5-minute timeout
 - View status: `/spam check`
 - Mod stats: `/mod spam stats` (moderators; `/spam stats` and `/spam reset` now just point there)
 

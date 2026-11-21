@@ -64,6 +64,7 @@ class GachaGuildConfigService {
     private static instance: GachaGuildConfigService;
     private cache: GachaGuildConfig | null = null;
     private cacheExpiry: number = 0;
+    private pendingRefresh: Promise<GachaGuildConfig> | null = null;
     private readonly CACHE_TTL = GACHA_CONFIG.CACHE_TTL;
 
     private constructor() {}
@@ -83,6 +84,30 @@ class GachaGuildConfigService {
             return this.cache;
         }
 
+        // An expired copy is answered straight away and refreshed behind it.
+        // Commands that may open a form (/redeem subscribe, edit) check the
+        // allowlist before they can answer, and a storage read there could run
+        // past Discord's 3 seconds. Only the very first read ever waits.
+        if (this.cache) {
+            const stale = this.cache;
+            this.refreshConfig().catch(error => logger.error`Background guild config refresh failed: ${error}`);
+            return stale;
+        }
+
+        return this.refreshConfig();
+    }
+
+    /** One read of the config from storage at a time; callers share it. */
+    private refreshConfig(): Promise<GachaGuildConfig> {
+        if (!this.pendingRefresh) {
+            this.pendingRefresh = this.fetchConfig().finally(() => {
+                this.pendingRefresh = null;
+            });
+        }
+        return this.pendingRefresh;
+    }
+
+    private async fetchConfig(): Promise<GachaGuildConfig> {
         try {
             const response = await s3Client.send(new GetObjectCommand({
                 Bucket: S3_BUCKET,

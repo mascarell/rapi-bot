@@ -117,7 +117,11 @@ GachaCouponData {
     ids are `coupon:<action>:<game>[:<code>]`, routed globally in `discord.ts`,
     so buttons on old posts keep working after a restart. The daily 09:00 UTC
     expiry run posts a warning for codes with a day or less left. Posting never
-    throws into the DMs and redemptions that follow it.
+    throws into the DMs and redemptions that follow it. New-code posts are
+    pinned (the "pinned a message" notice is deleted); `unpinFinished`, at :05
+    and :35, unpins Rapi's posts whose code is no longer in `getActiveCoupons`.
+    It matches posts by title (`newPostTitle`) and reads the code from the
+    embed (`codeFromPost`), so nothing is stored. Expiry warnings aren't pinned.
 11. **One member, one code, one send at a time** (`pendingRedemptions`): the
     new-code fan-out claims its subscribers before posting, and the six-hourly
     run claims each code until its batch write; a button press for a claimed
@@ -128,6 +132,13 @@ GachaCouponData {
     `acknowledge()` only uses `deferUpdate` when the source message is
     ephemeral; otherwise the reply would overwrite the public post with one
     member's account details.
+13. **Defer before storage.** `/redeem unsubscribe | status | codes |
+    preferences | switch` and `/mod redeem add | remove | unsub | update |
+    lookup | reset | stats` are deferred by the dispatcher (`MEMBER_DEFERRED`,
+    `MOD_DEFERRED`), so their handlers answer with `editReply`. `subscribe` and
+    `edit` can't be deferred because they may open a form; they rely on the
+    allowlist check being instant, which `gachaGuildConfigService` guarantees by
+    answering from an expired cache while it refreshes in the background.
 
 The schema stays at version 1: every field added since (`gameUserFields`,
 `identityVerifiedAt`, `identityRejectedAt`, `previousIdentity`) is optional, so stored records
@@ -151,13 +162,18 @@ so moderator tools belong under `/mod` rather than as subcommands of
 member-facing commands like `/redeem` or `/spam`. Mod-only tools are being
 migrated here one command set at a time.
 
-- Hidden from members without **Timeout Members**; server-only (`setContexts(Guild)`).
+- Hidden from members without **Timeout Members**; server-only (`setContexts(Guild)`, like every slash command).
+- **Registered per server** (`utils/commandRegistration.ts`): every other command is
+  global, `/mod` is put in each guild on ready and on `GuildCreate`. The home
+  server gets the whole command; elsewhere `modCommandFor` drops `media` and
+  every `redeem` subcommand not in `OPEN_EVERYWHERE`. The refusals in the
+  handlers stay as the real check.
 - Picker visibility is a convenience, not the check: admins can override it in
   Server Settings > Integrations. Every subcommand and the autocomplete re-check
   the caller with `isModerator()` (owner, Administrator, Timeout Members, or a
   role named `mods`).
 - `/mod spam stats | reset` (logic in `commands/utils/spamModeration.ts`). `/spam stats` and `/spam reset` remain for one release as stubs that point here; `/spam check` stays for members.
-- `/mod redeem add | remove | list | trigger | unsub | update | lookup | reset | scrape | stats | subscribers` (option builder `addModRedeemSubcommands`, dispatch `executeModRedeem`, code autocomplete `autocompleteRedeemCode`, all in `commands/redeem.ts`; same gacha server allowlist as `/redeem`). The same 11 names remain on `/redeem` for one release as option-less stubs replying "This moved to `/mod redeem <name>`"; member subcommands stay on `/redeem`.
+- `/mod redeem add | remove | list | trigger | unsub | update | lookup | reset | scrape | stats | subscribers` (`update` takes `userid`, `nickname`, `server`, all optional; omitted ones keep their stored value, and it saves through `updateGameIdentity` like `/redeem edit`) (option builder `addModRedeemSubcommands`, dispatch `executeModRedeem`, code autocomplete `autocompleteRedeemCode`, all in `commands/redeem.ts`; same gacha server allowlist as `/redeem`). The same 11 names remain on `/redeem` for one release as option-less stubs replying "This moved to `/mod redeem <name>`"; member subcommands stay on `/redeem`.
 - `/mod media add` (home server only, `MEDIA_HOME_GUILD_ID`; elsewhere an ephemeral refusal and empty autocomplete): adds a `.gif` (max 25 MB, checked by content type, extension and `GIF8` header) to the `booba?` / `booty?` S3 pools. Name is `<characterSlug>[_<variant>]_<oppai|booty>.gif`, lowercase `[a-z0-9_]`, and `_2_`, `_3_` before the suffix on a collision so nothing is overwritten. Shows an Add/Cancel preview first, then uploads, invalidates the media list cache and posts to the mod-log channel. Logic in `services/mediaPoolService.ts`, command glue in `commands/utils/modMedia.ts`, config in `utils/data/mediaPoolConfig.ts`. Characters come from the NIKKE asset manifest.
 - A slash command definition is capped at 8000 characters; `commands/tests/modCommandSize.test.ts` checks `/mod` against it.
 - **Everything acts on the calling server only**, except `/mod redeem`: coupons and subscriptions are shared by every server, so its write subcommands (`add, remove, trigger, unsub, update, reset, scrape`), `subscribers` and `lookup` are home-server only (`HOME_GUILD_ID` in `utils/data/homeGuild.ts`; the code autocomplete is empty elsewhere). only `list` works in every allowlisted server (an allow-list, `OPEN_EVERYWHERE`, so new subcommands are home-only by default). The bot is open source and
@@ -310,7 +326,8 @@ const logoUrl = ASSET_URLS.nikke.logo;
 
 **Message Handler** (`src/handlers/messageHandler.ts`):
 - Processes `messageCreate` and `messageUpdate` events
-- Rate limiting, sensitive terms checking
+- Sensitive terms checking
+- Chat commands run only in `#rapi-bot`, except the `ccp` family, which is limited to 3 per hour outside it (`ChatCommandRateLimiter`; 8 blocked tries in an hour is a 5-minute timeout). A guild with no `#rapi-bot` channel has no gate and no limit. Chat command names are matched by `name` (e.g. `booba?`), not registry key
 - Chat command execution
 - URL embed fix integration
 
@@ -347,11 +364,11 @@ export const getMyService = (): MyService => MyService.getInstance();
 ### Common Patterns
 
 **Adding a new slash command:**
-1. Create file in `src/commands/command-name.ts`
-2. Use standard command structure with proper imports
-3. Import in `src/discord.ts` and add to command collection
-4. Add tests in `src/commands/tests/`
-5. Update help command if user-facing
+1. Create file in `src/commands/command-name.ts`; `discord.ts` loads every file there
+2. Use standard command structure with proper imports, including `.setContexts(InteractionContextType.Guild)` (`commandContexts.test.ts` checks every command)
+3. Add tests in `src/commands/tests/`
+4. If user-facing, add it to `SLASH_COMMANDS` in `src/commands/help.ts` (chat commands are listed automatically)
+5. If mod-only, make it a subcommand of `/mod` instead
 
 **Adding a new /redeem subcommand:**
 1. Add to SlashCommandBuilder (around line 1170-1220)
@@ -391,22 +408,24 @@ None of these are needed to run the gates — see "Cloud Sessions" below.
 - Auto-redemption: every 6h at :15, i.e. 00:15/06:15/12:15/18:15 UTC (prod), off the :00/:30 code sync / 3min (dev)
 - Code scraping: every 30min (prod) / 2min (dev)
 - Expired cleanup: daily midnight (prod) / 15min (dev)
+- Unpin finished code posts: :05 and :35 (prod) / code-scraping interval (dev)
+- Expiration warnings: daily 09:00 UTC; weekly digest: Sundays 12:00 UTC
 
 ## Rules Management System
 
 ### Architecture
 - `rulesManagementService.ts` - Manages rules messages in #rules channels
 - Uses same S3 guild config as gacha coupon system (`allowedGuildIds`)
-- Auto-initializes on bot startup for all allowed guilds
+- Posts or updates the rules message on startup in the **home server only**: the text names that server's emoji, channel and owner
 
 ### Commands
 | Command | Access | Description |
 |---------|--------|-------------|
-| `/rules` | Everyone | Display rules content (ephemeral) |
+| `/rules` | Everyone | Home server: the rules (ephemeral). Other allowlisted servers: a pointer to their own `#rules` |
 
 ### Important Behaviors
-1. **Auto-initialization**: On startup, bot processes all `allowedGuildIds` from S3 config
-2. **Dynamic channel finding**: Searches for channel named `rules` in each guild
+1. **Auto-initialization**: On startup, the home server's `#rules` gets the message (other allowlisted guilds are skipped)
+2. **Dynamic channel finding**: Searches for a channel named `rules`
 3. **Message persistence**: Finds existing bot message or creates new one
 4. **Ephemeral display**: `/rules` command shows content only to the user who invoked it
 
