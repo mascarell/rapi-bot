@@ -1,3 +1,10 @@
+## [2.23.1](https://github.com/mascarell/rapi-bot/compare/v2.23.0...v2.23.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **commands:** every CZN detail in /mod redeem update and lookup; server-only commands ([#267](https://github.com/mascarell/rapi-bot/issues/267)) ([39bc8b1](https://github.com/mascarell/rapi-bot/commit/39bc8b1d048c33727c797678d734aa8ebbb2a884))
+
 # [2.23.0](https://github.com/mascarell/rapi-bot/compare/v2.22.3...v2.23.0) (2026-11-21)
 
 
