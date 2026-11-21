@@ -1,6 +1,6 @@
 import { Message, ChannelType, TextChannel, PartialMessage } from 'discord.js';
 import { CustomClient } from '../utils/interfaces/CustomClient.interface.js';
-import { getChatCommand, getChatCommandNames } from '../chatCommands/index.js';
+import { getChatCommand } from '../chatCommands/index.js';
 import { checkSensitiveTerms } from '../utils/sensitiveTermsChecker.js';
 import { getSlurModerationService } from '../services/slurModerationService.js';
 import { checkEmbedFixUrls } from '../services/embedFix/urlFixService.js';
@@ -83,9 +83,6 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
     if (!command) return;
 
     // Check if command exists
-    const allChatCommandNames = getChatCommandNames();
-    const isChatCommand = allChatCommandNames.includes(command);
-
     const matchedCommand = bot.commands.get(command);
     const chatCommand = getChatCommand(command);
 
@@ -98,18 +95,17 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
 
     try {
         const ignoredRole = findRoleByName(msg.guild, 'Grounded');
-        const contentCreatorRole = findRoleByName(msg.guild, 'Content Creator');
 
         const hasIgnoredRole = ignoredRole && msg.member.roles.cache.has(ignoredRole.id);
-        const hasContentCreatorRole = contentCreatorRole && msg.member.roles.cache.has(contentCreatorRole.id);
 
-        // Block non-ccp chat commands outside #rapi-bot
-        if (isChatCommand && !isCcpCommand && !isRapiBotChannel) {
-            const rapiBotChannelId = msg.guild.channels.cache.find(
-                channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot'
-            )?.id;
+        const rapiBotChannelId = msg.guild.channels.cache.find(
+            channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot'
+        )?.id;
 
-            const channelMention = rapiBotChannelId ? `<#${rapiBotChannelId}>` : '#rapi-bot';
+        // Block non-ccp chat commands outside #rapi-bot, but only when the guild
+        // actually has a #rapi-bot channel to point members at.
+        if (!isCcpCommand && !isRapiBotChannel && rapiBotChannelId) {
+            const channelMention = `<#${rapiBotChannelId}>`;
 
             const warningMsg = await msg.reply({
                 content: `Commander ${msg.author}, this command is only available in ${channelMention}.`
@@ -126,8 +122,9 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
             return;
         }
 
-        // Rate limit ccp chat commands (only path that reaches here outside rapi-bot)
-        if (isChatCommand && !isRapiBotChannel) {
+        // Rate limit ccp commands outside #rapi-bot. A guild without a #rapi-bot
+        // channel has no limits at all, as before: there's nowhere to send people.
+        if (!isRapiBotChannel && rapiBotChannelId) {
             const guildId = msg.guild.id;
             const userId = msg.author.id;
 
@@ -150,12 +147,12 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
                 }
 
                 // Send temporary warning message
-                const rapiBotChannelId = msg.guild.channels.cache.find(
-                    channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot'
-                )?.id || 'unknown';
+                const unlimitedHint = rapiBotChannelId
+                    ? `\n\nUse <#${rapiBotChannelId}> for unlimited commands.`
+                    : '';
 
                 const warningMsg = await msg.reply({
-                    content: `Commander ${msg.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.\n\nUse <#${rapiBotChannelId}> for unlimited commands.`
+                    content: `Commander ${msg.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.${unlimitedHint}`
                 });
 
                 // Delete warning after 5 seconds
@@ -175,9 +172,7 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
             // Increment command counter
             getUptimeService().incrementCommands();
 
-            if (matchedCommand.name === 'content' && hasContentCreatorRole) {
-                await matchedCommand.execute(msg, args);
-            } else if (!hasIgnoredRole) {
+            if (!hasIgnoredRole) {
                 await matchedCommand.execute(msg, args);
             }
         }

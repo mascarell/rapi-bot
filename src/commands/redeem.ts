@@ -45,6 +45,7 @@ import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { formatDate, parseExpirationDate, isExpiringSoon, isExpired } from '../utils/dateHelpers.js';
 import { validateGameId, validateSubscriptionMode, validateGameUserId } from '../utils/validators.js';
 import { createPaginatedMessage } from './utils/paginationBuilder.js';
+import { HOME_GUILD_ID } from '../utils/data/homeGuild.js';
 
 const ASSET_URLS = getAssetUrls();
 
@@ -1753,17 +1754,17 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
         embed.addFields({
             name: 'Mod Commands',
             value: [
-                '`/mod redeem add` - Add a new coupon code',
-                '`/mod redeem remove` - Deactivate a coupon code',
+                '`/mod redeem add` - Add a new coupon code (home server only)',
+                '`/mod redeem remove` - Deactivate a coupon code (home server only)',
                 '`/mod redeem list` - View all codes with stats',
-                '`/mod redeem trigger` - Manually trigger auto-redemption',
-                '`/mod redeem scrape` - Fetch new codes from Gachafeed and BD2 Pulse',
-                '`/mod redeem stats` - View analytics',
-                '`/mod redeem subscribers` - View paginated list of subscribers',
-                '`/mod redeem lookup` - View user subscription details',
-                '`/mod redeem unsub` - Force unsubscribe a user',
-                '`/mod redeem update` - Update user\'s game ID',
-                '`/mod redeem reset` - Reset user\'s redeemed codes',
+                '`/mod redeem trigger` - Manually trigger auto-redemption (home server only)',
+                '`/mod redeem scrape` - Fetch new codes from Gachafeed and BD2 Pulse (home server only)',
+                '`/mod redeem stats` - View analytics (home server only)',
+                '`/mod redeem subscribers` - View paginated list of subscribers (home server only)',
+                '`/mod redeem lookup` - View user subscription details (home server only)',
+                '`/mod redeem unsub` - Force unsubscribe a user (home server only)',
+                '`/mod redeem update` - Update user\'s game ID (home server only)',
+                '`/mod redeem reset` - Reset user\'s redeemed codes (home server only)',
             ].join('\n'),
         });
     }
@@ -1946,6 +1947,20 @@ export function addModRedeemSubcommands(group: SlashCommandSubcommandGroupBuilde
 }
 
 /**
+ * Subcommands any allowlisted server may use. Coupons and subscriptions are
+ * shared by every server, so everything else (including future subcommands)
+ * is home-server only by default.
+ */
+const OPEN_EVERYWHERE: ReadonlySet<string> = new Set(['list']);
+
+const HOME_ONLY_WRITE_MESSAGE =
+    'Coupon codes and subscriptions are shared by every server, so only moderators in the Rapi home server can change them. Ask a moderator there.';
+const HOME_ONLY_DETAILS_MESSAGE =
+    'Subscriber details cover every server, so only moderators in the Rapi home server can see them. Ask a moderator there.';
+const HOME_ONLY_GENERIC_MESSAGE =
+    'This covers every server, so only moderators in the Rapi home server can use it. Ask a moderator there.';
+
+/**
  * /mod redeem <sub>. /mod has already checked the caller is a moderator, so
  * only the server allowlist is checked here.
  */
@@ -1959,7 +1974,19 @@ export async function executeModRedeem(interaction: ChatInputCommandInteraction)
         return;
     }
 
-    switch (interaction.options.getSubcommand()) {
+    const subcommand = interaction.options.getSubcommand();
+    if (!OPEN_EVERYWHERE.has(subcommand) && interaction.guildId !== HOME_GUILD_ID) {
+        let content = HOME_ONLY_GENERIC_MESSAGE;
+        if (['add', 'remove', 'trigger', 'unsub', 'update', 'reset', 'scrape'].includes(subcommand)) {
+            content = HOME_ONLY_WRITE_MESSAGE;
+        } else if (subcommand === 'subscribers' || subcommand === 'lookup') {
+            content = HOME_ONLY_DETAILS_MESSAGE;
+        }
+        await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+        return;
+    }
+
+    switch (subcommand) {
         case 'add': return handleModAdd(interaction);
         case 'remove': return handleModRemove(interaction);
         case 'list': return handleModList(interaction);
@@ -1978,6 +2005,11 @@ export async function executeModRedeem(interaction: ChatInputCommandInteraction)
 
 /** Suggest active coupon codes for the game already chosen in the same command. */
 export async function autocompleteRedeemCode(interaction: AutocompleteInteraction): Promise<void> {
+    if (interaction.guildId !== HOME_GUILD_ID) {
+        await interaction.respond([]);
+        return;
+    }
+
     const focusedOption = interaction.options.getFocused(true);
     if (focusedOption.name !== 'code') {
         await interaction.respond([]);

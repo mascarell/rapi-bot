@@ -1,7 +1,7 @@
 export const CHAT_COMMAND_RATE_LIMIT = {
     maxCommands: 3,
     cleanupIntervalMs: 2 * 60 * 60 * 1000, // 2 hours
-    violatorThreshold: 5 // Mark as violator if they try 5+ times
+    violatorThreshold: 5 // Listed as a violator after 5+ blocked attempts in an hour
 } as const;
 
 function getCurrentHourKey() {
@@ -12,7 +12,7 @@ function getCurrentHourKey() {
 export class ChatCommandRateLimiter {
     // usage[guildId][userId] = { hourKey: string, count: number }
     private static usage: Record<string, Record<string, { hourKey: string, count: number }>> = {};
-    // violators[guildId][userId] = total attempts (including blocked ones)
+    // violators[guildId][userId] = blocked attempts this hour
     private static violators: Record<string, Record<string, number>> = {};
     // commandUsage[guildId][commandName] = count of times this command was used (per hour)
     private static commandUsage: Record<string, Record<string, number>> = {};
@@ -30,12 +30,9 @@ export class ChatCommandRateLimiter {
         if (!this.usage[guildId]) this.usage[guildId] = {};
         if (!this.usage[guildId][userId] || this.usage[guildId][userId].hourKey !== hourKey) {
             this.usage[guildId][userId] = { hourKey, count: 0 };
+            // Violations are per hour, like the limit itself.
+            if (this.violators[guildId]) delete this.violators[guildId][userId];
         }
-
-        // Track total attempts for violator detection
-        if (!this.violators[guildId]) this.violators[guildId] = {};
-        if (!this.violators[guildId][userId]) this.violators[guildId][userId] = 0;
-        this.violators[guildId][userId]++;
 
         // Track command-specific usage
         if (commandName) {
@@ -50,6 +47,10 @@ export class ChatCommandRateLimiter {
         this.guildCommandCount[guildId]++;
 
         if (this.usage[guildId][userId].count >= CHAT_COMMAND_RATE_LIMIT.maxCommands) {
+            // Only blocked attempts count as violations: a member using their
+            // allowance normally must never drift toward the spam timeout.
+            if (!this.violators[guildId]) this.violators[guildId] = {};
+            this.violators[guildId][userId] = (this.violators[guildId][userId] ?? 0) + 1;
             return false;
         }
         this.usage[guildId][userId].count++;

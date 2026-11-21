@@ -4,14 +4,9 @@
  */
 
 import {
-    ActionRowBuilder,
     AttachmentBuilder,
-    ButtonBuilder,
-    ButtonInteraction,
-    ButtonStyle,
     EmbedBuilder,
     Message,
-    MessageFlags,
     MessageReaction,
     PartialMessageReaction,
     PartialUser,
@@ -661,58 +656,6 @@ class EmbedFixService {
         }
 
         return embed;
-    }
-
-    /**
-     * Create action buttons (vote + DM)
-     */
-    createActionButtons(messageId: string, artworkId: string, voteCount: number): ActionRowBuilder<ButtonBuilder> {
-        return new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-                .setCustomId(`embed_vote:${artworkId}`)
-                .setLabel(voteCount.toString())
-                .setEmoji('❤️')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId(`embed_save:${messageId}`)
-                .setLabel('DM')
-                .setEmoji('✉️')
-                .setStyle(ButtonStyle.Secondary)
-        );
-    }
-
-    /**
-     * Handle DM button interaction
-     */
-    async handleBookmarkInteraction(interaction: ButtonInteraction): Promise<void> {
-        try {
-            const originalMessage = interaction.message;
-            const embed = originalMessage.embeds[0];
-
-            if (!embed?.url) {
-                await interaction.reply({
-                    content: 'Could not find the original link.',
-                    flags: MessageFlags.Ephemeral,
-                });
-                return;
-            }
-
-            // Send DM with the link
-            await interaction.user.send({
-                content: embed.url,
-                embeds: [EmbedBuilder.from(embed)],
-            });
-
-            await interaction.reply({
-                content: 'Sent to your DMs!',
-                flags: MessageFlags.Ephemeral,
-            });
-        } catch (error) {
-            await interaction.reply({
-                content: 'Could not send DM. Please check your privacy settings.',
-                flags: MessageFlags.Ephemeral,
-            });
-        }
     }
 
     /**

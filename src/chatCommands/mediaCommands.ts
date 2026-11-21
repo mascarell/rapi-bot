@@ -240,16 +240,6 @@ export const mediaCommands: CommandRegistry = {
         },
     },
 
-    contentSquad: {
-        name: '/content',
-        description: 'content squad ping',
-        async execute(msg: Message) {
-            msg.reply(
-                `<@&1193252857990885476> Commanders, Andersen left a new briefing, please take a look above this message.`
-            );
-        },
-    },
-
     badgirl: {
         name: 'bad girl',
         description: 'bad girl',
@@ -453,7 +443,7 @@ export const mediaCommands: CommandRegistry = {
                 );
 
                 const emoji = msg.guild!.emojis.cache.get('1298977385068236852');
-                const message = getRandomLeadershipPhrase(emoji?.name || undefined);
+                const message = getRandomLeadershipPhrase(emoji?.toString());
 
                 await msg.reply({
                     content: message,

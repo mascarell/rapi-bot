@@ -649,6 +649,7 @@ describe('Redeem Command', () => {
     describe('Mod Add Subcommand', () => {
         beforeEach(() => {
             (mockInteraction.options!.getSubcommand as any).mockReturnValue('add');
+            mockInteraction.guildId = '1054761356416528475'; // home server
             // Give mod permissions
             const modsRole = { name: 'mods' } as Role;
             const mockRolesWithMods = new Collection<string, Role>();
@@ -741,6 +742,7 @@ describe('Redeem Command', () => {
     describe('Mod Remove Subcommand', () => {
         beforeEach(() => {
             (mockInteraction.options!.getSubcommand as any).mockReturnValue('remove');
+            mockInteraction.guildId = '1054761356416528475'; // home server
             // Give mod permissions
             const modsRole = { name: 'mods' } as Role;
             const mockRolesWithMods = new Collection<string, Role>();
@@ -822,6 +824,7 @@ describe('Redeem Command', () => {
     describe('Mod Trigger Subcommand', () => {
         beforeEach(() => {
             (mockInteraction.options!.getSubcommand as any).mockReturnValue('trigger');
+            mockInteraction.guildId = '1054761356416528475'; // home server
             // Give mod permissions
             const modsRole = { name: 'mods' } as Role;
             const mockRolesWithMods = new Collection<string, Role>();
@@ -974,9 +977,83 @@ describe('Redeem Command', () => {
         });
     });
 
+    describe('Home-server-only /mod redeem subcommands', () => {
+        const HOME = '1054761356416528475';
+        const OTHER = '1065055945123708928'; // allowlisted test server, not home
+        const restricted = ['add', 'remove', 'trigger', 'unsub', 'update', 'reset', 'scrape', 'subscribers', 'lookup', 'stats'];
+        const open = ['list'];
+
+        beforeEach(() => {
+            mockInteraction.deferReply = vi.fn().mockResolvedValue(undefined);
+        });
+
+        it.each(restricted)('refuses %s outside the home server', async (sub) => {
+            mockInteraction.guildId = OTHER;
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue(sub);
+            await redeemCommandModule.executeModRedeem(mockInteraction);
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('only moderators in the Rapi home server'),
+                    flags: MessageFlags.Ephemeral,
+                })
+            );
+            expect(mockDataService.addCoupon).not.toHaveBeenCalled();
+            expect(mockInteraction.deferReply).not.toHaveBeenCalled();
+        });
+
+        it('uses the subscriber-details wording for subscribers and lookup', async () => {
+            mockInteraction.guildId = OTHER;
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('subscribers');
+            await redeemCommandModule.executeModRedeem(mockInteraction);
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({ content: expect.stringContaining('Subscriber details cover every server') })
+            );
+        });
+
+        it('allows add in the home server', async () => {
+            mockInteraction.guildId = HOME;
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('add');
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) => {
+                if (name === 'game') return 'bd2';
+                if (name === 'code') return 'homecode';
+                if (name === 'rewards') return '100 Gems';
+                return null;
+            });
+            await redeemCommandModule.executeModRedeem(mockInteraction);
+            expect(mockDataService.addCoupon).toHaveBeenCalled();
+        });
+
+        it.each(open)('does not apply the home-server refusal to %s', async (sub) => {
+            mockInteraction.guildId = OTHER;
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue(sub);
+            try {
+                await redeemCommandModule.executeModRedeem(mockInteraction);
+            } catch {
+                // the handler may fail on thin mocks; only the gate matters here
+            }
+            const replies = (mockInteraction.reply as any).mock.calls.map((c: any[]) => c[0]?.content ?? '');
+            expect(replies.some((c: string) => String(c).includes('only moderators in the Rapi home server'))).toBe(false);
+        });
+
+        it('returns no autocomplete suggestions outside the home server', async () => {
+            const ac: any = {
+                guildId: OTHER,
+                options: {
+                    getFocused: vi.fn().mockReturnValue({ name: 'code', value: 'test' }),
+                    getString: vi.fn().mockReturnValue('bd2'),
+                },
+                respond: vi.fn().mockResolvedValue({}),
+            };
+            await redeemCommandModule.autocompleteRedeemCode(ac);
+            expect(ac.respond).toHaveBeenCalledWith([]);
+            expect(mockDataService.getActiveCoupons).not.toHaveBeenCalled();
+        });
+    });
+
     describe('Autocomplete Handler', () => {
         it('should return filtered codes for autocomplete', async () => {
             const mockAutocomplete: Partial<AutocompleteInteraction> = {
+                guildId: '1054761356416528475',
                 options: {
                     getFocused: vi.fn().mockReturnValue({ name: 'code', value: 'test' }),
                     getString: vi.fn().mockReturnValue('bd2'),

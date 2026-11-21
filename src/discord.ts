@@ -325,42 +325,61 @@ async function initDiscordBot() {
     ChatCommandRateLimiter.init();
 
     bot.once(Events.ClientReady, async () => {
+        const toError = (error: unknown) => error instanceof Error ? error : new Error(String(error));
+
         try {
             setBotActivity();
             greetNewMembers();
             sendRandomMessages();
+        } catch (error) {
+            logError('GLOBAL', 'GLOBAL', toError(error), 'Starting bot activity and scheduled messages');
+        }
 
-            // Initialize all services (gacha, daily reset, channel monitor, etc.)
-            await initializeServices(bot);
-
-            // Setup event handlers
-            bot.on('messageCreate', (msg) => handleMessage(msg, bot));
-            bot.on('messageUpdate', handleMessageUpdate);
-            bot.on(Events.InteractionCreate, async (interaction) => {
-                if (interaction.isChatInputCommand()) {
-                    await handleSlashCommand(interaction, bot);
-                } else if (interaction.isAutocomplete()) {
-                    await handleAutocomplete(interaction, bot);
-                } else if (interaction.isButton() && interaction.customId.startsWith(`${COUPON_BUTTON_PREFIX}:`)) {
-                    // Buttons under coupon posts in game channels. Every other
-                    // button is answered by the collector that created it.
-                    await handleCouponButton(interaction);
-                }
-            });
-
-            // Start Twitch stream status check
-            startStreamStatusCheck(bot);
-
-            // Register slash commands globally
+        // Register slash commands globally. Independent of the services, so a
+        // service failure never leaves the commands unregistered.
+        try {
             const rest = new REST().setToken(DISCORD_TOKEN);
             await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
-            // Start the radio. Scoped to RADIO_CONFIG.GUILD_ID rather than
-            // looping every guild for a channel only one of them has.
-            await getRadioService().start(bot);
-
         } catch (error) {
-            logError('GLOBAL', 'GLOBAL', error instanceof Error ? error : new Error(String(error)), 'Initializing bot');
+            logError('GLOBAL', 'GLOBAL', toError(error), 'Registering slash commands');
+        }
+
+        // Initialize all services (gacha, daily reset, channel monitor, etc.)
+        try {
+            await initializeServices(bot);
+        } catch (error) {
+            logError('GLOBAL', 'GLOBAL', toError(error), 'Initializing services');
+        }
+
+        // Setup event handlers. Attached after the services so they never hit
+        // half-initialised ones, but regardless of whether the services started.
+        bot.on('messageCreate', (msg) => handleMessage(msg, bot));
+        bot.on('messageUpdate', handleMessageUpdate);
+        bot.on(Events.InteractionCreate, async (interaction) => {
+            if (interaction.isChatInputCommand()) {
+                await handleSlashCommand(interaction, bot);
+            } else if (interaction.isAutocomplete()) {
+                await handleAutocomplete(interaction, bot);
+            } else if (interaction.isButton() && interaction.customId.startsWith(`${COUPON_BUTTON_PREFIX}:`)) {
+                // Buttons under coupon posts in game channels. Every other
+                // button is answered by the collector that created it.
+                await handleCouponButton(interaction);
+            }
+        });
+
+        // Start Twitch stream status check
+        try {
+            startStreamStatusCheck(bot);
+        } catch (error) {
+            logError('GLOBAL', 'GLOBAL', toError(error), 'Starting stream status check');
+        }
+
+        // Start the radio. Scoped to RADIO_CONFIG.GUILD_ID rather than
+        // looping every guild for a channel only one of them has.
+        try {
+            await getRadioService().start(bot);
+        } catch (error) {
+            logError('GLOBAL', 'GLOBAL', toError(error), 'Starting radio');
         }
     });
 

@@ -54,7 +54,7 @@ const modCommand = (await import('../mod')).default;
 const redeemModule = await import('../redeem');
 const redeemCommand = redeemModule.default;
 
-const GUILD_ID = '111111111111111111';
+const GUILD_ID = '1054761356416528475'; // the home server: the write subcommands are home-only
 const MOD_MESSAGE = 'Timeout Members';
 const NOT_AVAILABLE = '❌ The gacha coupon system is not available on this server.';
 
@@ -108,6 +108,7 @@ function makeInteraction(opts: {
 
 function makeAutocomplete(opts: { isMod: boolean; sub?: string; group?: string; focused?: string }) {
     return {
+        guildId: GUILD_ID,
         guild: { id: GUILD_ID, ownerId: 'owner-id', roles: { cache: new Map() } },
         memberPermissions: {
             has: (p: bigint) => opts.isMod && p === PermissionFlagsBits.ModerateMembers,

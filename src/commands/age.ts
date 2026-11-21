@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { getUptimeService } from '../services/uptimeService.js';
-import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { replyWithEmbed } from '../utils/interactionHelpers.js';
 import { createRequire } from 'module';
@@ -22,9 +21,7 @@ export default {
             const uptimeService = getUptimeService();
             const deploymentInfo = uptimeService.getDeploymentInfo();
             const serverCount = interaction.client.guilds.cache.size;
-            const guildId = interaction.guildId;
-            const serverCommands = guildId ? ChatCommandRateLimiter.getGuildCommandCount(guildId) : 0;
-            const globalCommands = ChatCommandRateLimiter.getGlobalCommandCount();
+            const commandsExecuted = uptimeService.getCommandsExecuted();
             const startedTimestamp = Math.floor(deploymentInfo.startTime / 1000);
 
             const embed = new EmbedBuilder()
@@ -33,14 +30,11 @@ export default {
                 .setDescription(`I have been running for **${deploymentInfo.formattedUptime}**!`)
                 .addFields(
                     { name: '📅 Started At', value: `<t:${startedTimestamp}:F>\n(<t:${startedTimestamp}:R>)`, inline: true },
-                    { name: '⚡ Commands (Server)', value: `**${serverCommands.toLocaleString()}**`, inline: true },
-                    { name: '\u200B', value: '\u200B', inline: true },
                     { name: '🌐 Servers Connected', value: `**${serverCount}**`, inline: true },
-                    { name: '🌍 Commands (Global)', value: `**${globalCommands.toLocaleString()}**`, inline: true },
-                    { name: '🏷️ Version', value: `\`v${version}\``, inline: true },
+                    { name: '⚡ Commands since start', value: `**${commandsExecuted.toLocaleString()}**`, inline: true },
                 )
                 .setFooter({
-                    text: 'Stay safe on the surface, Commander!',
+                    text: `Stay safe on the surface, Commander! | v${version}`,
                     iconURL: interaction.client.user?.displayAvatarURL()
                 })
                 .setTimestamp();
