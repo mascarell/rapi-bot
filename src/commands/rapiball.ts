@@ -102,7 +102,7 @@ export default {
         
         await interaction.reply({
             content: responseContent,
-            
+            allowedMentions: { parse: [] },
         });
     },
 };

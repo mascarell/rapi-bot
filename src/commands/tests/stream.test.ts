@@ -18,12 +18,15 @@ function fakeInteraction(userId: string, url: string | null) {
         replied: false,
         deferred: false,
         reply: vi.fn().mockResolvedValue(undefined),
+        deferReply: vi.fn().mockResolvedValue(undefined),
+        editReply: vi.fn().mockResolvedValue(undefined),
     };
     return { interaction, send };
 }
 
 const replyText = (interaction: any) => {
-    const arg = interaction.reply.mock.calls[0][0];
+    const call = interaction.reply.mock.calls[0] ?? interaction.editReply.mock.calls[0];
+    const arg = call[0];
     return typeof arg === 'string' ? arg : arg.content;
 };
 
@@ -59,6 +62,8 @@ describe('/stream', () => {
         await stream.execute(interaction);
         expect(send).toHaveBeenCalledWith(expect.stringContaining('<https://example.com/live>'));
         expect(replyText(interaction)).toBe('Stream announcement sent!');
+        expect(interaction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
+        expect(interaction.reply).not.toHaveBeenCalled();
     });
 
     it('does not announce when the stream is offline', async () => {

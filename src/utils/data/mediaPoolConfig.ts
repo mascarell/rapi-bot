@@ -3,8 +3,10 @@
  * for adding to them with `/mod media add`.
  */
 
+import { HOME_GUILD_ID } from './homeGuild.js';
+
 /** The Rapi home server. The only server whose moderators manage these pools. */
-export const MEDIA_HOME_GUILD_ID = '1054761356416528475';
+export const MEDIA_HOME_GUILD_ID = HOME_GUILD_ID;
 
 export type MediaPoolName = 'booba' | 'booty';
 

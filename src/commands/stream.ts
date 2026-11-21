@@ -2,6 +2,7 @@ import {
     SlashCommandBuilder,
     ChatInputCommandInteraction,
     TextChannel,
+    MessageFlags,
 } from 'discord.js';
 import { checkStreamStatus } from '../utils/twitch.js';
 import { logger } from '../utils/logger.js';
@@ -39,9 +40,12 @@ export default {
             return;
         }
 
+        // checkStreamStatus can make several Twitch HTTP calls, so defer first
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
         const isLive = await checkStreamStatus(interaction.client);
         if (!isLive) {
-            await replyEphemeral(interaction, 'Stream is not currently live.');
+            await interaction.editReply('Stream is not currently live.');
             return;
         }
 
@@ -51,6 +55,6 @@ export default {
         } else {
             logger.warning`Channel with ID ${ANNOUNCE_CHANNEL_ID} not found.`;
         }
-        await replyEphemeral(interaction, 'Stream announcement sent!');
+        await interaction.editReply('Stream announcement sent!');
     },
 };

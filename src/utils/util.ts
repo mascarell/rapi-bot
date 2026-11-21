@@ -79,11 +79,7 @@ export async function getFiles(dirPath: string): Promise<Array<{ path: string; n
 export function handleTimeoutError(msg: any, author: any) {
     msg.reply({
         content: `Something caught me off guard...Commander ${author}...`,
-        files: [{
-            attachment: "./src/public/images/commands/goodGirl/commander_rapi_hug.jpg",
-            name: "commander_rapi_hug.jpg",
-        }]
-    });
+    }).catch(() => {});
 }
 
 export function handleTimeout(msg: any, duration: number = 300000) {

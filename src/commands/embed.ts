@@ -62,14 +62,6 @@ export default {
             // Generate artwork ID for voting
             const artworkId = service.generateArtworkId(embedData);
 
-            // Get current vote count (0 for new artwork from command)
-            const voteCount = interaction.guildId
-                ? await getEmbedVotesService().getVoteCount(artworkId, interaction.guildId)
-                : 0;
-
-            // Create action buttons (vote + DM)
-            const row = service.createActionButtons(interaction.id, artworkId, voteCount);
-
             // Handle URL rewrite platforms differently
             if (embedData._useUrlRewrite && embedData._rewrittenUrl) {
                 await interaction.editReply({
@@ -78,7 +70,6 @@ export default {
             } else {
                 await interaction.editReply({
                     embeds: [embed],
-                    components: [row],
                 });
 
                 // Record artwork for voting if in a guild

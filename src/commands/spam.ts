@@ -18,7 +18,7 @@ const ASSET_URLS = getAssetUrls();
 export default {
     data: new SlashCommandBuilder()
         .setName('spam')
-        .setDescription('Manage and monitor chat command spam protection')
+        .setDescription('Check your chat command limit')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('check')
