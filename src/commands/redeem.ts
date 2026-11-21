@@ -17,7 +17,8 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ComponentType
+    ComponentType,
+    SlashCommandSubcommandGroupBuilder
 } from 'discord.js';
 import { getGachaDataService } from '../services/gachaDataService';
 import { getGachaRedemptionService, UserRedemptionSummary, type SingleRedemptionOutcome } from '../services/gachaRedemptionService';
@@ -38,7 +39,7 @@ import {
 import { getGachaGuildConfigService } from '../services/gachaGuildConfigService';
 // Phase 1 & 2 utilities
 import { getAssetUrls } from '../config/assets.js';
-import { checkModPermission, requireModPermission, MOD_REQUIRED_MESSAGE } from '../utils/permissionHelpers.js';
+import { checkModPermission } from '../utils/permissionHelpers.js';
 import { gachaEmbed } from '../utils/embedTemplates.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { formatDate, parseExpirationDate, isExpiringSoon, isExpired } from '../utils/dateHelpers.js';
@@ -1444,7 +1445,7 @@ async function handleModScrape(interaction: ChatInputCommandInteraction): Promis
         }
 
         // Live according to a source but not trusted enough to auto-redeem —
-        // a moderator who has checked one can still add it with /redeem add.
+        // a moderator who has checked one can still add it with /mod redeem add.
         if (result.heldBack.length > 0) {
             const heldList = result.heldBack
                 .map(h => `**${shortName(h.gameId)}** \`${h.code}\` — ${h.reason}`)
@@ -1752,17 +1753,17 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
         embed.addFields({
             name: 'Mod Commands',
             value: [
-                '`/redeem add` - Add a new coupon code',
-                '`/redeem remove` - Deactivate a coupon code',
-                '`/redeem list` - View all codes with stats',
-                '`/redeem trigger` - Manually trigger auto-redemption',
-                '`/redeem scrape` - Fetch new codes from Gachafeed and BD2 Pulse',
-                '`/redeem stats` - View analytics',
-                '`/redeem subscribers` - View paginated list of subscribers',
-                '`/redeem lookup` - View user subscription details',
-                '`/redeem unsub` - Force unsubscribe a user',
-                '`/redeem update` - Update user\'s game ID',
-                '`/redeem reset` - Reset user\'s redeemed codes',
+                '`/mod redeem add` - Add a new coupon code',
+                '`/mod redeem remove` - Deactivate a coupon code',
+                '`/mod redeem list` - View all codes with stats',
+                '`/mod redeem trigger` - Manually trigger auto-redemption',
+                '`/mod redeem scrape` - Fetch new codes from Gachafeed and BD2 Pulse',
+                '`/mod redeem stats` - View analytics',
+                '`/mod redeem subscribers` - View paginated list of subscribers',
+                '`/mod redeem lookup` - View user subscription details',
+                '`/mod redeem unsub` - Force unsubscribe a user',
+                '`/mod redeem update` - Update user\'s game ID',
+                '`/mod redeem reset` - Reset user\'s redeemed codes',
             ].join('\n'),
         });
     }
@@ -1770,10 +1771,241 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
+// ==================== /mod redeem ====================
+
+/** The moderator-only subcommands, in one place so /mod and the /redeem pointers stay in step. */
+export const MOD_REDEEM_SUBCOMMANDS = [
+    'add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers',
+] as const;
+
+/**
+ * Add the moderator subcommands to a builder group. Used by /mod, which is
+ * hidden from members, so these are never offered on the member-facing /redeem.
+ */
+export function addModRedeemSubcommands(group: SlashCommandSubcommandGroupBuilder): SlashCommandSubcommandGroupBuilder {
+    return group
+        // Mod: Add
+        .addSubcommand(sub => sub
+            .setName('add')
+            .setDescription('Add a new coupon code')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('code')
+                .setDescription('The coupon code')
+                .setRequired(true)
+                .setMaxLength(30))
+            .addStringOption(opt => opt
+                .setName('rewards')
+                .setDescription('Reward description')
+                .setRequired(true))
+            .addStringOption(opt => opt
+                .setName('expiration')
+                .setDescription('Expiration date (YYYY-MM-DD or "never")')
+                .setRequired(false))
+            .addStringOption(opt => opt
+                .setName('source')
+                .setDescription('Where this code came from')
+                .setRequired(false)))
+
+        // Mod: Remove
+        .addSubcommand(sub => sub
+            .setName('remove')
+            .setDescription('Remove a coupon code')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('code')
+                .setDescription('Code to remove')
+                .setRequired(true)
+                .setAutocomplete(true)))
+
+        // Mod: List
+        .addSubcommand(sub => sub
+            .setName('list')
+            .setDescription('View all codes and stats')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('filter')
+                .setDescription('Filter codes to display')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All (default)', value: 'all' },
+                    { name: 'Active Only', value: 'active' },
+                    { name: 'Expired/Inactive Only', value: 'expired' }
+                )))
+
+        // Mod: Trigger
+        .addSubcommand(sub => sub
+            .setName('trigger')
+            .setDescription('Manually trigger auto-redemption')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES)))
+
+        // Mod: Unsub (force unsubscribe a user)
+        .addSubcommand(sub => sub
+            .setName('unsub')
+            .setDescription('Force unsubscribe a user')
+            .addUserOption(opt => opt
+                .setName('user')
+                .setDescription('User to unsubscribe')
+                .setRequired(true))
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES)))
+
+        // Mod: Update (change user's game ID)
+        .addSubcommand(sub => sub
+            .setName('update')
+            .setDescription('Update a user\'s game ID')
+            .addUserOption(opt => opt
+                .setName('user')
+                .setDescription('User to update')
+                .setRequired(true))
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('userid')
+                .setDescription('New game user ID')
+                .setRequired(true)))
+
+        // Mod: Lookup (view user's subscriptions)
+        .addSubcommand(sub => sub
+            .setName('lookup')
+            .setDescription('View a user\'s subscriptions')
+            .addUserOption(opt => opt
+                .setName('user')
+                .setDescription('User to lookup')
+                .setRequired(true)))
+
+        // Mod: Reset (reset redeemed codes)
+        .addSubcommand(sub => sub
+            .setName('reset')
+            .setDescription('Reset a user\'s redeemed codes list')
+            .addUserOption(opt => opt
+                .setName('user')
+                .setDescription('User to reset')
+                .setRequired(true))
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES)))
+
+        // Mod: Scrape (fetch codes from Gachafeed, then BD2 Pulse)
+        .addSubcommand(sub => sub
+            .setName('scrape')
+            .setDescription('Fetch new codes from Gachafeed and BD2 Pulse'))
+
+        // Mod: Stats (analytics)
+        .addSubcommand(sub => sub
+            .setName('stats')
+            .setDescription('View redemption analytics and statistics')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Specific game (leave empty for system-wide)')
+                .setRequired(false)
+                .addChoices(...GAME_CHOICES)))
+
+        // Mod: Subscribers (paginated list)
+        .addSubcommand(sub => sub
+            .setName('subscribers')
+            .setDescription('View paginated list of subscribers for a game')
+            .addStringOption(opt => opt
+                .setName('game')
+                .setDescription('Which game')
+                .setRequired(true)
+                .addChoices(...GAME_CHOICES))
+            .addStringOption(opt => opt
+                .setName('mode')
+                .setDescription('Filter by subscription mode')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All', value: 'all' },
+                    { name: '🤖 Auto-Redeem', value: 'auto-redeem' },
+                    { name: '📬 Notification Only', value: 'notification-only' }
+                )));
+}
+
+/**
+ * /mod redeem <sub>. /mod has already checked the caller is a moderator, so
+ * only the server allowlist is checked here.
+ */
+export async function executeModRedeem(interaction: ChatInputCommandInteraction): Promise<void> {
+    const isAllowed = await getGachaGuildConfigService().isGuildAllowed(interaction.guildId);
+    if (!isAllowed) {
+        await interaction.reply({
+            content: '❌ The gacha coupon system is not available on this server.',
+            flags: MessageFlags.Ephemeral
+        });
+        return;
+    }
+
+    switch (interaction.options.getSubcommand()) {
+        case 'add': return handleModAdd(interaction);
+        case 'remove': return handleModRemove(interaction);
+        case 'list': return handleModList(interaction);
+        case 'trigger': return handleModTrigger(interaction);
+        case 'unsub': return handleModUnsub(interaction);
+        case 'update': return handleModUpdate(interaction);
+        case 'lookup': return handleModLookup(interaction);
+        case 'reset': return handleModReset(interaction);
+        case 'scrape': return handleModScrape(interaction);
+        case 'stats': return handleModStats(interaction);
+        case 'subscribers': return handleModSubscribers(interaction);
+        default:
+            await interaction.reply({ content: '❌ Unknown subcommand.', flags: MessageFlags.Ephemeral });
+    }
+}
+
+/** Suggest active coupon codes for the game already chosen in the same command. */
+export async function autocompleteRedeemCode(interaction: AutocompleteInteraction): Promise<void> {
+    const focusedOption = interaction.options.getFocused(true);
+    if (focusedOption.name !== 'code') {
+        await interaction.respond([]);
+        return;
+    }
+
+    const gameIdInput = interaction.options.getString('game');
+    const gameId = gameIdInput && isValidGameId(gameIdInput) ? validateGameId(gameIdInput) : null;
+    if (!gameId) {
+        await interaction.respond([]);
+        return;
+    }
+
+    try {
+        const coupons = await getGachaDataService().getActiveCoupons(gameId);
+        const filtered = coupons
+            .filter(c => c.code.toLowerCase().includes(focusedOption.value.toLowerCase()))
+            .slice(0, 25)
+            .map(c => ({ name: `${c.code} - ${c.rewards}`, value: c.code }));
+        await interaction.respond(filtered);
+    } catch {
+        await interaction.respond([]);
+    }
+}
+
 // ==================== Command Export ====================
 
-export default {
-    data: new SlashCommandBuilder()
+const redeemData = new SlashCommandBuilder()
         .setName('redeem')
         .setDescription('Gacha game coupon redemption system')
 
@@ -1854,166 +2086,6 @@ export default {
                 .setRequired(true)
                 .addChoices(...GAME_CHOICES)))
 
-        // Mod: Add
-        .addSubcommand(sub => sub
-            .setName('add')
-            .setDescription('[Mod] Add a new coupon code')
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES))
-            .addStringOption(opt => opt
-                .setName('code')
-                .setDescription('The coupon code')
-                .setRequired(true)
-                .setMaxLength(30))
-            .addStringOption(opt => opt
-                .setName('rewards')
-                .setDescription('Reward description')
-                .setRequired(true))
-            .addStringOption(opt => opt
-                .setName('expiration')
-                .setDescription('Expiration date (YYYY-MM-DD or "never")')
-                .setRequired(false))
-            .addStringOption(opt => opt
-                .setName('source')
-                .setDescription('Where this code came from')
-                .setRequired(false)))
-
-        // Mod: Remove
-        .addSubcommand(sub => sub
-            .setName('remove')
-            .setDescription('[Mod] Remove a coupon code')
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES))
-            .addStringOption(opt => opt
-                .setName('code')
-                .setDescription('Code to remove')
-                .setRequired(true)
-                .setAutocomplete(true)))
-
-        // Mod: List
-        .addSubcommand(sub => sub
-            .setName('list')
-            .setDescription('[Mod] View all codes and stats')
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES))
-            .addStringOption(opt => opt
-                .setName('filter')
-                .setDescription('Filter codes to display')
-                .setRequired(false)
-                .addChoices(
-                    { name: 'All (default)', value: 'all' },
-                    { name: 'Active Only', value: 'active' },
-                    { name: 'Expired/Inactive Only', value: 'expired' }
-                )))
-
-        // Mod: Trigger
-        .addSubcommand(sub => sub
-            .setName('trigger')
-            .setDescription('[Mod] Manually trigger auto-redemption')
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES)))
-
-        // Mod: Unsub (force unsubscribe a user)
-        .addSubcommand(sub => sub
-            .setName('unsub')
-            .setDescription('[Mod] Force unsubscribe a user')
-            .addUserOption(opt => opt
-                .setName('user')
-                .setDescription('User to unsubscribe')
-                .setRequired(true))
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES)))
-
-        // Mod: Update (change user's game ID)
-        .addSubcommand(sub => sub
-            .setName('update')
-            .setDescription('[Mod] Update a user\'s game ID')
-            .addUserOption(opt => opt
-                .setName('user')
-                .setDescription('User to update')
-                .setRequired(true))
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES))
-            .addStringOption(opt => opt
-                .setName('userid')
-                .setDescription('New game user ID')
-                .setRequired(true)))
-
-        // Mod: Lookup (view user's subscriptions)
-        .addSubcommand(sub => sub
-            .setName('lookup')
-            .setDescription('[Mod] View a user\'s subscriptions')
-            .addUserOption(opt => opt
-                .setName('user')
-                .setDescription('User to lookup')
-                .setRequired(true)))
-
-        // Mod: Reset (reset redeemed codes)
-        .addSubcommand(sub => sub
-            .setName('reset')
-            .setDescription('[Mod] Reset a user\'s redeemed codes list')
-            .addUserOption(opt => opt
-                .setName('user')
-                .setDescription('User to reset')
-                .setRequired(true))
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES)))
-
-        // Mod: Scrape (fetch codes from Gachafeed, then BD2 Pulse)
-        .addSubcommand(sub => sub
-            .setName('scrape')
-            .setDescription('[Mod] Fetch new codes from Gachafeed and BD2 Pulse'))
-
-        // Mod: Stats (analytics)
-        .addSubcommand(sub => sub
-            .setName('stats')
-            .setDescription('[Mod] View redemption analytics and statistics')
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Specific game (leave empty for system-wide)')
-                .setRequired(false)
-                .addChoices(...GAME_CHOICES)))
-
-        // Mod: Subscribers (paginated list)
-        .addSubcommand(sub => sub
-            .setName('subscribers')
-            .setDescription('[Mod] View paginated list of subscribers for a game')
-            .addStringOption(opt => opt
-                .setName('game')
-                .setDescription('Which game')
-                .setRequired(true)
-                .addChoices(...GAME_CHOICES))
-            .addStringOption(opt => opt
-                .setName('mode')
-                .setDescription('Filter by subscription mode')
-                .setRequired(false)
-                .addChoices(
-                    { name: 'All', value: 'all' },
-                    { name: '🤖 Auto-Redeem', value: 'auto-redeem' },
-                    { name: '📬 Notification Only', value: 'notification-only' }
-                )))
-
         // User: Preferences
         .addSubcommand(sub => sub
             .setName('preferences')
@@ -2057,9 +2129,31 @@ export default {
         // User: Help
         .addSubcommand(sub => sub
             .setName('help')
-            .setDescription('View help and FAQs about the coupon redemption system')),
+            .setDescription('View help and FAQs about the coupon redemption system'));
+
+// Moved to /mod redeem. Kept registered for one release so anyone who types the
+// old command gets a pointer instead of "unknown command".
+for (const name of MOD_REDEEM_SUBCOMMANDS) {
+    redeemData.addSubcommand(sub => sub
+        .setName(name)
+        .setDescription(`Moved to /mod redeem ${name}`));
+}
+
+export default {
+    data: redeemData,
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const subcommand = interaction.options.getSubcommand();
+
+        // A pointer only: no permission or allowlist check needed.
+        if ((MOD_REDEEM_SUBCOMMANDS as readonly string[]).includes(subcommand)) {
+            await interaction.reply({
+                content: `This moved to \`/mod redeem ${subcommand}\`.`,
+                flags: MessageFlags.Ephemeral
+            });
+            return;
+        }
+
         // Check if this server is allowed to use the gacha coupon system
         const guildConfigService = getGachaGuildConfigService();
         const isAllowed = await guildConfigService.isGuildAllowed(interaction.guildId);
@@ -2072,63 +2166,21 @@ export default {
             return;
         }
 
-        const subcommand = interaction.options.getSubcommand();
-
-        // Mod-only commands
-        const modCommands = ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers'];
-        if (modCommands.includes(subcommand)) {
-            if (!(await requireModPermission(interaction, MOD_REQUIRED_MESSAGE))) {
-                return;
-            }
-        }
-
         switch (subcommand) {
             case 'subscribe': return handleSubscribe(interaction);
             case 'edit': return handleEdit(interaction);
             case 'unsubscribe': return handleUnsubscribe(interaction);
             case 'status': return handleStatus(interaction);
             case 'codes': return handleCodes(interaction);
-            case 'add': return handleModAdd(interaction);
-            case 'remove': return handleModRemove(interaction);
-            case 'list': return handleModList(interaction);
-            case 'trigger': return handleModTrigger(interaction);
-            case 'unsub': return handleModUnsub(interaction);
-            case 'update': return handleModUpdate(interaction);
-            case 'lookup': return handleModLookup(interaction);
-            case 'reset': return handleModReset(interaction);
-            case 'scrape': return handleModScrape(interaction);
-            case 'stats': return handleModStats(interaction);
-            case 'subscribers': return handleModSubscribers(interaction);
             case 'preferences': return handlePreferences(interaction);
             case 'switch': return handleSwitch(interaction);
             case 'help': return handleHelp(interaction);
         }
     },
 
+    // Nothing on /redeem autocompletes any more (the `code` option moved to
+    // /mod redeem remove); kept so the router's autocomplete path still works.
     async autocomplete(interaction: AutocompleteInteraction) {
-        const focusedOption = interaction.options.getFocused(true);
-
-        if (focusedOption.name === 'code') {
-            const gameIdInput = interaction.options.getString('game');
-            const gameId = gameIdInput && isValidGameId(gameIdInput) ? validateGameId(gameIdInput) : null;
-            if (!gameId) {
-                await interaction.respond([]);
-                return;
-            }
-
-            try {
-                const dataService = getGachaDataService();
-                const coupons = await dataService.getActiveCoupons(gameId);
-
-                const filtered = coupons
-                    .filter(c => c.code.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                    .slice(0, 25)
-                    .map(c => ({ name: `${c.code} - ${c.rewards}`, value: c.code }));
-
-                await interaction.respond(filtered);
-            } catch {
-                await interaction.respond([]);
-            }
-        }
+        await interaction.respond([]);
     }
 };

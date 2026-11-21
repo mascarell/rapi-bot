@@ -170,7 +170,7 @@ async function storeCodes(gameId: GachaGameId, codes: SourcedCode[], result: Cou
             known.add(code.code);
             result.added.push({ gameId, code: code.code, source: code.source });
         } catch (error) {
-            // Lost a race with a manual /redeem add — the code is stored either way.
+            // Lost a race with a manual /mod redeem add — the code is stored either way.
             if (!errorMessage(error).includes('already exists')) {
                 logger.error`[Coupon sync] Failed to add ${gameId} code ${code.code}: ${errorMessage(error)}`;
             }

@@ -27,6 +27,7 @@ import { createPaginatedMessage } from './utils/paginationBuilder.js';
 import { logger } from '../utils/logger.js';
 import { isModerator, MOD_REQUIRED_MESSAGE } from '../utils/permissionHelpers.js';
 import { handleSpamStats, handleSpamReset } from './utils/spamModeration.js';
+import { addModRedeemSubcommands, executeModRedeem, autocompleteRedeemCode } from './redeem.js';
 
 /**
  * /mod — moderator tools, hidden from everyone else.
@@ -452,7 +453,9 @@ export default {
                 .addUserOption(opt => opt
                     .setName('user')
                     .setDescription('Member whose chat command limit to reset')
-                    .setRequired(true)))),
+                    .setRequired(true))))
+        .addSubcommandGroup(group => addModRedeemSubcommands(
+            group.setName('redeem').setDescription('Coupon codes and subscribers'))),
 
     async execute(interaction: ChatInputCommandInteraction) {
         const guild = interaction.guild;
@@ -481,6 +484,8 @@ export default {
                     case 'stats': return await handleSpamStats(interaction, guild);
                     case 'reset': return await handleSpamReset(interaction, guild);
                 }
+            } else if (group === 'redeem') {
+                return await executeModRedeem(interaction);
             }
             await interaction.reply({ content: '❌ Unknown subcommand.', flags: MessageFlags.Ephemeral });
         } catch (error) {
@@ -491,14 +496,20 @@ export default {
     async autocomplete(interaction: AutocompleteInteraction) {
         try {
             const guild = interaction.guild;
+            const group = interaction.options.getSubcommandGroup(false);
+            const sub = interaction.options.getSubcommand(false);
             // Only moderators get suggestions: autocomplete is reachable by
-            // anyone who can type the command, and suggestions are list terms.
-            if (
-                !guild ||
-                interaction.options.getSubcommandGroup(false) !== 'slur' ||
-                interaction.options.getSubcommand(false) !== 'remove' ||
-                !isModerator(interaction)
-            ) {
+            // anyone who can type the command, and suggestions are list terms
+            // or coupon codes.
+            if (!guild || !isModerator(interaction)) {
+                await interaction.respond([]);
+                return;
+            }
+            if (group === 'redeem' && sub === 'remove') {
+                await autocompleteRedeemCode(interaction);
+                return;
+            }
+            if (group !== 'slur' || sub !== 'remove') {
                 await interaction.respond([]);
                 return;
             }
