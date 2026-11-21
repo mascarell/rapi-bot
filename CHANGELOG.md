@@ -1,3 +1,10 @@
+## [2.22.2](https://github.com/mascarell/rapi-bot/compare/v2.22.1...v2.22.2) (2026-11-21)
+
+
+### Bug Fixes
+
+* **commands:** rebuild /help as an embed and defer slow /redeem replies ([#264](https://github.com/mascarell/rapi-bot/issues/264)) ([c9ca3e7](https://github.com/mascarell/rapi-bot/commit/c9ca3e72c26e6d779661f56dde41decd94aad16a))
+
 ## [2.22.1](https://github.com/mascarell/rapi-bot/compare/v2.22.0...v2.22.1) (2026-11-21)
 
 
