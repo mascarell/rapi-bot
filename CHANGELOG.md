@@ -1,3 +1,10 @@
+# [2.25.0](https://github.com/mascarell/rapi-bot/compare/v2.24.0...v2.25.0) (2026-11-21)
+
+
+### Features
+
+* **mod:** /mod media list and remove ([#269](https://github.com/mascarell/rapi-bot/issues/269)) ([e562042](https://github.com/mascarell/rapi-bot/commit/e56204228dec04c7a4217676da64e096898b4e3a))
+
 # [2.24.0](https://github.com/mascarell/rapi-bot/compare/v2.23.1...v2.24.0) (2026-11-21)
 
 
