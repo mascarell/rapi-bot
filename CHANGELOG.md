@@ -1,3 +1,10 @@
+# [2.23.0](https://github.com/mascarell/rapi-bot/compare/v2.22.3...v2.23.0) (2026-11-21)
+
+
+### Features
+
+* **coupons:** pin new code posts and unpin them when the code ends ([#266](https://github.com/mascarell/rapi-bot/issues/266)) ([a2e67fe](https://github.com/mascarell/rapi-bot/commit/a2e67feddaf2f695af6b245e90d21359f8dab82a))
+
 ## [2.22.3](https://github.com/mascarell/rapi-bot/compare/v2.22.2...v2.22.3) (2026-11-21)
 
 
