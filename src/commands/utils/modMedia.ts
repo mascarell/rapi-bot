@@ -19,6 +19,7 @@ import { MEDIA_HOME_GUILD_ID, MEDIA_POOLS, MediaPoolName } from '../../utils/dat
 import {
     MediaUserError,
     addMediaToPool,
+    cdnUrlForKey,
     findFreeFileName,
     findPoolFile,
     getNikkeCharacters,
@@ -199,8 +200,6 @@ async function confirmAndAdd(interaction: ChatInputCommandInteraction, guild: Gu
     }
 }
 
-const FILES_PER_PAGE = 20;
-
 const poolFrom = (interaction: ChatInputCommandInteraction | AutocompleteInteraction) => {
     const name = interaction.options.getString('pool') as MediaPoolName | null;
     return name && MEDIA_POOLS[name] ? name : null;
@@ -219,17 +218,23 @@ export async function autocompleteMediaFile(interaction: AutocompleteInteraction
     );
 }
 
-function buildListPages(title: string, names: string[]): EmbedBuilder[] {
-    const pages: EmbedBuilder[] = [];
-    for (let i = 0; i < names.length; i += FILES_PER_PAGE) {
-        const chunk = names.slice(i, i + FILES_PER_PAGE);
-        pages.push(
-            EmbedTemplates.info(title)
-                .setDescription(chunk.map(n => `\`${n}\``).join('\n'))
-                .setFooter({ text: `${names.length} file${names.length === 1 ? '' : 's'} in total` })
-        );
-    }
-    return pages;
+/**
+ * One page per file, showing the gif itself. The template's Rapi thumbnail is
+ * dropped: next to a file name it read as a preview of that file.
+ */
+export function buildListPages(title: string, prefix: string, names: string[]): EmbedBuilder[] {
+    const total = `${names.length} file${names.length === 1 ? '' : 's'} in total`;
+    return names.map(name => {
+        const url = cdnUrlForKey(`${prefix}${name}`);
+        // The link opens the original file, so a mod can view it full size
+        // or save it; clicking the image in Discord does the same.
+        return EmbedTemplates.info(title)
+            .setThumbnail(null)
+            .setURL(url)
+            .setDescription(`\`${name}\`\n[Open / download](${url})`)
+            .setImage(url)
+            .setFooter({ text: total });
+    });
 }
 
 export async function handleMediaList(interaction: ChatInputCommandInteraction, guild: Guild): Promise<void> {
@@ -267,7 +272,7 @@ export async function handleMediaList(interaction: ChatInputCommandInteraction, 
             return;
         }
         const title = character ? `${pool.label} files: ${character.name}` : `${pool.label} files`;
-        await createPaginatedMessage(interaction, buildListPages(title, names), {
+        await createPaginatedMessage(interaction, buildListPages(title, pool.prefix, names), {
             customIdPrefix: `modmedia_list_${interaction.id}`,
         });
     } catch (error) {
