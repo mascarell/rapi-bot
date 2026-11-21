@@ -1,55 +1,87 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { replyEphemeral } from '../utils/interactionHelpers.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { chatCommands } from '../chatCommands/index.js';
+import { isModerator } from '../utils/permissionHelpers.js';
+
+const SLASH_COMMANDS: ReadonlyArray<[string, string]> = [
+    ['/gacha', 'Pull singles or multis'],
+    ['/lucky', 'How lucky are you today?'],
+    ['/rapiball', "Ask Rapi a question"],
+    ['/daily', 'Time until the daily reset for a game'],
+    ['/redeem', 'Coupon codes: subscribe, status, codes, auto-redeem'],
+    ['/compositions', 'NIKKE team compositions'],
+    ['/relics', 'NIKKE lost relics guide'],
+    ['/embed', 'Fix the embed for a social media link'],
+    ['/rules', 'The server rules'],
+    ['/stream', 'The stream link'],
+    ['/spam check', 'Your chat command limit'],
+    ['/age', 'How long Rapi has been running'],
+];
+
+const FIELD_LIMIT = 1024;
+
+/** Chat command names as members type them, minus duplicate spellings. */
+export function chatCommandNames(): string[] {
+    const names = new Set<string>();
+    for (const cmd of Object.values(chatCommands)) {
+        // "sounds like…" exists only so the ellipsis character also works.
+        if (cmd.name.includes('…')) continue;
+        names.add(cmd.name);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+/** Split `items` into field values that each fit Discord's 1024-character limit. */
+export function packField(items: string[], separator = ' · '): string[] {
+    const values: string[] = [];
+    let current = '';
+    for (const item of items) {
+        const next = current ? `${current}${separator}${item}` : item;
+        if (next.length > FIELD_LIMIT) {
+            values.push(current);
+            current = item;
+        } else {
+            current = next;
+        }
+    }
+    if (current) values.push(current);
+    return values;
+}
+
+export function buildHelpEmbed(showModTools: boolean): EmbedBuilder {
+    const embed = new EmbedBuilder()
+        .setColor(0x3498DB)
+        .setTitle('Rapi commands')
+        .addFields({
+            name: 'Slash commands',
+            value: SLASH_COMMANDS.map(([name, what]) => `\`${name}\` ${what}`).join('\n'),
+        });
+
+    const chatValues = packField(chatCommandNames().map(n => `\`${n}\``));
+    chatValues.forEach((value, i) => {
+        embed.addFields({ name: i === 0 ? 'Chat commands' : 'Chat commands (cont.)', value });
+    });
+    embed.addFields({
+        name: 'Where chat commands work',
+        value: 'Type them as a message in #rapi-bot. The `ccp` ones work anywhere, 3 an hour outside #rapi-bot.',
+    });
+
+    if (showModTools) {
+        embed.addFields({
+            name: 'Moderators',
+            value: '`/mod` has the slur list, spam stats, coupon tools and the media pool.',
+        });
+    }
+    return embed;
+}
 
 export default {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('List of custom commands available for all Commanders'),
     async execute(interaction: ChatInputCommandInteraction) {
-        await replyEphemeral(interaction, `====================\n**SLASH COMMANDS**\n====================\n
-➜ **/gacha <type> <game>** : Gamba with rapi bot, you can do singles or multis, works with NIKKE
-➜ **/lucky** : How lucky are you today?
-➜ **/rapiball** : Get an eight ball of Rapi's wisdom
-➜ **/compositions** : Get help for NIKKE Team Compositions
-➜ **/daily time <game>** : Gets the daily reset for the specified game
-➜ **/rules** : Get the rules for the server
-➜ **/relics** : Get lost relics guide in NIKKE
-➜ **stream** : Reserved for El Shafto
-
-
-====================
-**CHAT COMMANDS**
-====================
-
-
-➜ **damn train** : Fuck Thomas The Train
-➜ **damn gravedigger** : Time for OSU!
-➜ **good girl** : say thanks to the best girl & bot in this server 
-➜ **wrong girl** : hey, take care who you talk to  
-➜ **bad girl** : we all wanted to slap her  
-➜ **reward?** : 10 gems!?  
-➜ **sounds like...** : you are just bad, commander  
-➜ **whale levels** : how much do you spend?  
-➜ **i swear she is actually 3000 years old** : what?  
-➜ **ready rapi?** : 100% ready  
-➜ **12+ game** : kid safe game  
-➜ **booba?** : robot girl personalities  
-➜ **booty?** : robot girl cakes  
-➜ **kinda weird...** : tf commander...  
-➜ **JUSTICE FOR...** : she doesn't belong in jail  
-➜ **dammit Rapi** : 😭  
-➜ **mold rates are not that bad** : 61% is enough  
-➜ **seggs?** : shifty?  
-➜ **Lap of discipline.** : Lap of discipline. 
-➜ **ccp leadership** : View the Commander's Leadership
-➜ **absolute...** : It's a movie.
-➜ **ccp #1** : Inspired the Community.
-➜ **we had a plan!** : Just follow the plan Commander!
-➜ **is it over?** : Yes it is, Commander.
-➜ **99%** : Here's some advice for you.
-➜ **belorta...** : CURSE OF BELORTA.
-➜ **get dat nikke** : Send Rapi to fight your rival.
-
-`);
+        await interaction.reply({
+            embeds: [buildHelpEmbed(isModerator(interaction))],
+            flags: MessageFlags.Ephemeral,
+        });
     }
 };

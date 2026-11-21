@@ -702,11 +702,10 @@ async function handleUnsubscribe(interaction: ChatInputCommandInteraction): Prom
                 .setTimestamp()
                 .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         } else {
-            await interaction.reply({
-                content: `❌ You are not subscribed to ${gameConfig.name}.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `❌ You are not subscribed to ${gameConfig.name}.`
             });
         }
     } catch (error) {
@@ -723,9 +722,8 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
         const userSubs = await dataService.getUserSubscriptions(interaction.user.id);
 
         if (!userSubs || Object.keys(userSubs.games).length === 0) {
-            await interaction.reply({
-                content: '❌ You have no active subscriptions. Use `/redeem subscribe` to get started!',
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: '❌ You have no active subscriptions. Use `/redeem subscribe` to get started!'
             });
             return;
         }
@@ -736,9 +734,8 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
             const { subscription: gameSub, activeCoupons, unredeemed } = await dataService.getSubscriberContext(interaction.user.id, gameId);
 
             if (!gameSub) {
-                await interaction.reply({
-                    content: `❌ You are not subscribed to ${getGameConfig(gameId).name}.`,
-                    flags: MessageFlags.Ephemeral
+                await interaction.editReply({
+                    content: `❌ You are not subscribed to ${getGameConfig(gameId).name}.`
                 });
                 return;
             }
@@ -770,7 +767,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
                 embed.addFields({ name: '📌 Unredeemed Codes', value: codeList });
             }
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         } else {
             // Show all subscriptions
             const embed = new EmbedBuilder()
@@ -793,11 +790,11 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
                     value:
                         (details ? `${details}\n` : '') +
                         `Mode: ${gameSub.mode === 'auto-redeem' ? '🤖' : '📬'} | Redeemed: ${gameSub.redeemedCodes.length} | Pending: ${unredeemed.length}` +
-                        (accountState ? `\n${accountState}` : ''),
+                        (accountState ? `\n${accountState}` : '')
                 });
             }
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         }
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
@@ -813,9 +810,8 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
         const activeCoupons = await dataService.getActiveCoupons(gameId);
 
         if (activeCoupons.length === 0) {
-            await interaction.reply({
-                content: `📭 No active coupon codes for ${gameConfig.name} right now.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `📭 No active coupon codes for ${gameConfig.name} right now.`
             });
             return;
         }
@@ -846,7 +842,7 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
             embed.addFields({ name: '...', value: `And ${activeCoupons.length - 10} more codes` });
         }
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
@@ -895,7 +891,7 @@ async function handleModAdd(interaction: ChatInputCommandInteraction): Promise<v
             embed.addFields({ name: 'Source', value: source, inline: true });
         }
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
 
         // Notify subscribers
         const redemptionService = getGachaRedemptionService();
@@ -923,9 +919,9 @@ async function handleModRemove(interaction: ChatInputCommandInteraction): Promis
                 .setTimestamp()
                 .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         } else {
-            await interaction.reply({ content: `❌ Code \`${code}\` not found for ${gameConfig.name}.`, flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: `❌ Code \`${code}\` not found for ${gameConfig.name}.` });
         }
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
@@ -1075,11 +1071,10 @@ async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise
                 .setTimestamp()
                 .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         } else {
-            await interaction.reply({
-                content: `❌ <@${targetUser.id}> is not subscribed to ${gameConfig.name}.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `❌ <@${targetUser.id}> is not subscribed to ${gameConfig.name}.`
             });
         }
     } catch (error) {
@@ -1096,9 +1091,8 @@ async function handleModUpdate(interaction: ChatInputCommandInteraction): Promis
     // Validate new game user ID format
     const validation = validateGameUserId(gameId, newUserId);
     if (!validation.valid) {
-        await interaction.reply({
-            content: `❌ ${validation.error}`,
-            flags: MessageFlags.Ephemeral
+        await interaction.editReply({
+            content: `❌ ${validation.error}`
         });
         return;
     }
@@ -1115,7 +1109,7 @@ async function handleModUpdate(interaction: ChatInputCommandInteraction): Promis
             .setTimestamp()
             .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
@@ -1129,9 +1123,8 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
         const userSubs = await dataService.getUserSubscriptions(targetUser.id);
 
         if (!userSubs || Object.keys(userSubs.games).length === 0) {
-            await interaction.reply({
-                content: `❌ <@${targetUser.id}> has no active subscriptions.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `❌ <@${targetUser.id}> has no active subscriptions.`
             });
             return;
         }
@@ -1153,7 +1146,7 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
             });
         }
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
@@ -1176,7 +1169,7 @@ async function handleModReset(interaction: ChatInputCommandInteraction): Promise
             .setTimestamp()
             .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
@@ -1192,18 +1185,16 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
         const subscription = await dataService.getGameSubscription(interaction.user.id, gameId);
 
         if (!subscription) {
-            await interaction.reply({
-                content: `❌ You are not subscribed to ${gameConfig.name}. Use \`/redeem subscribe\` first.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `❌ You are not subscribed to ${gameConfig.name}. Use \`/redeem subscribe\` first.`
             });
             return;
         }
 
         // Check if already in the requested mode
         if (subscription.mode === newMode) {
-            await interaction.reply({
-                content: `❌ You are already in ${newMode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only'} mode for ${gameConfig.name}.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `❌ You are already in ${newMode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only'} mode for ${gameConfig.name}.`
             });
             return;
         }
@@ -1234,7 +1225,7 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
             });
         }
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
@@ -1254,9 +1245,8 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
         const subscription = await dataService.getGameSubscription(interaction.user.id, gameId);
 
         if (!subscription) {
-            await interaction.reply({
-                content: `❌ You are not subscribed to ${gameConfig.name}. Use \`/redeem subscribe\` first.`,
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                content: `❌ You are not subscribed to ${gameConfig.name}. Use \`/redeem subscribe\` first.`
             });
             return;
         }
@@ -1284,7 +1274,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
                 .setTimestamp()
                 .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
 
@@ -1317,7 +1307,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
             .setTimestamp()
             .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
     }
@@ -1354,7 +1344,7 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
                 embed.addFields({ name: '🏆 Top Codes', value: topCodesList });
             }
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         } else {
             // Show system-wide stats
             const analytics = await dataService.getSystemAnalytics();
@@ -1380,7 +1370,7 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
                 embed.addFields({ name: '🎮 By Game', value: gameBreakdown });
             }
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
         }
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:subscribe');
@@ -1953,6 +1943,11 @@ export function addModRedeemSubcommands(group: SlashCommandSubcommandGroupBuilde
  */
 const OPEN_EVERYWHERE: ReadonlySet<string> = new Set(['list']);
 
+// Subcommands whose handlers answer with editReply, so the dispatcher defers
+// first. list, trigger, scrape and subscribers defer inside their handlers.
+const MOD_DEFERRED: ReadonlySet<string> = new Set(['add', 'remove', 'unsub', 'update', 'lookup', 'reset', 'stats']);
+const MEMBER_DEFERRED: ReadonlySet<string> = new Set(['unsubscribe', 'status', 'codes', 'preferences', 'switch']);
+
 const HOME_ONLY_WRITE_MESSAGE =
     'Coupon codes and subscriptions are shared by every server, so only moderators in the Rapi home server can change them. Ask a moderator there.';
 const HOME_ONLY_DETAILS_MESSAGE =
@@ -1984,6 +1979,11 @@ export async function executeModRedeem(interaction: ChatInputCommandInteraction)
         }
         await interaction.reply({ content, flags: MessageFlags.Ephemeral });
         return;
+    }
+
+    // These read storage before answering, which can outrun Discord's 3 seconds.
+    if (MOD_DEFERRED.has(subcommand)) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     }
 
     switch (subcommand) {
@@ -2196,6 +2196,11 @@ export default {
                 flags: MessageFlags.Ephemeral
             });
             return;
+        }
+
+        // subscribe and edit may open a form, which can't follow a defer.
+        if (MEMBER_DEFERRED.has(subcommand)) {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         }
 
         switch (subcommand) {

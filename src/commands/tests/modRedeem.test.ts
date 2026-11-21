@@ -199,6 +199,16 @@ describe('/mod redeem dispatch', () => {
         expect(dataService.removeCoupon).toHaveBeenCalledWith('bd2', 'EXISTING');
     });
 
+    it('defers before touching storage and answers with editReply', async () => {
+        const i = makeInteraction({ sub: 'remove', strings: { game: 'bd2', code: 'EXISTING' } });
+        await modCommand.execute(i);
+        expect(i.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
+        expect(i.deferReply.mock.invocationCallOrder[0])
+            .toBeLessThan(dataService.removeCoupon.mock.invocationCallOrder.at(-1));
+        expect(i.editReply).toHaveBeenCalled();
+        expect(i.reply).not.toHaveBeenCalled();
+    });
+
     it('list reads the codes and stats', async () => {
         const i = makeInteraction({ sub: 'list', strings: { game: 'bd2' } });
         await modCommand.execute(i);
