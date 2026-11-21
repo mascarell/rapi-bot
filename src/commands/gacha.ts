@@ -3,6 +3,7 @@ import {
     EmbedBuilder,
     ColorResolvable,
     ChatInputCommandInteraction,
+    MessageFlags,
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface.js';
 import {
@@ -41,14 +42,19 @@ export default {
                 )),
 
     async execute(interaction: ChatInputCommandInteraction) {
+        // Check the limit before deferring: a defer fixes the reply as public,
+        // and the cooldown notice should only be seen by the person pulling.
+        if (!RateLimiter.check(interaction.user.id)) {
+            await interaction.reply({
+                content: 'Commander, please wait before pulling again!',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+
         await interaction.deferReply();
 
         try {
-            if (!RateLimiter.check(interaction.user.id)) {
-                await interaction.followUp("Commander, please wait before pulling again!");
-                return;
-            }
-
             const game = interaction.options.get('game')?.value as keyof typeof GACHA_CONFIGS;
             const pullType = interaction.options.get('type')?.value as string;
             const gameConfig = GACHA_CONFIGS[game];

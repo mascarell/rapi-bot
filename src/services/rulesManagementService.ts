@@ -1,6 +1,7 @@
 import { Client, TextChannel, Message } from 'discord.js';
 import { getGachaGuildConfigService } from './gachaGuildConfigService.js';
 import { logger } from '../utils/logger.js';
+import { HOME_GUILD_ID } from '../utils/data/homeGuild.js';
 
 // Constants
 const RULES_CHANNEL_NAME = 'rules'; // Channel name to search for
@@ -128,7 +129,9 @@ class RulesManagementService {
      * Initialize or update rules messages in all allowed guilds (called on bot startup)
      */
     public async initializeRulesMessage(bot: Client): Promise<{ success: boolean; error?: string }> {
-        const allowedGuildIds = await this.getAllowedGuildIds();
+        // The rules text is the home server's (its emoji, channel and owner), so
+        // it is only ever posted there. Other servers keep their own #rules.
+        const allowedGuildIds = (await this.getAllowedGuildIds()).filter(id => id === HOME_GUILD_ID);
         const results = await Promise.all(
             allowedGuildIds.map(guildId => this.initializeRulesMessageForGuild(bot, guildId))
         );

@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType } from 'discord.js';
 import { getRulesManagementService } from '../services/rulesManagementService.js';
 import { replyEphemeral } from '../utils/interactionHelpers.js';
+import { HOME_GUILD_ID } from '../utils/data/homeGuild.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -16,7 +17,20 @@ export default {
             return;
         }
 
-        // Display rules ephemerally (only visible to command user)
-        await replyEphemeral(interaction, rulesService.getRulesContent());
+        // The rules text belongs to the home server: its emoji, channels and owner.
+        if (interaction.guildId === HOME_GUILD_ID) {
+            await replyEphemeral(interaction, rulesService.getRulesContent());
+            return;
+        }
+
+        const rulesChannel = interaction.guild?.channels.cache.find(
+            c => c.type === ChannelType.GuildText && c.name === 'rules'
+        );
+        await replyEphemeral(
+            interaction,
+            rulesChannel
+                ? `Commander, this server's rules are in <#${rulesChannel.id}>.`
+                : "Commander, this server hasn't set up a #rules channel. Ask a moderator."
+        );
     },
 };
