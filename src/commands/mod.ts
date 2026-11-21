@@ -27,6 +27,8 @@ import { createPaginatedMessage } from './utils/paginationBuilder.js';
 import { logger } from '../utils/logger.js';
 import { isModerator, MOD_REQUIRED_MESSAGE } from '../utils/permissionHelpers.js';
 import { handleSpamStats, handleSpamReset } from './utils/spamModeration.js';
+import { handleMediaAdd, autocompleteMediaCharacter, isMediaHomeGuild, MEDIA_HOME_ONLY_MESSAGE } from './utils/modMedia.js';
+import { MEDIA_POOLS, MAX_VARIANT_LENGTH } from '../utils/data/mediaPoolConfig.js';
 import { addModRedeemSubcommands, executeModRedeem, autocompleteRedeemCode } from './redeem.js';
 
 /**
@@ -454,6 +456,33 @@ export default {
                     .setName('user')
                     .setDescription('Member whose chat command limit to reset')
                     .setRequired(true))))
+        .addSubcommandGroup(group => group
+            .setName('media')
+            .setDescription('booba? and booty? image pools')
+            .addSubcommand(sub => sub
+                .setName('add')
+                .setDescription('Add a gif to the booba? or booty? pool (asks you to confirm)')
+                .addStringOption(opt => opt
+                    .setName('command')
+                    .setDescription('Which pool')
+                    .setRequired(true)
+                    .addChoices(
+                        { name: MEDIA_POOLS.booba.label, value: 'booba' },
+                        { name: MEDIA_POOLS.booty.label, value: 'booty' }))
+                .addStringOption(opt => opt
+                    .setName('character')
+                    .setDescription('The character, searchable by name')
+                    .setRequired(true)
+                    .setAutocomplete(true))
+                .addAttachmentOption(opt => opt
+                    .setName('image')
+                    .setDescription('The .gif to add')
+                    .setRequired(true))
+                .addStringOption(opt => opt
+                    .setName('variant')
+                    .setDescription('Optional, such as a skin name')
+                    .setRequired(false)
+                    .setMaxLength(MAX_VARIANT_LENGTH))))
         .addSubcommandGroup(group => addModRedeemSubcommands(
             group.setName('redeem').setDescription('Coupon codes and subscribers'))),
 
@@ -484,6 +513,12 @@ export default {
                     case 'stats': return await handleSpamStats(interaction, guild);
                     case 'reset': return await handleSpamReset(interaction, guild);
                 }
+            } else if (group === 'media') {
+                if (!isMediaHomeGuild(interaction.guildId)) {
+                    await interaction.reply({ content: MEDIA_HOME_ONLY_MESSAGE, flags: MessageFlags.Ephemeral });
+                    return;
+                }
+                if (sub === 'add') return await handleMediaAdd(interaction, guild, findModLogChannel);
             } else if (group === 'redeem') {
                 return await executeModRedeem(interaction);
             }
@@ -503,6 +538,10 @@ export default {
             // or coupon codes.
             if (!guild || !isModerator(interaction)) {
                 await interaction.respond([]);
+                return;
+            }
+            if (group === 'media' && sub === 'add') {
+                await autocompleteMediaCharacter(interaction);
                 return;
             }
             if (group === 'redeem' && sub === 'remove') {
