@@ -387,7 +387,7 @@ NODE_ENV, LOG_LEVEL
 None of these are needed to run the gates — see "Cloud Sessions" below.
 
 ## Cron Jobs (index.ts)
-- Auto-redemption: every 6h (prod) / 3min (dev)
+- Auto-redemption: every 6h at :15, i.e. 00:15/06:15/12:15/18:15 UTC (prod), off the :00/:30 code sync / 3min (dev)
 - Code scraping: every 30min (prod) / 2min (dev)
 - Expired cleanup: daily midnight (prod) / 15min (dev)
 

@@ -194,14 +194,20 @@ export class GachaCouponScheduler {
     }
 
     /**
-     * Schedule auto-redemption - Every 6 hours
-     * Only runs for games that support auto-redemption
+     * Schedule auto-redemption - Every 6 hours, at quarter past
+     * Only runs for games that support auto-redemption.
+     *
+     * Runs at 00:15/06:15/12:15/18:15 UTC rather than on the hour: the code
+     * sync fires at :00 and :30 and the asset sync and random messages at
+     * 00/06/12/18:00, so on the hour they all read and write the coupon data
+     * at once. Quarter past sits between two code syncs, so codes found at :00
+     * are stored before the run picks them up.
      */
     private scheduleAutoRedemption(): void {
         const interval = this.devConfig.autoRedemptionInterval;
         const cronExpression = this.isDevelopment
             ? `*/${interval} * * * *`  // Every N minutes in dev
-            : '0 */6 * * *';           // Every 6 hours
+            : '15 */6 * * *';          // Every 6 hours at :15
 
         const taskName = 'auto-redemption';
         const job = schedule.scheduleJob(cronExpression, async () => {

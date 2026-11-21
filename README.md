@@ -293,7 +293,7 @@ The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that 
 #### Scheduled Tasks
 | Task | Production | Development |
 |------|-----------|-------------|
-| Auto-Redemption | Every 6h | Every 3min |
+| Auto-Redemption | Every 6h at :15 UTC | Every 3min |
 | Code Scraping | Every 30min | Every 2min |
 | Expiration Warnings | Daily 09:00 | Every 5min |
 | Weekly Digest | Sundays 12:00 | Every 10min |
