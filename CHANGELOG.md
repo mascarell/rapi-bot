@@ -1,3 +1,10 @@
+# [2.21.0](https://github.com/mascarell/rapi-bot/compare/v2.20.0...v2.21.0) (2026-11-21)
+
+
+### Features
+
+* **mod:** move /redeem moderator subcommands to /mod redeem ([#258](https://github.com/mascarell/rapi-bot/issues/258)) ([31aadbc](https://github.com/mascarell/rapi-bot/commit/31aadbc98d28138f7cf1b453261d06ed59bc3bc3))
+
 # [2.20.0](https://github.com/mascarell/rapi-bot/compare/v2.19.0...v2.20.0) (2026-11-20)
 
 
