@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, MessageFlags } from 'discord.js';
 import fs from 'fs';
 import { logger } from '../utils/logger.js';
 
@@ -50,7 +50,7 @@ export default {
                 const remainingMinutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
                 return interaction.reply({
                     content: `Sorry, Commander. You can use this command again in ${remainingTimeInHours} hours and ${remainingMinutes} minutes.`,
-                    
+                    flags: MessageFlags.Ephemeral,
                 });
             }
         }
