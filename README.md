@@ -279,6 +279,7 @@ This project is open source. See the repository for license information.
 New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-dust-2` / `#chaos-zero-nightmare` (or `#bd2` / `#czn`), with **Redeem for me**, **Copy code** and a link to the official coupon page, plus a reminder when a code has a day or less left. Add `announceChannelNames` to a game in `src/utils/data/gachaGamesConfig.ts` to post another game's codes.
 
 #### Moderator Commands
+- `/mod media add` - Add a `.gif` to the `booba?` or `booty?` pool (Rapi home server only; gif only, 25 MB max; named `<character>[_<variant>]_<oppai|booty>.gif`; asks you to confirm before uploading)
 - `/mod redeem add` - Add new coupon code
 - `/mod redeem remove` - Deactivate code
 - `/mod redeem list` - View all codes with status indicators

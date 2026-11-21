@@ -9,6 +9,13 @@ const recentlySentMediaKeys: Map<string, Map<string, string[]>> = new Map();
 const MEDIA_LIST_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const mediaListCache = new Map<string, { keys: string[]; expiry: number }>();
 
+/** Forget the cached listing for a prefix so a newly uploaded file is picked up immediately. */
+export function invalidateMediaListCache(prefix: string): void {
+    for (const key of [...mediaListCache.keys()]) {
+        if (key.startsWith(`${prefix}|`)) mediaListCache.delete(key);
+    }
+}
+
 /**
  * Retrieves and filters media from the CDN based on specified criteria, with guild-based tracking 
  * to prevent recent repeats within each server.

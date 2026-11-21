@@ -1,0 +1,194 @@
+import {
+    ActionRowBuilder,
+    Attachment,
+    AutocompleteInteraction,
+    ButtonBuilder,
+    ButtonStyle,
+    ChatInputCommandInteraction,
+    ComponentType,
+    Guild,
+    MessageFlags,
+    TextChannel,
+} from 'discord.js';
+import { EmbedTemplates } from '../../utils/embedTemplates.js';
+import { logger } from '../../utils/logger.js';
+import { SLUR_MOD_CONFIG } from '../../utils/data/slurModerationConfig.js';
+import { MEDIA_HOME_GUILD_ID, MEDIA_POOLS, MediaPoolName } from '../../utils/data/mediaPoolConfig.js';
+import {
+    MediaUserError,
+    addMediaToPool,
+    findFreeFileName,
+    getNikkeCharacters,
+    searchCharacters,
+    validateAttachment,
+} from '../../services/mediaPoolService.js';
+
+/**
+ * `/mod media add`: add a gif to the `booba?` or `booty?` pool. The /mod gate
+ * has already checked the caller is a moderator; this adds the home-server
+ * restriction, because the pools are shared by every server the bot is in.
+ */
+
+export const MEDIA_HOME_ONLY_MESSAGE =
+    'Images for `booba?` and `booty?` are managed in the Rapi home server. Ask a moderator there to add one.';
+
+export const isMediaHomeGuild = (guildId: string | null | undefined): boolean => guildId === MEDIA_HOME_GUILD_ID;
+
+/** Character suggestions (display name, value = character code), home server only. */
+export async function autocompleteMediaCharacter(interaction: AutocompleteInteraction): Promise<void> {
+    if (!isMediaHomeGuild(interaction.guildId)) {
+        await interaction.respond([]);
+        return;
+    }
+    const focused = interaction.options.getFocused();
+    const characters = await getNikkeCharacters();
+    await interaction.respond(
+        searchCharacters(characters, focused, 25).map(c => ({ name: c.name.slice(0, 100), value: c.code }))
+    );
+}
+
+export async function handleMediaAdd(
+    interaction: ChatInputCommandInteraction,
+    guild: Guild,
+    findModLogChannel: (guild: Guild) => TextChannel | null
+): Promise<void> {
+    if (!isMediaHomeGuild(interaction.guildId)) {
+        await interaction.reply({ content: MEDIA_HOME_ONLY_MESSAGE, flags: MessageFlags.Ephemeral });
+        return;
+    }
+
+    const poolName = interaction.options.getString('command', true) as MediaPoolName;
+    const code = interaction.options.getString('character', true);
+    const attachment = interaction.options.getAttachment('image', true);
+    const variant = interaction.options.getString('variant', false)?.trim() || null;
+    const pool = MEDIA_POOLS[poolName];
+    if (!pool) {
+        await interaction.reply({ content: '❌ Unknown command.', flags: MessageFlags.Ephemeral });
+        return;
+    }
+
+    const invalid = validateAttachment(attachment);
+    if (invalid) {
+        await interaction.reply({ content: `❌ ${invalid}`, flags: MessageFlags.Ephemeral });
+        return;
+    }
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    try {
+        const characters = await getNikkeCharacters();
+        const character = characters.find(c => c.code === code);
+        if (!character) {
+            await interaction.editReply({
+                embeds: [EmbedTemplates.error('Unknown character', 'Pick a character from the suggestions.')],
+            });
+            return;
+        }
+        await confirmAndAdd(interaction, guild, {
+            poolName,
+            characterName: character.name,
+            characterSlug: character.slug,
+            variant,
+            attachment,
+            findModLogChannel,
+        });
+    } catch (error) {
+        logger.error`[mod] media add failed in ${guild.id}: ${error}`;
+        await interaction
+            .editReply({
+                content: null,
+                embeds: [EmbedTemplates.error('Nothing was added', 'Something went wrong. Please try again.')],
+                components: [],
+            })
+            .catch(() => {});
+    }
+}
+
+interface AddRequest {
+    poolName: MediaPoolName;
+    characterName: string;
+    characterSlug: string;
+    variant: string | null;
+    attachment: Attachment;
+    findModLogChannel: (guild: Guild) => TextChannel | null;
+}
+
+async function confirmAndAdd(interaction: ChatInputCommandInteraction, guild: Guild, req: AddRequest): Promise<void> {
+    const pool = MEDIA_POOLS[req.poolName];
+    const plannedName = await findFreeFileName(req.poolName, req.characterSlug, req.variant);
+
+    const addId = `modmedia_add_${interaction.id}`;
+    const cancelId = `modmedia_cancel_${interaction.id}`;
+    const prompt = await interaction.editReply({
+        embeds: [
+            EmbedTemplates.info(`Add to ${pool.label}`)
+                .setImage(req.attachment.url)
+                .addFields(
+                    { name: 'Character', value: req.characterName, inline: true },
+                    { name: 'Command', value: pool.label, inline: true },
+                    { name: 'File name', value: `\`${plannedName}\``, inline: true }
+                ),
+        ],
+        components: [
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder().setCustomId(addId).setLabel('Add').setStyle(ButtonStyle.Success),
+                new ButtonBuilder().setCustomId(cancelId).setLabel('Cancel').setStyle(ButtonStyle.Secondary)
+            ),
+        ],
+    });
+
+    let button;
+    try {
+        button = await prompt.awaitMessageComponent({
+            componentType: ComponentType.Button,
+            time: SLUR_MOD_CONFIG.CONFIRM_TIMEOUT_MS,
+            filter: i => i.user.id === interaction.user.id && (i.customId === addId || i.customId === cancelId),
+        });
+    } catch {
+        await interaction.editReply({ content: 'Timed out — nothing was added.', embeds: [], components: [] });
+        return;
+    }
+
+    if (button.customId === cancelId) {
+        await button.update({ content: 'Cancelled — nothing was added.', embeds: [], components: [] });
+        return;
+    }
+
+    await button.deferUpdate();
+    let result;
+    try {
+        // Picks the next free name again, in case someone else added one meanwhile.
+        result = await addMediaToPool(req.poolName, req.characterSlug, req.variant, req.attachment);
+    } catch (error) {
+        logger.error`[mod] media upload failed in ${guild.id}: ${error}`;
+        const message =
+            error instanceof MediaUserError
+                ? error.message
+                : 'The image could not be downloaded or uploaded. Nothing was added.';
+        await interaction.editReply({ content: `❌ ${message}`, embeds: [], components: [] });
+        return;
+    }
+
+    await interaction.editReply({
+        content: `Added \`${result.fileName}\` to \`${pool.label}\`.\n${result.url}`,
+        embeds: [],
+        components: [],
+    });
+
+    const channel = req.findModLogChannel(guild);
+    if (!channel) return;
+    try {
+        await channel.send({
+            embeds: [
+                EmbedTemplates.info(`${pool.label} image added`)
+                    .setImage(result.url)
+                    .addFields(
+                        { name: 'Added by', value: `${interaction.user}`, inline: true },
+                        { name: 'Character', value: req.characterName, inline: true },
+                        { name: 'File name', value: `\`${result.fileName}\``, inline: true }
+                    ),
+            ],
+        });
+    } catch (error) {
+        logger.warn`[mod] media log post failed in ${guild.id}: ${error}`;
+    }
+}
