@@ -1,3 +1,15 @@
+# [2.22.0](https://github.com/mascarell/rapi-bot/compare/v2.21.0...v2.22.0) (2026-11-21)
+
+
+### Bug Fixes
+
+* stagger the six-hourly redeem run and make /stream url optional ([#260](https://github.com/mascarell/rapi-bot/issues/260)) ([c998bf1](https://github.com/mascarell/rapi-bot/commit/c998bf1d1606898398c25fe3b849160e3f374571))
+
+
+### Features
+
+* **mod:** add /mod media add for the booba? and booty? image pools ([#261](https://github.com/mascarell/rapi-bot/issues/261)) ([a0cb310](https://github.com/mascarell/rapi-bot/commit/a0cb3101fce69dfd8bc798753b83c142c694f7ae))
+
 # [2.21.0](https://github.com/mascarell/rapi-bot/compare/v2.20.0...v2.21.0) (2026-11-21)
 
 
