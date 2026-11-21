@@ -257,24 +257,9 @@ describe('Redeem Command', () => {
             expect(redeemCommand.data.name).toBe('redeem');
         });
 
-        it('should have all expected subcommands', () => {
+        it('registers exactly the member subcommands', () => {
             const subcommands = redeemCommand.data.options.map((opt: any) => opt.name);
-            expect(subcommands).toContain('subscribe');
-            expect(subcommands).toContain('unsubscribe');
-            expect(subcommands).toContain('status');
-            expect(subcommands).toContain('codes');
-            expect(subcommands).toContain('add');
-            expect(subcommands).toContain('remove');
-            expect(subcommands).toContain('list');
-            expect(subcommands).toContain('trigger');
-        });
-
-        it('keeps the moved moderator subcommands as option-less pointers', () => {
-            for (const name of ['add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers']) {
-                const sub = (redeemCommand.data.toJSON() as any).options.find((o: any) => o.name === name);
-                expect(sub.options ?? []).toEqual([]);
-                expect(sub.description).toBe(`Moved to /mod redeem ${name}`);
-            }
+            expect(subcommands).toEqual(['subscribe', 'edit', 'unsubscribe', 'status', 'codes', 'preferences', 'switch', 'help']);
         });
     });
 

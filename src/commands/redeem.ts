@@ -1794,11 +1794,6 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
 
 // ==================== /mod redeem ====================
 
-/** The moderator-only subcommands, in one place so /mod and the /redeem pointers stay in step. */
-export const MOD_REDEEM_SUBCOMMANDS = [
-    'add', 'remove', 'list', 'trigger', 'unsub', 'update', 'lookup', 'reset', 'scrape', 'stats', 'subscribers',
-] as const;
-
 /**
  * Add the moderator subcommands to a builder group. Used by /mod, which is
  * hidden from members, so these are never offered on the member-facing /redeem.
@@ -2206,28 +2201,11 @@ const redeemData = new SlashCommandBuilder()
             .setName('help')
             .setDescription('View help and FAQs about the coupon redemption system'));
 
-// Moved to /mod redeem. Kept registered for one release so anyone who types the
-// old command gets a pointer instead of "unknown command".
-for (const name of MOD_REDEEM_SUBCOMMANDS) {
-    redeemData.addSubcommand(sub => sub
-        .setName(name)
-        .setDescription(`Moved to /mod redeem ${name}`));
-}
-
 export default {
     data: redeemData,
 
     async execute(interaction: ChatInputCommandInteraction) {
         const subcommand = interaction.options.getSubcommand();
-
-        // A pointer only: no permission or allowlist check needed.
-        if ((MOD_REDEEM_SUBCOMMANDS as readonly string[]).includes(subcommand)) {
-            await interaction.reply({
-                content: `This moved to \`/mod redeem ${subcommand}\`.`,
-                flags: MessageFlags.Ephemeral
-            });
-            return;
-        }
 
         // Check if this server is allowed to use the gacha coupon system
         const guildConfigService = getGachaGuildConfigService();
@@ -2258,8 +2236,7 @@ export default {
         }
     },
 
-    // Nothing on /redeem autocompletes any more (the `code` option moved to
-    // /mod redeem remove); kept so the router's autocomplete path still works.
+    // Nothing on /redeem autocompletes; kept so the router's autocomplete path still works.
     async autocomplete(interaction: AutocompleteInteraction) {
         await interaction.respond([]);
     }

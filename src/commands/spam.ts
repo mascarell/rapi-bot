@@ -14,7 +14,7 @@ const ASSET_URLS = getAssetUrls();
 
 /**
  * Command export for Discord.js
- * Members check their own rate limit; moderator tools moved to /mod spam
+ * Members check their own rate limit; moderator tools live only under /mod spam
  */
 export default {
     data: new SlashCommandBuilder()
@@ -25,22 +25,6 @@ export default {
             subcommand
                 .setName('check')
                 .setDescription('Check your current rate limit status')
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('stats')
-                .setDescription('Moved to /mod spam stats')
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('reset')
-                .setDescription('Moved to /mod spam reset')
-                .addUserOption(option =>
-                    option
-                        .setName('user')
-                        .setDescription('User to reset rate limit for')
-                        .setRequired(true)
-                )
         ),
 
     async execute(interaction: ChatInputCommandInteraction) {
@@ -56,12 +40,6 @@ export default {
             switch (subcommand) {
                 case 'check':
                     await this.handleCheck(interaction, guild);
-                    break;
-                case 'stats':
-                    await replyEphemeral(interaction, 'This moved to `/mod spam stats`.');
-                    break;
-                case 'reset':
-                    await replyEphemeral(interaction, 'This moved to `/mod spam reset`.');
                     break;
                 default:
                     await replyEphemeral(interaction, 'Unknown subcommand.');

@@ -298,7 +298,7 @@ New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-d
 
 Every `/mod redeem` tool except `list` works in the Rapi home server only, because codes and subscriptions are shared by every server. In other servers `/mod` doesn't show them at all.
 
-The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that point to `/mod redeem`.
+Moderator tools live only under `/mod`; `/redeem` has the member subcommands only.
 
 #### Scheduled Tasks
 | Task | Production | Development |
