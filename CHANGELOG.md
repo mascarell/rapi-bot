@@ -1,3 +1,10 @@
+## [2.25.1](https://github.com/mascarell/rapi-bot/compare/v2.25.0...v2.25.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **mod:** /mod media list shows each gif with a link to open or download it ([#270](https://github.com/mascarell/rapi-bot/issues/270)) ([8e865b8](https://github.com/mascarell/rapi-bot/commit/8e865b81cbfbaec91d5c203713339ec1e104e873))
+
 # [2.25.0](https://github.com/mascarell/rapi-bot/compare/v2.24.0...v2.25.0) (2026-11-21)
 
 
