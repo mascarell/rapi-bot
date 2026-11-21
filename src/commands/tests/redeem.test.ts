@@ -504,8 +504,8 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockDataService.unsubscribe).toHaveBeenCalledWith('user123', 'bd2');
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
 
@@ -519,10 +519,9 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('not subscribed'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('not subscribed')
                 })
             );
         });
@@ -533,6 +532,18 @@ describe('Redeem Command', () => {
             (mockInteraction.options!.getSubcommand as any).mockReturnValue('status');
         });
 
+        it('defers before reading subscriptions', async () => {
+            mockDataService.getUserSubscriptions.mockResolvedValue(null);
+            (mockInteraction.options!.getString as any).mockReturnValue(null);
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
+            expect((mockInteraction.deferReply as any).mock.invocationCallOrder[0])
+                .toBeLessThan(mockDataService.getUserSubscriptions.mock.invocationCallOrder.at(-1));
+            expect(mockInteraction.reply).not.toHaveBeenCalled();
+        });
+
         it('should show no subscriptions message', async () => {
             mockDataService.getUserSubscriptions.mockResolvedValue(null);
 
@@ -540,10 +551,9 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('no active subscriptions'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('no active subscriptions')
                 })
             );
         });
@@ -574,8 +584,8 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
 
@@ -598,8 +608,8 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
     });
@@ -619,10 +629,9 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('No active coupon codes'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('No active coupon codes')
                 })
             );
         });
@@ -640,8 +649,8 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
     });
@@ -692,10 +701,9 @@ describe('Redeem Command', () => {
 
             await redeemCommandModule.executeModRedeem(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('Invalid date format'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('Invalid date format')
                 })
             );
         });
@@ -730,10 +738,9 @@ describe('Redeem Command', () => {
 
             await redeemCommandModule.executeModRedeem(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('already exists'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('already exists')
                 })
             );
         });
@@ -760,8 +767,8 @@ describe('Redeem Command', () => {
             await redeemCommandModule.executeModRedeem(mockInteraction);
 
             expect(mockDataService.removeCoupon).toHaveBeenCalledWith('bd2', 'EXISTING');
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({ embeds: expect.any(Array), flags: MessageFlags.Ephemeral })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
 
@@ -776,10 +783,9 @@ describe('Redeem Command', () => {
 
             await redeemCommandModule.executeModRedeem(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('not found'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('not found')
                 })
             );
         });
@@ -881,10 +887,9 @@ describe('Redeem Command', () => {
 
             await redeemCommand.execute(mockInteraction);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('not subscribed'),
-                    flags: MessageFlags.Ephemeral
+                    content: expect.stringContaining('not subscribed')
                 })
             );
         });
@@ -906,11 +911,8 @@ describe('Redeem Command', () => {
             await redeemCommand.execute(mockInteraction);
 
             expect(mockDataService.getNotificationPreferences).toHaveBeenCalledWith('user123', 'bd2');
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    embeds: expect.any(Array),
-                    flags: MessageFlags.Ephemeral
-                })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
 
@@ -939,11 +941,8 @@ describe('Redeem Command', () => {
                 'bd2',
                 { weeklyDigest: false }
             );
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    embeds: expect.any(Array),
-                    flags: MessageFlags.Ephemeral
-                })
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) })
             );
         });
 
