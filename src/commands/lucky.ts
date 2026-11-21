@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from 'discord.js';
 import fs from 'fs';
 import { logger } from '../utils/logger.js';
 
@@ -33,6 +33,7 @@ userData = loadUserData();
 export default {
     lastUsage: userData,
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('lucky')
         .setDescription('Tells you your luck for today'),
     async execute(interaction: CommandInteraction) {

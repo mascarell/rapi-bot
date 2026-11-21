@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from 'discord.js';
 import { enforceChannelRestriction } from '../utils/channelRestrictions.js';
 
 const rapiBallResponses = [
@@ -80,6 +80,7 @@ const rapiBallResponses = [
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('rapiball')
         .setDescription('Ask Rapi a question and receive her tactical assessment')
         .addStringOption(option =>

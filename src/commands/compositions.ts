@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from 'discord.js';
 import { replyEphemeral } from '../utils/interactionHelpers.js';
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('compositions')
         .setDescription('Get help for NIKKE team compositions'),
     async execute(interaction: ChatInputCommandInteraction) {

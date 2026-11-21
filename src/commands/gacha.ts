@@ -4,6 +4,7 @@ import {
     ColorResolvable,
     ChatInputCommandInteraction,
     MessageFlags,
+    InteractionContextType,
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface.js';
 import {
@@ -23,6 +24,7 @@ RateLimiter.init();
  */
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('gacha')
         .setDescription('Performs a gacha pull for your favorite gacha game!')
         .addStringOption(option =>
