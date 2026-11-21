@@ -391,7 +391,7 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 - Outside `#rapi-bot`, 3 chat commands per hour per user; `#rapi-bot` is unlimited
 - Resets at top of every hour (UTC); 8 blocked attempts in an hour is a 5-minute timeout
 - View status: `/spam check`
-- Mod stats: `/mod spam stats` (moderators; `/spam stats` and `/spam reset` now just point there)
+- Mod stats: `/mod spam stats` (moderators)
 
 ---
 
