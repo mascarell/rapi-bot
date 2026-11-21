@@ -284,6 +284,8 @@ New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-d
 
 #### Moderator Commands
 - `/mod media add` - Add a `.gif` to the `booba?` or `booty?` pool (Rapi home server only; gif only, 25 MB max; named `<character>[_<variant>]_<oppai|booty>.gif`; asks you to confirm before uploading)
+- `/mod media list` - List a pool's gifs, optionally one character's (home server only)
+- `/mod media remove` - Remove a gif from a pool, with a preview and confirm first (home server only)
 - `/mod redeem add` - Add new coupon code
 - `/mod redeem remove` - Deactivate code
 - `/mod redeem list` - View all codes with status indicators
@@ -383,7 +385,7 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 - `/mod slur list | add | remove | test | history` manages this server's own slur list (see CLAUDE.md)
 - `/mod spam stats | reset` shows spam protection statistics and resets a member's chat command limit
 - `/mod redeem ...` holds the coupon moderator tools (add, remove, list, trigger, scrape, stats, subscribers, lookup, unsub, update, reset); home server only except `list`
-- `/mod media add` adds a gif to a chat command pool; home server only
+- `/mod media add | list | remove` adds, lists or removes gifs in a chat command pool; home server only
 
 **Rate Limiting:**
 - Outside `#rapi-bot`, 3 `ccp` chat commands per hour per user; other chat commands only run in `#rapi-bot`

@@ -6,11 +6,13 @@ import {
     ButtonStyle,
     ChatInputCommandInteraction,
     ComponentType,
+    EmbedBuilder,
     Guild,
     MessageFlags,
     TextChannel,
 } from 'discord.js';
 import { EmbedTemplates } from '../../utils/embedTemplates.js';
+import { createPaginatedMessage } from './paginationBuilder.js';
 import { logger } from '../../utils/logger.js';
 import { SLUR_MOD_CONFIG } from '../../utils/data/slurModerationConfig.js';
 import { MEDIA_HOME_GUILD_ID, MEDIA_POOLS, MediaPoolName } from '../../utils/data/mediaPoolConfig.js';
@@ -18,8 +20,12 @@ import {
     MediaUserError,
     addMediaToPool,
     findFreeFileName,
+    findPoolFile,
     getNikkeCharacters,
+    listPoolFiles,
+    removeMediaFromPool,
     searchCharacters,
+    searchFileNames,
     validateAttachment,
 } from '../../services/mediaPoolService.js';
 
@@ -186,6 +192,190 @@ async function confirmAndAdd(interaction: ChatInputCommandInteraction, guild: Gu
                         { name: 'Character', value: req.characterName, inline: true },
                         { name: 'File name', value: `\`${result.fileName}\``, inline: true }
                     ),
+            ],
+        });
+    } catch (error) {
+        logger.warn`[mod] media log post failed in ${guild.id}: ${error}`;
+    }
+}
+
+const FILES_PER_PAGE = 20;
+
+const poolFrom = (interaction: ChatInputCommandInteraction | AutocompleteInteraction) => {
+    const name = interaction.options.getString('pool') as MediaPoolName | null;
+    return name && MEDIA_POOLS[name] ? name : null;
+};
+
+/** File name suggestions for `/mod media remove`, home server only. */
+export async function autocompleteMediaFile(interaction: AutocompleteInteraction): Promise<void> {
+    const poolName = poolFrom(interaction);
+    if (!isMediaHomeGuild(interaction.guildId) || !poolName) {
+        await interaction.respond([]);
+        return;
+    }
+    const names = await listPoolFiles(poolName);
+    await interaction.respond(
+        searchFileNames(names, interaction.options.getFocused(), 25).map(n => ({ name: n.slice(0, 100), value: n }))
+    );
+}
+
+function buildListPages(title: string, names: string[]): EmbedBuilder[] {
+    const pages: EmbedBuilder[] = [];
+    for (let i = 0; i < names.length; i += FILES_PER_PAGE) {
+        const chunk = names.slice(i, i + FILES_PER_PAGE);
+        pages.push(
+            EmbedTemplates.info(title)
+                .setDescription(chunk.map(n => `\`${n}\``).join('\n'))
+                .setFooter({ text: `${names.length} file${names.length === 1 ? '' : 's'} in total` })
+        );
+    }
+    return pages;
+}
+
+export async function handleMediaList(interaction: ChatInputCommandInteraction, guild: Guild): Promise<void> {
+    if (!isMediaHomeGuild(interaction.guildId)) {
+        await interaction.reply({ content: MEDIA_HOME_ONLY_MESSAGE, flags: MessageFlags.Ephemeral });
+        return;
+    }
+    const poolName = poolFrom(interaction);
+    if (!poolName) {
+        await interaction.reply({ content: '❌ Unknown command.', flags: MessageFlags.Ephemeral });
+        return;
+    }
+    const code = interaction.options.getString('character', false);
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    try {
+        const pool = MEDIA_POOLS[poolName];
+        let character = null;
+        if (code) {
+            character = (await getNikkeCharacters()).find(c => c.code === code) ?? null;
+            if (!character) {
+                await interaction.editReply({
+                    embeds: [EmbedTemplates.error('Unknown character', 'Pick a character from the suggestions.')],
+                });
+                return;
+            }
+        }
+        const names = await listPoolFiles(poolName, character?.slug);
+        if (names.length === 0) {
+            await interaction.editReply({
+                content: character
+                    ? `No files for ${character.name} in \`${pool.label}\`.`
+                    : `\`${pool.label}\` has no files.`,
+            });
+            return;
+        }
+        const title = character ? `${pool.label} files: ${character.name}` : `${pool.label} files`;
+        await createPaginatedMessage(interaction, buildListPages(title, names), {
+            customIdPrefix: `modmedia_list_${interaction.id}`,
+        });
+    } catch (error) {
+        logger.error`[mod] media list failed in ${guild.id}: ${error}`;
+        await interaction
+            .editReply({ embeds: [EmbedTemplates.error('Could not list files', 'Something went wrong. Please try again.')] })
+            .catch(() => {});
+    }
+}
+
+export async function handleMediaRemove(
+    interaction: ChatInputCommandInteraction,
+    guild: Guild,
+    findModLogChannel: (guild: Guild) => TextChannel | null
+): Promise<void> {
+    if (!isMediaHomeGuild(interaction.guildId)) {
+        await interaction.reply({ content: MEDIA_HOME_ONLY_MESSAGE, flags: MessageFlags.Ephemeral });
+        return;
+    }
+    const poolName = poolFrom(interaction);
+    if (!poolName) {
+        await interaction.reply({ content: '❌ Unknown command.', flags: MessageFlags.Ephemeral });
+        return;
+    }
+    const fileName = interaction.options.getString('file', true).trim();
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    try {
+        const file = await findPoolFile(poolName, fileName);
+        await confirmAndRemove(interaction, guild, poolName, file, findModLogChannel);
+    } catch (error) {
+        const message = error instanceof MediaUserError ? error.message : 'Something went wrong. Please try again.';
+        if (!(error instanceof MediaUserError)) logger.error`[mod] media remove failed in ${guild.id}: ${error}`;
+        await interaction
+            .editReply({ content: null, embeds: [EmbedTemplates.error('Nothing was removed', message)], components: [] })
+            .catch(() => {});
+    }
+}
+
+async function confirmAndRemove(
+    interaction: ChatInputCommandInteraction,
+    guild: Guild,
+    poolName: MediaPoolName,
+    file: { fileName: string; url: string },
+    findModLogChannel: (guild: Guild) => TextChannel | null
+): Promise<void> {
+    const pool = MEDIA_POOLS[poolName];
+    const removeId = `modmedia_remove_${interaction.id}`;
+    const cancelId = `modmedia_cancel_${interaction.id}`;
+    const prompt = await interaction.editReply({
+        embeds: [
+            EmbedTemplates.info(`Remove from ${pool.label}`)
+                .setImage(file.url)
+                .addFields(
+                    { name: 'Command', value: pool.label, inline: true },
+                    { name: 'File name', value: `\`${file.fileName}\``, inline: true }
+                ),
+        ],
+        components: [
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder().setCustomId(removeId).setLabel('Remove').setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId(cancelId).setLabel('Cancel').setStyle(ButtonStyle.Secondary)
+            ),
+        ],
+    });
+
+    let button;
+    try {
+        button = await prompt.awaitMessageComponent({
+            componentType: ComponentType.Button,
+            time: SLUR_MOD_CONFIG.CONFIRM_TIMEOUT_MS,
+            filter: i => i.user.id === interaction.user.id && (i.customId === removeId || i.customId === cancelId),
+        });
+    } catch {
+        await interaction.editReply({ content: 'Timed out — nothing was removed.', embeds: [], components: [] });
+        return;
+    }
+
+    if (button.customId === cancelId) {
+        await button.update({ content: 'Cancelled — nothing was removed.', embeds: [], components: [] });
+        return;
+    }
+
+    await button.deferUpdate();
+    try {
+        await removeMediaFromPool(poolName, file.fileName);
+    } catch (error) {
+        logger.error`[mod] media delete failed in ${guild.id}: ${error}`;
+        const message = error instanceof MediaUserError ? error.message : 'The file could not be deleted.';
+        await interaction.editReply({ content: `❌ ${message} Nothing was removed.`, embeds: [], components: [] });
+        return;
+    }
+
+    await interaction.editReply({
+        content: `Removed \`${file.fileName}\` from \`${pool.label}\`.`,
+        embeds: [],
+        components: [],
+    });
+
+    const channel = findModLogChannel(guild);
+    if (!channel) return;
+    try {
+        await channel.send({
+            embeds: [
+                EmbedTemplates.info(`${pool.label} image removed`).addFields(
+                    { name: 'Removed by', value: `${interaction.user}`, inline: true },
+                    { name: 'File name', value: `\`${file.fileName}\``, inline: true }
+                ),
             ],
         });
     } catch (error) {

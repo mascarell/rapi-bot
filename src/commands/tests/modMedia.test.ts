@@ -46,9 +46,11 @@ const manifest = {
 
 let puts: any[];
 let existing: string[];
+let deletes: any[];
 
 function setupS3() {
     puts = [];
+    deletes = [];
     existing = [];
     send.mockImplementation(async (command: any) => {
         const name = command.constructor.name;
@@ -59,6 +61,14 @@ function setupS3() {
         }
         if (name === 'PutObjectCommand') {
             puts.push(command.input);
+            return {};
+        }
+        if (name === 'ListObjectsV2Command') {
+            const prefix = command.input.Prefix as string;
+            return { Contents: existing.filter(k => k.startsWith(prefix)).map(Key => ({ Key })) };
+        }
+        if (name === 'DeleteObjectCommand') {
+            deletes.push(command.input);
             return {};
         }
         throw new Error(`unexpected ${name}`);
@@ -93,6 +103,9 @@ function makeInteraction(opts: {
     guildId?: string;
     isMod?: boolean;
     command?: string;
+    sub?: string;
+    pool?: string;
+    file?: string;
     character?: string;
     variant?: string | null;
     attachment?: any;
@@ -122,9 +135,18 @@ function makeInteraction(opts: {
         user: { id: '111111111111111111', tag: 'Mod#0001', toString: () => '<@111111111111111111>' },
         options: {
             getSubcommandGroup: () => 'media',
-            getSubcommand: () => 'add',
+            getSubcommand: () => opts.sub ?? 'add',
             getString: (name: string) =>
-                ({ command: opts.command ?? 'booty', character: opts.character ?? 'c1', variant: opts.variant ?? null } as any)[name] ?? null,
+                (
+                    {
+                        command: opts.command ?? 'booty',
+                        pool: opts.pool ?? 'booty',
+                        file: opts.file ?? null,
+                        // list treats the character as optional; add always passes one
+                        character: opts.character === undefined && opts.sub === 'list' ? null : (opts.character ?? 'c1'),
+                        variant: opts.variant ?? null,
+                    } as any
+                )[name] ?? null,
             getAttachment: () => attachment,
         },
         reply: vi.fn().mockResolvedValue({}),
@@ -154,7 +176,7 @@ describe('/mod media registration', () => {
         const json = modCommand.data.toJSON() as any;
         const group = json.options.find((o: any) => o.name === 'media');
         expect(group.description).toBe('booba? and booty? image pools');
-        expect(group.options.map((o: any) => o.name)).toEqual(['add']);
+        expect(group.options.map((o: any) => o.name)).toEqual(['add', 'list', 'remove']);
         const opts = group.options[0].options;
         expect(opts.map((o: any) => [o.name, o.required ?? false])).toEqual([
             ['command', true],
@@ -164,6 +186,177 @@ describe('/mod media registration', () => {
         ]);
         expect(opts[0].choices.map((c: any) => c.value)).toEqual(['booba', 'booty']);
         expect(opts[1].autocomplete).toBe(true);
+    });
+
+    it('registers list and remove with a pool choice and autocompleted character/file', () => {
+        const json = modCommand.data.toJSON() as any;
+        const group = json.options.find((o: any) => o.name === 'media');
+        const shape = (name: string) =>
+            group.options.find((o: any) => o.name === name).options.map((o: any) => [o.name, o.required ?? false, o.autocomplete ?? false]);
+        expect(shape('list')).toEqual([['pool', true, false], ['character', false, true]]);
+        expect(shape('remove')).toEqual([['pool', true, false], ['file', true, true]]);
+        const list = group.options.find((o: any) => o.name === 'list');
+        expect(list.options[0].choices.map((c: any) => c.value)).toEqual(['booba', 'booty']);
+    });
+
+    it('keeps the whole /mod definition under Discord\'s 8000 character limit', () => {
+        expect(JSON.stringify(modCommand.data.toJSON()).length).toBeLessThan(8000);
+    });
+});
+
+describe('/mod media list', () => {
+    const pageInteraction = (opts: Parameters<typeof makeInteraction>[0]) => {
+        const i = makeInteraction({ sub: 'list', ...opts });
+        // createPaginatedMessage collects buttons off the reply message
+        const collector = { on: vi.fn() };
+        const message = { createMessageComponentCollector: vi.fn().mockReturnValue(collector), edit: vi.fn() };
+        i.editReply.mockResolvedValue(message);
+        return i;
+    };
+    const keys = (n: number, prefix = 'commands/booty/') =>
+        Array.from({ length: n }, (_, k) => `${prefix}unit${String(k).padStart(2, '0')}_booty.gif`);
+
+    it('defers ephemerally and paginates 20 names per page with the total', async () => {
+        existing = keys(45);
+        const i = pageInteraction({});
+        await modCommand.execute(i);
+        expect(i.deferReply).toHaveBeenCalledWith({ flags: 64 });
+        const reply = i.editReply.mock.calls[0][0];
+        const first = reply.embeds[0].toJSON();
+        expect(first.title).toBe('booty? files');
+        expect(first.description.split('\n')).toHaveLength(20);
+        expect(first.footer.text).toBe('45 files in total');
+        const labels = reply.components[0].toJSON().components.map((c: any) => c.label);
+        expect(labels).toEqual(['Previous', 'Page 1 of 3', 'Next']);
+    });
+
+    it('only lists the chosen pool', async () => {
+        existing = [...keys(2, 'commands/booba/'), 'commands/booty/rapi_booty.gif'];
+        const i = pageInteraction({});
+        await modCommand.execute(i);
+        const embed = i.editReply.mock.calls[0][0].embeds[0].toJSON();
+        expect(embed.description).toBe('`rapi_booty.gif`');
+        expect(embed.footer.text).toBe('1 file in total');
+    });
+
+    it('filters to one character', async () => {
+        existing = ['commands/booty/anis_booty.gif', 'commands/booty/anis_2_booty.gif', 'commands/booty/blanc_booty.gif'];
+        const i = pageInteraction({ character: 'c1' });
+        await modCommand.execute(i);
+        const embed = i.editReply.mock.calls[0][0].embeds[0].toJSON();
+        expect(embed.title).toBe('booty? files: Anis');
+        expect(embed.description).toBe('`anis_2_booty.gif`\n`anis_booty.gif`');
+    });
+
+    it('says so when the pool is empty', async () => {
+        const i = pageInteraction({});
+        await modCommand.execute(i);
+        expect(i.editReply.mock.calls[0][0].content).toBe('`booty?` has no files.');
+    });
+
+    it('says so when the character has no files', async () => {
+        existing = ['commands/booty/blanc_booty.gif'];
+        const i = pageInteraction({ character: 'c1' });
+        await modCommand.execute(i);
+        expect(i.editReply.mock.calls[0][0].content).toBe('No files for Anis in `booty?`.');
+    });
+
+    it('refuses non-moderators and other guilds without listing', async () => {
+        const nonMod = pageInteraction({ isMod: false });
+        await modCommand.execute(nonMod);
+        expect(nonMod.reply.mock.calls[0][0].content).toBe(MOD_REQUIRED_MESSAGE);
+        const away = pageInteraction({ guildId: OTHER_GUILD });
+        await modCommand.execute(away);
+        expect(away.reply.mock.calls[0][0].content).toBe(MEDIA_HOME_ONLY_MESSAGE);
+        expect(send).not.toHaveBeenCalled();
+    });
+});
+
+describe('/mod media remove', () => {
+    const removeButton = (kind: 'remove' | 'cancel') => ({
+        customId: `modmedia_${kind}_interaction-1`,
+        update: vi.fn().mockResolvedValue({}),
+        deferUpdate: vi.fn().mockResolvedValue({}),
+    });
+
+    it('previews the gif, deletes on Remove, invalidates the cache and logs', async () => {
+        existing = ['commands/booba/rapi_oppai.gif'];
+        const i = makeInteraction({ sub: 'remove', pool: 'booba', file: 'rapi_oppai.gif', button: removeButton('remove') });
+        await modCommand.execute(i);
+
+        const preview = i.editReply.mock.calls[0][0];
+        const embed = preview.embeds[0].toJSON();
+        expect(embed.title).toBe('Remove from booba?');
+        expect(embed.image.url).toBe('https://cdn.example.com/commands/booba/rapi_oppai.gif');
+        const buttons = preview.components[0].toJSON().components.map((c: any) => [c.label, c.style]);
+        expect(buttons).toEqual([['Remove', 4], ['Cancel', 2]]);
+        expect(i.prompt.awaitMessageComponent.mock.calls[0][0].time).toBe(SLUR_MOD_CONFIG.CONFIRM_TIMEOUT_MS);
+
+        expect(deletes).toEqual([{ Bucket: 'test-bucket', Key: 'commands/booba/rapi_oppai.gif' }]);
+        expect(invalidateMediaListCache).toHaveBeenCalledWith('commands/booba/');
+        expect(i.editReply.mock.calls.at(-1)[0].content).toBe('Removed `rapi_oppai.gif` from `booba?`.');
+
+        const log = logSend.mock.calls[0][0].embeds[0].toJSON();
+        expect(log.title).toBe('booba? image removed');
+        expect(JSON.stringify(log.fields)).toContain('<@111111111111111111>');
+        expect(JSON.stringify(log.fields)).toContain('rapi_oppai.gif');
+    });
+
+    it('only accepts button presses from the invoking moderator', async () => {
+        existing = ['commands/booty/rapi_booty.gif'];
+        const i = makeInteraction({ sub: 'remove', file: 'rapi_booty.gif', button: removeButton('remove') });
+        await modCommand.execute(i);
+        const { filter } = i.prompt.awaitMessageComponent.mock.calls[0][0];
+        expect(filter({ user: { id: '111111111111111111' }, customId: 'modmedia_remove_interaction-1' })).toBe(true);
+        expect(filter({ user: { id: '999999999999999999' }, customId: 'modmedia_remove_interaction-1' })).toBe(false);
+    });
+
+    it('Cancel deletes nothing', async () => {
+        existing = ['commands/booty/rapi_booty.gif'];
+        const btn = removeButton('cancel');
+        const i = makeInteraction({ sub: 'remove', file: 'rapi_booty.gif', button: btn });
+        await modCommand.execute(i);
+        expect(deletes).toHaveLength(0);
+        expect(invalidateMediaListCache).not.toHaveBeenCalled();
+        expect(btn.update.mock.calls[0][0].content).toBe('Cancelled — nothing was removed.');
+        expect(logSend).not.toHaveBeenCalled();
+    });
+
+    it('timeout deletes nothing', async () => {
+        existing = ['commands/booty/rapi_booty.gif'];
+        const i = makeInteraction({ sub: 'remove', file: 'rapi_booty.gif', button: new Error('time') });
+        await modCommand.execute(i);
+        expect(i.editReply.mock.calls.at(-1)[0].content).toBe('Timed out — nothing was removed.');
+        expect(deletes).toHaveLength(0);
+    });
+
+    it.each(['../booba/rapi_oppai.gif', 'booty/rapi_booty.gif', '..'])('rejects the traversal name %j', async name => {
+        existing = ['commands/booba/rapi_oppai.gif'];
+        const i = makeInteraction({ sub: 'remove', file: name, button: removeButton('remove') });
+        await modCommand.execute(i);
+        const embed = i.editReply.mock.calls.at(-1)[0].embeds[0].toJSON();
+        expect(embed.title).toBe('Nothing was removed');
+        expect(embed.description).toBe('That is not a valid file name.');
+        expect(send).not.toHaveBeenCalled();
+        expect(deletes).toHaveLength(0);
+    });
+
+    it('rejects a file that is not in the pool', async () => {
+        existing = ['commands/booba/rapi_oppai.gif'];
+        const i = makeInteraction({ sub: 'remove', pool: 'booty', file: 'rapi_oppai.gif', button: removeButton('remove') });
+        await modCommand.execute(i);
+        expect(i.editReply.mock.calls.at(-1)[0].embeds[0].toJSON().description).toBe('That file is not in this pool.');
+        expect(deletes).toHaveLength(0);
+    });
+
+    it('refuses non-moderators and other guilds', async () => {
+        const nonMod = makeInteraction({ sub: 'remove', file: 'rapi_booty.gif', isMod: false });
+        await modCommand.execute(nonMod);
+        expect(nonMod.reply.mock.calls[0][0].content).toBe(MOD_REQUIRED_MESSAGE);
+        const away = makeInteraction({ sub: 'remove', file: 'rapi_booty.gif', guildId: OTHER_GUILD });
+        await modCommand.execute(away);
+        expect(away.reply.mock.calls[0][0].content).toBe(MEDIA_HOME_ONLY_MESSAGE);
+        expect(send).not.toHaveBeenCalled();
     });
 });
 
@@ -304,7 +497,7 @@ describe('/mod media add: flow', () => {
 });
 
 describe('/mod media autocomplete', () => {
-    function acInteraction(opts: { guildId?: string; isMod?: boolean; focused: string }) {
+    function acInteraction(opts: { guildId?: string; isMod?: boolean; focused: string; sub?: string; pool?: string }) {
         const guildId = opts.guildId ?? MEDIA_HOME_GUILD_ID;
         return {
             guildId,
@@ -314,7 +507,8 @@ describe('/mod media autocomplete', () => {
             user: { id: 'u1' },
             options: {
                 getSubcommandGroup: () => 'media',
-                getSubcommand: () => 'add',
+                getSubcommand: () => opts.sub ?? 'add',
+                getString: (name: string) => (name === 'pool' ? (opts.pool ?? 'booba') : null),
                 getFocused: () => opts.focused,
             },
             respond: vi.fn().mockResolvedValue(undefined),
@@ -350,5 +544,55 @@ describe('/mod media autocomplete', () => {
         await modCommand.autocomplete(i);
         expect(i.respond).toHaveBeenCalledWith([]);
         expect(send).not.toHaveBeenCalled();
+    });
+});
+
+describe('/mod media autocomplete: file and list character', () => {
+    function fileAc(opts: { guildId?: string; isMod?: boolean; focused: string; sub?: string; pool?: string }) {
+        const guildId = opts.guildId ?? MEDIA_HOME_GUILD_ID;
+        return {
+            guildId,
+            guild: makeGuild(guildId),
+            memberPermissions: { has: (p: bigint) => (opts.isMod ?? true) && p === PermissionFlagsBits.ModerateMembers },
+            member: { roles: [] },
+            user: { id: 'u1' },
+            options: {
+                getSubcommandGroup: () => 'media',
+                getSubcommand: () => opts.sub ?? 'remove',
+                getString: (name: string) => (name === 'pool' ? (opts.pool ?? 'booba') : null),
+                getFocused: () => opts.focused,
+            },
+            respond: vi.fn().mockResolvedValue(undefined),
+        } as any;
+    }
+
+    it('suggests matching file names from the chosen pool only', async () => {
+        existing = ['commands/booba/rapi_oppai.gif', 'commands/booba/anis_oppai.gif', 'commands/booty/rapi_booty.gif'];
+        const i = fileAc({ focused: 'RAPI' });
+        await modCommand.autocomplete(i);
+        expect(i.respond).toHaveBeenCalledWith([{ name: 'rapi_oppai.gif', value: 'rapi_oppai.gif' }]);
+    });
+
+    it('caps file suggestions at 25', async () => {
+        existing = Array.from({ length: 60 }, (_, n) => `commands/booba/unit${n}_oppai.gif`);
+        const i = fileAc({ focused: 'unit' });
+        await modCommand.autocomplete(i);
+        expect(i.respond.mock.calls[0][0]).toHaveLength(25);
+    });
+
+    it('responds [] for non-moderators and other guilds without listing', async () => {
+        const nonMod = fileAc({ isMod: false, focused: 'a' });
+        await modCommand.autocomplete(nonMod);
+        expect(nonMod.respond).toHaveBeenCalledWith([]);
+        const away = fileAc({ guildId: OTHER_GUILD, focused: 'a' });
+        await modCommand.autocomplete(away);
+        expect(away.respond).toHaveBeenCalledWith([]);
+        expect(send).not.toHaveBeenCalled();
+    });
+
+    it('list suggests characters like add does', async () => {
+        const i = fileAc({ sub: 'list', focused: 'blanc' });
+        await modCommand.autocomplete(i);
+        expect(i.respond).toHaveBeenCalledWith([{ name: 'Blanc', value: 'c3' }]);
     });
 });

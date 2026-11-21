@@ -1,4 +1,10 @@
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+    DeleteObjectCommand,
+    GetObjectCommand,
+    HeadObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import { s3Client, S3_BUCKET } from '../utils/cdn/config.js';
 import { invalidateMediaListCache } from '../utils/cdn/mediaManager.js';
 import { logger } from '../utils/logger.js';
@@ -166,4 +172,57 @@ export async function addMediaToPool(
     invalidateMediaListCache(prefix);
     logger.info`[media] added ${key}`;
     return { fileName, key, url: cdnUrlForKey(key) };
+}
+
+/**
+ * File names (not keys) in the pool, sorted, following continuation tokens.
+ * With `characterSlug`, only that character's files: names start `<slug>_`.
+ */
+export async function listPoolFiles(pool: MediaPoolName, characterSlug?: string): Promise<string[]> {
+    const { prefix } = MEDIA_POOLS[pool];
+    const names: string[] = [];
+    let token: string | undefined;
+    do {
+        const page = await s3Client.send(
+            new ListObjectsV2Command({ Bucket: S3_BUCKET, Prefix: prefix, ContinuationToken: token })
+        );
+        for (const object of page.Contents ?? []) {
+            const name = object.Key?.slice(prefix.length);
+            if (name) names.push(name);
+        }
+        token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+
+    const wanted = characterSlug ? `${slugify(characterSlug)}_` : '';
+    return names.filter(n => n.startsWith(wanted)).sort();
+}
+
+/** Pool files whose name contains `query` (case-insensitive), at most `limit`. */
+export function searchFileNames(names: string[], query: string, limit = 25): string[] {
+    const q = query.toLowerCase().trim();
+    return names.filter(n => n.toLowerCase().includes(q)).slice(0, limit);
+}
+
+/** A bare file name only: no folders, no traversal, so the key can't leave the pool prefix. */
+function assertBareFileName(fileName: string): void {
+    if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {
+        throw new MediaUserError('That is not a valid file name.');
+    }
+}
+
+/** Resolve a file in the pool, or throw a MediaUserError if the name is unsafe or the file is missing. */
+export async function findPoolFile(pool: MediaPoolName, fileName: string): Promise<AddMediaResult> {
+    assertBareFileName(fileName);
+    const key = `${MEDIA_POOLS[pool].prefix}${fileName}`;
+    if (!(await keyExists(key))) throw new MediaUserError('That file is not in this pool.');
+    return { fileName, key, url: cdnUrlForKey(key) };
+}
+
+/** Delete a file from the pool and drop the cached listing so the chat command stops picking it. */
+export async function removeMediaFromPool(pool: MediaPoolName, fileName: string): Promise<AddMediaResult> {
+    const file = await findPoolFile(pool, fileName);
+    await s3Client.send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: file.key }));
+    invalidateMediaListCache(MEDIA_POOLS[pool].prefix);
+    logger.info`[media] removed ${file.key}`;
+    return file;
 }
