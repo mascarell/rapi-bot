@@ -4,7 +4,7 @@
  * in-memory S3, real redemption service with fetch stubbed, fake Discord guilds.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ChannelType, Client, Collection, PermissionFlagsBits } from 'discord.js';
+import { ChannelType, Client, Collection, MessageType, PermissionFlagsBits } from 'discord.js';
 
 // Read when gachaGamesConfig is first imported, so it must be set before the imports run.
 vi.hoisted(() => {
@@ -30,6 +30,7 @@ import { GachaRedemptionService, getGachaRedemptionService, _testResetCircuitBre
 import {
     CouponAnnouncementService,
     buildCouponPost,
+    codeFromPost,
     couponButtonId,
     findAnnounceChannel,
     getCouponAnnouncementService,
@@ -1249,5 +1250,75 @@ describe('GachaCouponScheduler.triggerCodeScraping posts what it adds', () => {
 
         expect(warned).toBe(0);
         expect(bd2Channel.send).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('pinning code posts', () => {
+    function sentMessage(botUserId = 'user') {
+        const notice = {
+            type: MessageType.ChannelPinnedMessage,
+            author: { id: botUserId },
+            reference: { messageId: 'post-1' },
+            delete: vi.fn().mockResolvedValue(undefined),
+        };
+        const message = {
+            id: 'post-1',
+            client: { user: { id: botUserId } },
+            channel: { name: 'czn', messages: { fetch: vi.fn().mockResolvedValue(new Collection([['n1', notice]])) } },
+            pin: vi.fn().mockResolvedValue(undefined),
+        };
+        return { message, notice };
+    }
+
+    it('pins a new-code post and deletes the pin notice', async () => {
+        const { message, notice } = sentMessage();
+        const channel = fakeChannel('czn', { send: vi.fn().mockResolvedValue(message) });
+        allowGuilds(['g1']);
+
+        const posted = await getCouponAnnouncementService().announce(fakeBot([fakeGuild('g1', [channel])]), coupon());
+
+        expect(posted).toBe(1);
+        expect(message.pin).toHaveBeenCalledTimes(1);
+        expect(notice.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('still counts the post when pinning is not allowed', async () => {
+        const { message } = sentMessage();
+        message.pin.mockRejectedValue(new Error('Missing Permissions'));
+        const channel = fakeChannel('czn', { send: vi.fn().mockResolvedValue(message) });
+        allowGuilds(['g1']);
+
+        expect(await getCouponAnnouncementService().announce(fakeBot([fakeGuild('g1', [channel])]), coupon())).toBe(1);
+    });
+
+    function pinnedPost(gameId: GachaGameId, code: string, authorId = 'user') {
+        const { embeds } = buildCouponPost(coupon({ gameId, code }), 'new');
+        return { message: { author: { id: authorId }, embeds: embeds.map(e => e.toJSON()), unpin: vi.fn().mockResolvedValue(undefined) } };
+    }
+
+    it('unpins posts whose code is no longer active and leaves the rest', async () => {
+        const expired = pinnedPost('czn', 'OLDCODE1');
+        const live = pinnedPost('czn', 'LIVECODE1');
+        const someoneElse = pinnedPost('czn', 'OLDCODE1', 'member');
+        const channel: any = fakeChannel('czn');
+        channel.messages = {
+            fetchPins: vi.fn().mockResolvedValue({ hasMore: false, items: [expired, live, someoneElse] }),
+        };
+        allowGuilds(['g1']);
+        vi.spyOn(getGachaDataService(), 'getActiveCoupons').mockImplementation(async (gameId: GachaGameId) =>
+            gameId === 'czn' ? [coupon({ gameId: 'czn', code: 'LIVECODE1' })] : []
+        );
+
+        const unpinned = await getCouponAnnouncementService().unpinFinished(fakeBot([fakeGuild('g1', [channel])]));
+
+        expect(unpinned).toBe(1);
+        expect(expired.message.unpin).toHaveBeenCalledTimes(1);
+        expect(live.message.unpin).not.toHaveBeenCalled();
+        expect(someoneElse.message.unpin).not.toHaveBeenCalled();
+    });
+
+    it('reads the code back out of a post', () => {
+        const { embeds } = buildCouponPost(coupon({ code: 'READBACK1' }), 'new');
+        expect(codeFromPost({ embeds: embeds.map(e => e.toJSON()) } as any)).toBe('READBACK1');
     });
 });

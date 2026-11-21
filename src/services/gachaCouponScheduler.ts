@@ -64,6 +64,7 @@ export class GachaCouponScheduler {
         this.scheduleAutoRedemption();
         this.scheduleCodeScraping();
         this.scheduleExpiredCodeCleanup();
+        this.scheduleUnpinFinished();
 
         // Always scrape codes on startup (after a short delay to let bot fully initialize)
         // This ensures we have the latest codes immediately after restart/deploy
@@ -278,6 +279,30 @@ export class GachaCouponScheduler {
         });
 
         this.scheduledJobs.set('gacha-code-scraping', job);
+    }
+
+    /**
+     * Unpin channel posts for codes that expired or were removed - every 30
+     * minutes at :05 and :35, clear of the :00/:30 code sync.
+     */
+    private scheduleUnpinFinished(): void {
+        const interval = this.devConfig.codeScrapingInterval;
+        const cronExpression = this.isDevelopment
+            ? `*/${interval} * * * *`
+            : '5,35 * * * *';
+
+        const taskName = 'unpin-finished';
+        const job = schedule.scheduleJob(cronExpression, async () => {
+            if (this.runningTasks.has(taskName)) return;
+            this.runningTasks.add(taskName);
+            try {
+                await getCouponAnnouncementService().unpinFinished(this.bot);
+            } finally {
+                this.runningTasks.delete(taskName);
+            }
+        });
+
+        this.scheduledJobs.set('gacha-unpin-finished', job);
     }
 
     /**

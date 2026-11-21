@@ -6,6 +6,8 @@ import {
     Client,
     EmbedBuilder,
     Guild,
+    Message,
+    MessageType,
     NewsChannel,
     PermissionFlagsBits,
     TextChannel,
@@ -30,6 +32,10 @@ import { logger } from '../utils/logger.js';
  *
  * Buttons rather than reactions: a button can answer each member privately
  * and can open a form, and a reaction can do neither.
+ *
+ * New-code posts are pinned, and unpinned by `unpinFinished` once the code
+ * expires or is removed. Expiry warnings are not pinned: the code's first
+ * post is already there.
  *
  * Posts go to allowlisted servers only (`allowedGuildIds`), like every other
  * gacha feature. Nothing here ever throws: a missing channel or permission is
@@ -93,7 +99,7 @@ export function buildCouponPost(coupon: GachaCoupon, kind: PostKind, now = Date.
 
     const title = kind === 'expiring'
         ? `⏰ ${config.name} code expires soon`
-        : `🆕 New ${config.name} code`;
+        : newPostTitle(coupon.gameId);
 
     const lines = [`\`\`\`\n${coupon.code}\n\`\`\``];
     if (soon && coupon.expirationDate) {
@@ -145,6 +151,17 @@ export function buildCouponPost(coupon: GachaCoupon, kind: PostKind, now = Date.
         : [];
 
     return { embeds: [embed], components };
+}
+
+/** Title of a new-code post; also how a pinned post is matched back to its game. */
+export function newPostTitle(gameId: GachaGameId): string {
+    return `🆕 New ${getGameConfig(gameId).name} code`;
+}
+
+/** The code inside a post's embed (the fenced block at the top), or null. */
+export function codeFromPost(message: Pick<Message, 'embeds'>): string | null {
+    const match = message.embeds[0]?.description?.match(/^```\n([^\n]+)\n```/);
+    return match ? match[1].trim() : null;
 }
 
 /** The first of `names` that is a channel the bot can post in, or undefined. */
@@ -247,14 +264,84 @@ export class CouponAnnouncementService {
             try {
                 const channel = findAnnounceChannel(guild, names);
                 if (!channel) continue;
-                await channel.send(message);
+                const sent = await channel.send(message);
                 posted++;
+                if (kind === 'new') await this.pin(sent);
             } catch (error) {
                 logger.error`[Coupon post] Posting ${coupon.gameId} ${coupon.code} in ${guild.name} failed: ${error}`;
             }
         }
         logger.info`[Coupon post] ${kind} ${coupon.gameId} ${coupon.code}: posted in ${posted} channel(s)`;
         return posted;
+    }
+
+    /**
+     * Pin a new-code post, then delete Discord's "pinned a message" notice so
+     * the channel shows the code once. Best effort: without Pin Messages the
+     * post simply stays unpinned.
+     */
+    private async pin(message: Message): Promise<void> {
+        try {
+            await message.pin('New coupon code');
+        } catch (error) {
+            logger.warn`[Coupon post] Couldn't pin ${message.id} in #${(message.channel as TextChannel).name}: ${error}`;
+            return;
+        }
+        try {
+            const recent = await message.channel.messages.fetch({ after: message.id, limit: 5 });
+            const notice = recent.find(m =>
+                m.type === MessageType.ChannelPinnedMessage &&
+                m.author.id === message.client.user?.id &&
+                m.reference?.messageId === message.id
+            );
+            if (notice) await notice.delete();
+        } catch {
+            // The notice stays; nothing else depends on it.
+        }
+    }
+
+    /**
+     * Unpin Rapi's new-code posts whose code is no longer active: expired,
+     * or removed by a moderator. Reads the pins each time rather than storing
+     * message ids, so a restart or a hand-pinned post changes nothing.
+     * Returns how many posts were unpinned. Never throws.
+     */
+    async unpinFinished(bot: Client): Promise<number> {
+        let unpinned = 0;
+        try {
+            const guildIds = await getGachaGuildConfigService().getAllowedGuildIds();
+            const dataService = getGachaDataService();
+            for (const gameId of getSupportedGameIds()) {
+                const names = getGameConfig(gameId).announceChannelNames;
+                if (!names?.length) continue;
+                const title = newPostTitle(gameId);
+                const active = new Set((await dataService.getActiveCoupons(gameId)).map(c => c.code.toUpperCase()));
+
+                for (const guildId of guildIds) {
+                    const guild = bot.guilds.cache.get(guildId);
+                    if (!guild) continue;
+                    const channel = findAnnounceChannel(guild, names);
+                    if (!channel) continue;
+                    try {
+                        const pins = await channel.messages.fetchPins({ limit: 50 });
+                        for (const { message } of pins.items) {
+                            if (message.author.id !== bot.user?.id) continue;
+                            if (message.embeds[0]?.title !== title) continue;
+                            const code = codeFromPost(message);
+                            if (!code || active.has(code.toUpperCase())) continue;
+                            await message.unpin('Coupon code expired or removed');
+                            unpinned++;
+                        }
+                    } catch (error) {
+                        logger.warn`[Coupon post] Unpin sweep for ${gameId} in ${guild.name} failed: ${error}`;
+                    }
+                }
+            }
+        } catch (error) {
+            logger.error`[Coupon post] Unpin sweep failed: ${error}`;
+        }
+        if (unpinned > 0) logger.info`[Coupon post] Unpinned ${unpinned} finished code post(s)`;
+        return unpinned;
     }
 }
 
