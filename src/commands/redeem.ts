@@ -1983,7 +1983,7 @@ export function addModRedeemSubcommands(group: SlashCommandSubcommandGroupBuilde
  * shared by every server, so everything else (including future subcommands)
  * is home-server only by default.
  */
-const OPEN_EVERYWHERE: ReadonlySet<string> = new Set(['list']);
+export const OPEN_EVERYWHERE: ReadonlySet<string> = new Set(['list']);
 
 // Subcommands whose handlers answer with editReply, so the dispatcher defers
 // first. list, trigger, scrape and subscribers defer inside their handlers.

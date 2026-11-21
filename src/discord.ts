@@ -8,7 +8,6 @@ import {
     Partials,
 } from "discord.js";
 import { REST } from '@discordjs/rest';
-import { Routes } from 'discord-api-types/v9';
 import path from "path";
 import fs from "fs";
 import schedule from 'node-schedule';
@@ -21,6 +20,7 @@ import { getRandomCdnMediaUrl } from "./utils/cdn/mediaManager.js";
 import { startStreamStatusCheck } from './utils/twitch.js';
 import { ChatCommandRateLimiter } from './utils/chatCommandRateLimiter.js';
 import { logger } from './utils/logger.js';
+import { registerAllCommands, registerGuildCommands, PER_GUILD_COMMAND } from './utils/commandRegistration.js';
 
 // Import new modular handlers and services
 import { handleMessage, handleMessageUpdate } from './handlers/messageHandler.js';
@@ -335,14 +335,19 @@ async function initDiscordBot() {
             logError('GLOBAL', 'GLOBAL', toError(error), 'Starting bot activity and scheduled messages');
         }
 
-        // Register slash commands globally. Independent of the services, so a
-        // service failure never leaves the commands unregistered.
+        // Register slash commands: globally, except /mod, which is per server
+        // (see commandRegistration). Independent of the services, so a service
+        // failure never leaves the commands unregistered.
+        const rest = new REST().setToken(DISCORD_TOKEN);
         try {
-            const rest = new REST().setToken(DISCORD_TOKEN);
-            await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+            await registerAllCommands(bot, rest, CLIENT_ID, commands as any[]);
         } catch (error) {
             logError('GLOBAL', 'GLOBAL', toError(error), 'Registering slash commands');
         }
+        bot.on(Events.GuildCreate, guild => {
+            const modJson = (commands as any[]).find(c => c.name === PER_GUILD_COMMAND);
+            if (modJson) registerGuildCommands(rest, CLIENT_ID, guild.id, modJson);
+        });
 
         // Initialize all services (gacha, daily reset, channel monitor, etc.)
         try {
