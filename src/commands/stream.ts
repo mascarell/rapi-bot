@@ -3,6 +3,7 @@ import {
     ChatInputCommandInteraction,
     TextChannel,
     MessageFlags,
+    InteractionContextType,
 } from 'discord.js';
 import { checkStreamStatus } from '../utils/twitch.js';
 import { logger } from '../utils/logger.js';
@@ -19,6 +20,7 @@ const STREAMER_USER_ID = '118451485221715977'; // Sefhi
  */
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('stream')
         .setDescription('Get the stream link (the streamer can also announce a live stream)')
         .addStringOption((option) =>

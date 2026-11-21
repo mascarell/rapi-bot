@@ -18,7 +18,8 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ComponentType,
-    SlashCommandSubcommandGroupBuilder
+    SlashCommandSubcommandGroupBuilder,
+    InteractionContextType,
 } from 'discord.js';
 import { getGachaDataService } from '../services/gachaDataService';
 import { getGachaRedemptionService, UserRedemptionSummary, type SingleRedemptionOutcome } from '../services/gachaRedemptionService';
@@ -1085,33 +1086,59 @@ async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise
 async function handleModUpdate(interaction: ChatInputCommandInteraction): Promise<void> {
     const targetUser = interaction.options.getUser('user', true);
     const gameId = validateGameId(interaction.options.getString('game', true));
-    const newUserId = interaction.options.getString('userid', true);
     const gameConfig = getGameConfig(gameId);
-
-    // Validate new game user ID format
-    const validation = validateGameUserId(gameId, newUserId);
-    if (!validation.valid) {
-        await interaction.editReply({
-            content: `❌ ${validation.error}`
-        });
-        return;
-    }
 
     try {
         const dataService = getGachaDataService();
-        await dataService.adminUpdateGameUserId(targetUser.id, gameId, newUserId);
+        const current = await dataService.getGameSubscription(targetUser.id, gameId);
+        if (!current) {
+            await interaction.editReply({ content: `❌ <@${targetUser.id}> is not subscribed to ${gameConfig.name}.` });
+            return;
+        }
+
+        // Anything not typed keeps its stored value, so a mod can fix just the
+        // nickname or just the server without retyping the rest.
+        const typed = identityFromOptions(interaction, gameConfig);
+        if (!typed.userId && Object.keys(typed.fields).length === 0) {
+            await interaction.editReply({ content: `❌ Give at least one of: ${identityLabel(gameConfig)}.` });
+            return;
+        }
+        const next: IdentityInput = {
+            userId: typed.userId || current.gameUserId,
+            fields: { ...(current.gameUserFields ?? {}), ...typed.fields },
+        };
+
+        const errors = identityErrors(gameId, gameConfig, next);
+        if (errors.length > 0) {
+            await interaction.editReply({ content: `❌ ${errors.join('\n')}` });
+            return;
+        }
+
+        const { changed } = await dataService.updateGameIdentity(
+            targetUser.id,
+            gameId,
+            next.userId,
+            Object.keys(next.fields).length > 0 ? next.fields : undefined
+        );
+        if (!changed) {
+            await interaction.editReply({ content: `Nothing changed: those are already <@${targetUser.id}>'s ${gameConfig.shortName} details.` });
+            return;
+        }
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('🔧 User ID Updated')
-            .setDescription(`Updated ${gameConfig.userIdFieldName} for <@${targetUser.id}> in ${gameConfig.name}.`)
-            .addFields({ name: `New ${gameConfig.userIdFieldName}`, value: `\`${newUserId}\`` })
+            .setTitle('🔧 Account Details Updated')
+            .setDescription(
+                `Updated <@${targetUser.id}>'s ${gameConfig.name} details. ` +
+                'Their redeemed list starts again for the new account. If the game rejects the new details, the old ones go back.'
+            )
+            .addFields(...identityFields(gameConfig, next.userId, next.fields))
             .setTimestamp()
             .setFooter({ text: 'Admin Action', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:update');
     }
 }
 
@@ -1140,9 +1167,12 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
             if (!gameSub) continue;
             const gameConfig = getGameConfig(validateGameId(gId));
 
+            const details = identityFields(gameConfig, gameSub.gameUserId, gameSub.gameUserFields)
+                .map(f => `**${f.name}:** ${f.value}`)
+                .join('\n');
             embed.addFields({
                 name: gameConfig.name,
-                value: `**${gameConfig.userIdFieldName}:** \`${gameSub.gameUserId}\`\n**Mode:** ${gameSub.mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only'}\n**Since:** ${formatDate(gameSub.subscribedAt)}\n**Redeemed:** ${gameSub.redeemedCodes.length} codes`,
+                value: `${details ? `${details}\n` : ''}**Mode:** ${gameSub.mode === 'auto-redeem' ? '🤖 Auto-Redeem' : '📬 Notification Only'}\n**Since:** ${formatDate(gameSub.subscribedAt)}\n**Redeemed:** ${gameSub.redeemedCodes.length} codes`,
             });
         }
 
@@ -1863,7 +1893,7 @@ export function addModRedeemSubcommands(group: SlashCommandSubcommandGroupBuilde
         // Mod: Update (change user's game ID)
         .addSubcommand(sub => sub
             .setName('update')
-            .setDescription('Update a user\'s game ID')
+            .setDescription('Change a user\'s account details; anything left out stays as it is')
             .addUserOption(opt => opt
                 .setName('user')
                 .setDescription('User to update')
@@ -1875,8 +1905,20 @@ export function addModRedeemSubcommands(group: SlashCommandSubcommandGroupBuilde
                 .addChoices(...GAME_CHOICES))
             .addStringOption(opt => opt
                 .setName('userid')
-                .setDescription('New game user ID')
-                .setRequired(true)))
+                .setDescription('New BD2 nickname or CZN STOVE membership number')
+                .setRequired(false))
+            .addStringOption(opt => opt
+                .setName('nickname')
+                .setDescription('New CZN character nickname')
+                .setRequired(false))
+            .addStringOption(opt => opt
+                .setName('server')
+                .setDescription('New CZN server')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Global', value: 'world_live_global' },
+                    { name: 'Asia', value: 'world_live_asia' }
+                )))
 
         // Mod: Lookup (view user's subscriptions)
         .addSubcommand(sub => sub
@@ -2038,6 +2080,7 @@ export async function autocompleteRedeemCode(interaction: AutocompleteInteractio
 // ==================== Command Export ====================
 
 const redeemData = new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('redeem')
         .setDescription('Gacha game coupon redemption system')
 

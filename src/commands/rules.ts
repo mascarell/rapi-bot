@@ -1,10 +1,11 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType, InteractionContextType } from 'discord.js';
 import { getRulesManagementService } from '../services/rulesManagementService.js';
 import { replyEphemeral } from '../utils/interactionHelpers.js';
 import { HOME_GUILD_ID } from '../utils/data/homeGuild.js';
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('rules')
         .setDescription(`Rapi Rules (she'll ban you if you don't behave)`),
     async execute(interaction: ChatInputCommandInteraction) {

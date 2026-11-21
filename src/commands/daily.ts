@@ -1,12 +1,14 @@
 // Dependencies
 import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction ,
-    MessageFlags
+    MessageFlags,
+    InteractionContextType,
 } from 'discord.js';
 import moment from 'moment-timezone';
 import gamesData from '../utils/data/gamesData';
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('daily')
         .setDescription('Get upcoming reset timer for a game')
         .addSubcommand((subcommand) =>

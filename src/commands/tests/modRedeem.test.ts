@@ -67,7 +67,7 @@ const EXPECTED_OPTIONS: Record<string, [string, boolean][]> = {
     list: [['game', true], ['filter', false]],
     trigger: [['game', true]],
     unsub: [['user', true], ['game', true]],
-    update: [['user', true], ['game', true], ['userid', true]],
+    update: [['user', true], ['game', true], ['userid', false], ['nickname', false], ['server', false]],
     lookup: [['user', true]],
     reset: [['user', true], ['game', true]],
     scrape: [],
@@ -312,5 +312,56 @@ describe('/redeem pointers to /mod redeem', () => {
         const i = makeAutocomplete({ isMod: true });
         await redeemCommand.autocomplete(i);
         expect(i.respond).toHaveBeenCalledWith([]);
+    });
+});
+
+describe('/mod redeem update keeps every account detail', () => {
+    const CZN_SUB = {
+        gameUserId: '12345678901',
+        gameUserFields: { nickname: 'Tester', world: 'world_live_global' },
+        redeemedCodes: [],
+    };
+
+    it('changes only the server and keeps the stored number and nickname', async () => {
+        dataService.getGameSubscription = vi.fn().mockResolvedValue(CZN_SUB);
+        dataService.updateGameIdentity = vi.fn().mockResolvedValue({ changed: true });
+        const i = makeInteraction({ sub: 'update', strings: { game: 'czn', server: 'world_live_asia' } });
+
+        await modCommand.execute(i);
+
+        expect(dataService.updateGameIdentity).toHaveBeenCalledWith(
+            'u2', 'czn', '12345678901', { nickname: 'Tester', world: 'world_live_asia' }
+        );
+    });
+
+    it('asks for at least one detail when nothing was given', async () => {
+        dataService.getGameSubscription = vi.fn().mockResolvedValue(CZN_SUB);
+        dataService.updateGameIdentity = vi.fn();
+        const i = makeInteraction({ sub: 'update', strings: { game: 'czn' } });
+
+        await modCommand.execute(i);
+
+        expect(dataService.updateGameIdentity).not.toHaveBeenCalled();
+        expect(i.editReply.mock.calls[0][0].content).toContain('Give at least one of');
+    });
+
+    it('refuses a nickname longer than the game allows', async () => {
+        dataService.getGameSubscription = vi.fn().mockResolvedValue(CZN_SUB);
+        dataService.updateGameIdentity = vi.fn();
+        const i = makeInteraction({ sub: 'update', strings: { game: 'czn', nickname: 'x'.repeat(30) } });
+
+        await modCommand.execute(i);
+
+        expect(dataService.updateGameIdentity).not.toHaveBeenCalled();
+        expect(i.editReply.mock.calls[0][0].content).toContain('characters or fewer');
+    });
+
+    it('says so when the member is not subscribed', async () => {
+        dataService.getGameSubscription = vi.fn().mockResolvedValue(null);
+        const i = makeInteraction({ sub: 'update', strings: { game: 'czn', nickname: 'Tester' } });
+
+        await modCommand.execute(i);
+
+        expect(i.editReply.mock.calls[0][0].content).toContain('is not subscribed');
     });
 });

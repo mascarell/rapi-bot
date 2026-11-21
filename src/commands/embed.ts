@@ -5,6 +5,7 @@
 import {
     ChatInputCommandInteraction,
     SlashCommandBuilder,
+    InteractionContextType,
 } from 'discord.js';
 import { getEmbedFixService } from '../services/embedFix/embedFixService.js';
 import { getEmbedVotesService } from '../services/embedFix/embedVotesService.js';
@@ -13,6 +14,7 @@ import { handleCommandError } from '../utils/commandErrorHandler.js';
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('embed')
         .setDescription('Generate a fixed embed for a social media URL')
         .addStringOption(option =>

@@ -2,6 +2,7 @@ import {
     SlashCommandBuilder,
     EmbedBuilder,
     ChatInputCommandInteraction,
+    InteractionContextType,
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface.js';
 import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter.js';
@@ -17,6 +18,7 @@ const ASSET_URLS = getAssetUrls();
  */
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('spam')
         .setDescription('Check your chat command limit')
         .addSubcommand(subcommand =>

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType } from 'discord.js';
 import { getUptimeService } from '../services/uptimeService.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
 import { replyWithEmbed } from '../utils/interactionHelpers.js';
@@ -13,6 +13,7 @@ const { version } = require('../../package.json');
  */
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('age')
         .setDescription('Show how long the bot has been running'),
 

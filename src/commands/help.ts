@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, InteractionContextType } from 'discord.js';
 import { chatCommands } from '../chatCommands/index.js';
 import { isModerator } from '../utils/permissionHelpers.js';
 
@@ -76,6 +76,7 @@ export function buildHelpEmbed(showModTools: boolean): EmbedBuilder {
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('help')
         .setDescription('List of custom commands available for all Commanders'),
     async execute(interaction: ChatInputCommandInteraction) {

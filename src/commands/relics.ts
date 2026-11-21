@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from 'discord.js';
 import { replyEphemeral } from '../utils/interactionHelpers.js';
 
 export default {
     data: new SlashCommandBuilder()
+        .setContexts(InteractionContextType.Guild)
         .setName('relics')
         .setDescription('Get lost relics guide in NIKKE to locate all lost relics'),
     async execute(interaction: ChatInputCommandInteraction) {
