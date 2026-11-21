@@ -289,7 +289,7 @@ New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-d
 - `/mod redeem scrape` - Fetch codes from BD2 Pulse
 - `/mod redeem lookup | unsub | update | reset` - Look up, unsubscribe, edit or reset a member's subscription
 
-The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that point to `/mod redeem`.
+Moderator tools live only under `/mod`; `/redeem` has the member subcommands only.
 
 #### Scheduled Tasks
 | Task | Production | Development |
