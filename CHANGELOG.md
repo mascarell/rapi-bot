@@ -1,3 +1,10 @@
+## [2.22.3](https://github.com/mascarell/rapi-bot/compare/v2.22.2...v2.22.3) (2026-11-21)
+
+
+### Bug Fixes
+
+* **commands:** home rules stay home, cooldown notices are private ([#265](https://github.com/mascarell/rapi-bot/issues/265)) ([349a11e](https://github.com/mascarell/rapi-bot/commit/349a11e3353f725ff69f9b146373c3c693a727ee)), closes [#rules](https://github.com/mascarell/rapi-bot/issues/rules) [#rules](https://github.com/mascarell/rapi-bot/issues/rules)
+
 ## [2.22.2](https://github.com/mascarell/rapi-bot/compare/v2.22.1...v2.22.2) (2026-11-21)
 
 
