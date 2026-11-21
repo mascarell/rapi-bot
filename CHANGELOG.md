@@ -1,3 +1,10 @@
+## [2.22.1](https://github.com/mascarell/rapi-bot/compare/v2.22.0...v2.22.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* command review bugs, and /mod redeem limited to the home server ([#263](https://github.com/mascarell/rapi-bot/issues/263)) ([d249583](https://github.com/mascarell/rapi-bot/commit/d249583abc054f0d59a093c7ac5d53a6822700ef)), closes [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot)
+
 # [2.22.0](https://github.com/mascarell/rapi-bot/compare/v2.21.0...v2.22.0) (2026-11-21)
 
 
