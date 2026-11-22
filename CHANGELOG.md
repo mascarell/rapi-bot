@@ -1,3 +1,10 @@
+# [2.26.0](https://github.com/mascarell/rapi-bot/compare/v2.25.3...v2.26.0) (2026-11-22)
+
+
+### Features
+
+* **assets:** character sync runs hourly and once after startup ([#273](https://github.com/mascarell/rapi-bot/issues/273)) ([ef13e51](https://github.com/mascarell/rapi-bot/commit/ef13e5171bec503d9a78e1b808f37aef26873284))
+
 ## [2.25.3](https://github.com/mascarell/rapi-bot/compare/v2.25.2...v2.25.3) (2026-11-22)
 
 
