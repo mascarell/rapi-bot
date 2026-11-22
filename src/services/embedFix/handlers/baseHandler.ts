@@ -4,6 +4,7 @@
  */
 
 import { EMBED_FIX_CONFIG } from '../../../utils/data/embedFixConfig';
+import { USER_AGENT } from '../../../utils/userAgent.js';
 import { EmbedData, EmbedPlatform, PlatformHandler } from '../../../utils/interfaces/EmbedFix.interface';
 
 export abstract class BaseHandler implements PlatformHandler {
@@ -47,7 +48,7 @@ export abstract class BaseHandler implements PlatformHandler {
             const response = await fetch(url, {
                 signal: controller.signal,
                 headers: {
-                    'User-Agent': 'RapiBot/1.0 (Discord Bot)',
+                    'User-Agent': USER_AGENT,
                 },
             });
             return response;

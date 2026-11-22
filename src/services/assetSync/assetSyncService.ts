@@ -135,7 +135,9 @@ export class AssetSyncService {
                         try {
                             const headResponse = await fetch(character.imageUrl, { method: 'HEAD' });
                             const remoteSize = parseInt(headResponse.headers.get('content-length') || '0', 10);
-                            if (remoteSize === 0 || remoteSize === existing.imageSize) {
+                            // A failed HEAD (e.g. a 404 for art that came from the fallback)
+                            // says nothing about the stored image: trust the manifest.
+                            if (!headResponse.ok || remoteSize === 0 || remoteSize === existing.imageSize) {
                                 // Size matches or unavailable — trust manifest, skip
                                 result.skipped++;
                                 return;
