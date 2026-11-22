@@ -328,7 +328,7 @@ const logoUrl = ASSET_URLS.nikke.logo;
 **Message Handler** (`src/handlers/messageHandler.ts`):
 - Processes `messageCreate` and `messageUpdate` events
 - Sensitive terms checking
-- Chat commands run only in `#rapi-bot`, except the `ccp` family, which is limited to 3 per hour outside it (`ChatCommandRateLimiter`; 8 blocked tries in an hour is a 5-minute timeout). A guild with no `#rapi-bot` channel has no gate and no limit. Chat command names are matched by `name` (e.g. `booba?`), not registry key
+- Chat commands run in any channel. Outside `#rapi-bot` they're limited to 3 per hour (`ChatCommandRateLimiter`; 8 blocked tries in an hour is a 5-minute timeout); `#rapi-bot` is unlimited. A guild with no `#rapi-bot` channel has no limit. Chat command names are matched by `name` (e.g. `booba?`), not registry key
 - Chat command execution
 - URL embed fix integration
 

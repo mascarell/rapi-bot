@@ -76,13 +76,22 @@ describe('handleMessage chat command gating', () => {
         vi.mocked(ChatCommandRateLimiter.check).mockReset().mockReturnValue(true);
     });
 
-    it('blocks a non-ccp command outside #rapi-bot when the guild has #rapi-bot', async () => {
+    it('runs a non-ccp command outside #rapi-bot, counted by the limiter', async () => {
         const { msg, bot } = setup({ content: 'booba?', inChannel: 'general', guildHasRapiBot: true });
         await handleMessage(msg, bot);
-        expect(msg.reply).toHaveBeenCalledWith({
-            content: expect.stringContaining(`only available in <#${RAPI_BOT_CHANNEL_ID}>`),
-        });
+        expect(ChatCommandRateLimiter.check).toHaveBeenCalledTimes(1);
+        expect(execute).toHaveBeenCalledTimes(1);
+        expect(msg.reply).not.toHaveBeenCalled();
+    });
+
+    it('blocks a spammed non-ccp command outside #rapi-bot and points at #rapi-bot', async () => {
+        vi.mocked(ChatCommandRateLimiter.check).mockReturnValue(false);
+        const { msg, bot } = setup({ content: 'booba?', inChannel: 'general', guildHasRapiBot: true });
+        await handleMessage(msg, bot);
         expect(execute).not.toHaveBeenCalled();
+        expect(msg.reply).toHaveBeenCalledWith({
+            content: expect.stringContaining(`Use <#${RAPI_BOT_CHANNEL_ID}> for unlimited commands.`),
+        });
     });
 
     it('runs the command inside #rapi-bot without consulting the limiter', async () => {

@@ -51,14 +51,14 @@ bun run start
 ### 4. **Community Moderation**
 - Slur auto-moderation: delete, DM, 30-minute timeout, mod-log embed
 - `/mod slur` lets each server's moderators keep their own slur list alongside the built-in one, hidden from regular members
-- Chat commands work in `#rapi-bot`; the `ccp` ones also work elsewhere, 3 per hour, and 8 blocked tries in an hour is a 5-minute timeout
+- Chat commands work in any channel; outside `#rapi-bot` they're limited to 3 per hour, and 8 blocked tries in an hour is a 5-minute timeout
 - Sensitive terms checking with timeout enforcement
 - Spam statistics and violation tracking
 - Permission-based command access
 
 ### 5. **Chat Commands**
 - 35+ fun response commands (media and text), listed by `/help`
-- Only in `#rapi-bot`, except the `ccp` family (servers without a `#rapi-bot` channel have no limit)
+- Work in any channel; unlimited in `#rapi-bot`, 3 per hour elsewhere (servers without a `#rapi-bot` channel have no limit)
 - Moderators in the home server add gifs to the `booba?` / `booty?` pools with `/mod media add`
 
 ### 6. **Server Rules**
@@ -388,7 +388,7 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 - `/mod media add | list | remove` adds, lists or removes gifs in a chat command pool; home server only
 
 **Rate Limiting:**
-- Outside `#rapi-bot`, 3 `ccp` chat commands per hour per user; other chat commands only run in `#rapi-bot`
+- Outside `#rapi-bot`, 3 chat commands per hour per user; `#rapi-bot` is unlimited
 - Resets at top of every hour (UTC); 8 blocked attempts in an hour is a 5-minute timeout
 - View status: `/spam check`
 - Mod stats: `/mod spam stats` (moderators; `/spam stats` and `/spam reset` now just point there)
