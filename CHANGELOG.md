@@ -1,3 +1,10 @@
+## [2.25.3](https://github.com/mascarell/rapi-bot/compare/v2.25.2...v2.25.3) (2026-11-22)
+
+
+### Bug Fixes
+
+* **assets:** new NIKKE characters sync again, listed by Loot & Waifus ([#272](https://github.com/mascarell/rapi-bot/issues/272)) ([e5c183c](https://github.com/mascarell/rapi-bot/commit/e5c183cfce3ef5362a8ed130de02f76e38e83c92))
+
 ## [2.25.2](https://github.com/mascarell/rapi-bot/compare/v2.25.1...v2.25.2) (2026-11-22)
 
 
