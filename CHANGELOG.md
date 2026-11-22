@@ -1,3 +1,10 @@
+## [2.25.2](https://github.com/mascarell/rapi-bot/compare/v2.25.1...v2.25.2) (2026-11-22)
+
+
+### Bug Fixes
+
+* **chat:** chat commands work in every channel, limited only when spammed ([#271](https://github.com/mascarell/rapi-bot/issues/271)) ([eb671c8](https://github.com/mascarell/rapi-bot/commit/eb671c8560df1b3bdd28aa397a5cfa67c2bfee72)), closes [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot) [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot) [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot)
+
 ## [2.25.1](https://github.com/mascarell/rapi-bot/compare/v2.25.0...v2.25.1) (2026-11-21)
 
 
