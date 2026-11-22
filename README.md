@@ -298,7 +298,7 @@ New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-d
 
 Every `/mod redeem` tool except `list` works in the Rapi home server only, because codes and subscriptions are shared by every server. In other servers `/mod` doesn't show them at all.
 
-The old `/redeem add`, `/redeem list` etc. remain for one release as stubs that point to `/mod redeem`.
+Moderator tools live only under `/mod`; `/redeem` has the member subcommands only.
 
 #### Scheduled Tasks
 | Task | Production | Development |
@@ -391,7 +391,7 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 - Outside `#rapi-bot`, 3 chat commands per hour per user; `#rapi-bot` is unlimited
 - Resets at top of every hour (UTC); 8 blocked attempts in an hour is a 5-minute timeout
 - View status: `/spam check`
-- Mod stats: `/mod spam stats` (moderators; `/spam stats` and `/spam reset` now just point there)
+- Mod stats: `/mod spam stats` (moderators)
 
 ---
 

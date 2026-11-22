@@ -39,11 +39,9 @@ function makeInteraction(sub: string, guild: any = { id: '111111111111111111', n
 beforeEach(() => vi.clearAllMocks());
 
 describe('/spam registration', () => {
-    it('keeps check, stats and reset, with the moved stubs described as such', () => {
+    it('registers only check', () => {
         const json = spamCommand.data.toJSON() as any;
-        expect(json.options.map((o: any) => o.name)).toEqual(['check', 'stats', 'reset']);
-        expect(json.options[1].description).toBe('Moved to /mod spam stats');
-        expect(json.options[2].description).toBe('Moved to /mod spam reset');
+        expect(json.options.map((o: any) => o.name)).toEqual(['check']);
     });
 });
 
@@ -56,19 +54,5 @@ describe('/spam check', () => {
         const arg = interaction.reply.mock.calls[0][0];
         expect(arg.embeds[0].toJSON().title).toBe('🛡️ Spam Status');
         expect(arg.flags).toBeDefined();
-    });
-});
-
-describe('/spam stats and reset (moved)', () => {
-    it.each(['stats', 'reset'])('%s points at /mod and does nothing else', async sub => {
-        const interaction = makeInteraction(sub);
-        await spamCommand.execute(interaction);
-
-        expect(interaction.reply).toHaveBeenCalledWith({
-            content: `This moved to \`/mod spam ${sub}\`.`,
-            flags: expect.any(Number),
-        });
-        expect(ChatCommandRateLimiter.resetUser).not.toHaveBeenCalled();
-        expect(ChatCommandRateLimiter.getUsageStats).not.toHaveBeenCalled();
     });
 });

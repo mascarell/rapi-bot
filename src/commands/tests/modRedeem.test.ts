@@ -277,35 +277,17 @@ describe('/mod autocomplete for redeem remove', () => {
     });
 });
 
-describe('/redeem pointers to /mod redeem', () => {
+describe('/redeem member subcommands', () => {
     const json = () => redeemCommand.data.toJSON() as any;
 
-    it.each(SUBCOMMANDS)('%s is registered with no options and a pointer description', name => {
-        const sub = json().options.find((o: any) => o.name === name);
-        expect(sub).toBeDefined();
-        expect(sub.options ?? []).toEqual([]);
-        expect(sub.description).toBe(`Moved to /mod redeem ${name}`);
+    it.each(SUBCOMMANDS)('%s is not registered on /redeem', name => {
+        expect(json().options.map((o: any) => o.name)).not.toContain(name);
     });
 
-    it.each(SUBCOMMANDS)('%s replies with the moved message, for anyone, without side effects', async name => {
-        // Not a moderator and not an allowed server: still just a pointer.
-        allowed = false;
-        const i = makeInteraction({ group: undefined, sub: name, isMod: false });
-        await redeemCommand.execute(i);
-        expect(i.reply).toHaveBeenCalledTimes(1);
-        expect(i.reply).toHaveBeenCalledWith({
-            content: `This moved to \`/mod redeem ${name}\`.`,
-            flags: MessageFlags.Ephemeral,
-        });
-        expect(dataService.addCoupon).not.toHaveBeenCalled();
-        expect(syncCouponSources).not.toHaveBeenCalled();
-    });
-
-    it('keeps the member subcommands', () => {
-        const names = json().options.map((o: any) => o.name);
-        for (const n of ['subscribe', 'edit', 'unsubscribe', 'status', 'codes', 'preferences', 'switch', 'help']) {
-            expect(names).toContain(n);
-        }
+    it('registers exactly the member subcommands', () => {
+        expect(json().options.map((o: any) => o.name)).toEqual(
+            ['subscribe', 'edit', 'unsubscribe', 'status', 'codes', 'preferences', 'switch', 'help'],
+        );
     });
 
     it('has no code option left to autocomplete and answers empty', async () => {
