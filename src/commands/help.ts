@@ -62,7 +62,7 @@ export function buildHelpEmbed(showModTools: boolean): EmbedBuilder {
     });
     embed.addFields({
         name: 'Where chat commands work',
-        value: 'Type them as a message in #rapi-bot. The `ccp` ones work anywhere, 3 an hour outside #rapi-bot.',
+        value: 'Type them as a message in any channel. Outside #rapi-bot, 3 an hour; #rapi-bot has no limit.',
     });
 
     if (showModTools) {

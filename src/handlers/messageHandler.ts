@@ -90,9 +90,6 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
         return;
     }
 
-    // ccp commands (ccp leadership, ccp rules, ccp #1) are allowed everywhere
-    const isCcpCommand = chatCommand.name.toLowerCase().startsWith('ccp ');
-
     try {
         const ignoredRole = findRoleByName(msg.guild, 'Grounded');
 
@@ -102,28 +99,9 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
             channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot'
         )?.id;
 
-        // Block non-ccp chat commands outside #rapi-bot, but only when the guild
-        // actually has a #rapi-bot channel to point members at.
-        if (!isCcpCommand && !isRapiBotChannel && rapiBotChannelId) {
-            const channelMention = `<#${rapiBotChannelId}>`;
-
-            const warningMsg = await msg.reply({
-                content: `Commander ${msg.author}, this command is only available in ${channelMention}.`
-            });
-
-            setTimeout(async () => {
-                try {
-                    await warningMsg.delete();
-                } catch {
-                    // Message likely already deleted
-                }
-            }, 5000);
-
-            return;
-        }
-
-        // Rate limit ccp commands outside #rapi-bot. A guild without a #rapi-bot
-        // channel has no limits at all, as before: there's nowhere to send people.
+        // Chat commands work in every channel. Outside #rapi-bot they share the
+        // spam limit; #rapi-bot is unlimited. A guild without a #rapi-bot channel
+        // has no limit at all: there's nowhere to send people.
         if (!isRapiBotChannel && rapiBotChannelId) {
             const guildId = msg.guild.id;
             const userId = msg.author.id;
@@ -147,9 +125,7 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
                 }
 
                 // Send temporary warning message
-                const unlimitedHint = rapiBotChannelId
-                    ? `\n\nUse <#${rapiBotChannelId}> for unlimited commands.`
-                    : '';
+                const unlimitedHint = `\n\nUse <#${rapiBotChannelId}> for unlimited commands.`;
 
                 const warningMsg = await msg.reply({
                     content: `Commander ${msg.author}, you're using chat commands too frequently. Please wait ${remainingSeconds} seconds before trying again. Use \`/spam check\` to see your status.${unlimitedHint}`
