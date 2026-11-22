@@ -1,3 +1,10 @@
+## [2.26.1](https://github.com/mascarell/rapi-bot/compare/v2.26.0...v2.26.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **commands:** fixes from a review of every slash command ([#274](https://github.com/mascarell/rapi-bot/issues/274)) ([1be7ade](https://github.com/mascarell/rapi-bot/commit/1be7ade1ee5d14b2ff44130b8875fe3c3303d62c))
+
 # [2.26.0](https://github.com/mascarell/rapi-bot/compare/v2.25.3...v2.26.0) (2026-11-22)
 
 
