@@ -1,31 +1,53 @@
 import { GameAssetProvider, CharacterAsset } from '../types.js';
 import { slugify } from '../../../utils/slugify.js';
 import { logger } from '../../../utils/logger.js';
+import { USER_AGENT } from '../../../utils/userAgent.js';
 
-const NIKKE_API_URL = 'https://api.dotgg.gg/nikke/characters/';
+/** Loot & Waifus' public JSON dump of NIKKE characters (https://lootandwaifus.com/api/). */
+const NIKKE_API_URL = 'https://lootandwaifus.com/api/nikke/characters.json';
+const LOOT_AND_WAIFUS_BASE = 'https://lootandwaifus.com';
+/** DotGG still serves art for the characters it knew; new ones 404 and use the fallback. */
 const NIKKE_IMAGE_BASE = 'https://static.dotgg.gg/nikke/characters';
 const FANDOM_API_BASE = 'https://nikke-goddess-of-victory-international.fandom.com/api.php';
+/** Wiki full-body art is 1-3 MB at full size; the wiki serves a scaled copy. */
+const FALLBACK_IMAGE_WIDTH = 800;
+/** Not a manufacturer: a tag some characters carry next to their real one. */
+const OVER_SPEC = 'over-spec';
 
-interface DotGGCharacter {
+interface LootAndWaifusCharacter {
+    id: number;
     name: string;
-    img: string;
     rarity: string;
-    manufacturer: string;
-    url?: string;
-    squad?: string;
-    class?: string;
-    burst?: string;
-    weapon?: string;
-    burstGen?: string;
-    element?: string;
+    manufacturer: string | string[];
+    icon?: string;
+}
+
+/** `['Over-Spec', 'Elysion']` -> `Elysion`; a plain string is returned as is. */
+export function primaryManufacturer(value: string | string[] | undefined): string | null {
+    const list = (Array.isArray(value) ? value : [value])
+        .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+        .map(v => v.trim());
+    return list.find(v => v.toLowerCase() !== OVER_SPEC) ?? list[0] ?? null;
+}
+
+/** `601` -> `c601`, `16` -> `c016`: the code DotGG used, so existing manifest entries match. */
+export function characterCode(id: number): string {
+    return `c${String(id).padStart(3, '0')}`;
+}
+
+/** `Scarlet: Goddeath` -> `File:Scarlet Goddeath FB.png`, the wiki's full-body art. */
+export function wikiFullBodyTitle(name: string): string {
+    return `File:${name.replace(/:/g, '').replace(/\s+/g, ' ').trim()} FB.png`;
 }
 
 /**
- * NIKKE asset provider — fetches character data from the DotGG API.
+ * NIKKE asset provider. The character list comes from Loot & Waifus; art
+ * comes from DotGG's image server, which still has every character synced
+ * before late October 2026. New characters 404 there and fall back to the
+ * wiki's full-body art, then to the Loot & Waifus icon.
  *
- * API: GET https://api.dotgg.gg/nikke/characters/
- * Images: https://static.dotgg.gg/nikke/characters/c{code}_00.webp
- * Rarity: manufacturer === "Pilgrim" → pilgrim tier, else use rarity field
+ * DotGG's character API (api.dotgg.gg/nikke/characters/), the previous list
+ * source, returns 410 Gone.
  */
 export class NikkeAssetProvider implements GameAssetProvider {
     getGameId(): string {
@@ -54,79 +76,42 @@ export class NikkeAssetProvider implements GameAssetProvider {
         return slugify(name);
     }
 
-    /**
-     * Fallback: search the Fandom wiki for full-body art (_FB.png) when DotGG 404s.
-     * Uses the MediaWiki allimages API to search by character name prefix.
-     */
+    /** The wiki's full-body art, scaled; else the Loot & Waifus icon. */
     async getFallbackImageUrl(character: CharacterAsset): Promise<string | null> {
         try {
-            const baseName = character.name.split(':')[0].trim().replace(/ /g, '_');
-
             const params = new URLSearchParams({
                 action: 'query',
-                list: 'allimages',
-                aiprefix: baseName,
-                ailimit: '50',
-                format: 'json',
-            });
-
-            const response = await fetch(`${FANDOM_API_BASE}?${params}`, {
-                headers: { 'User-Agent': 'RapiBot/1.0 (Discord Bot)' },
-            });
-
-            if (!response.ok) return null;
-
-            const data = await response.json() as {
-                query?: { allimages?: Array<{ name: string }> };
-            };
-
-            const allImages = data.query?.allimages || [];
-            const fbImages = allImages
-                .filter(img => img.name.endsWith('_FB.png'))
-                .map(img => img.name);
-
-            if (fbImages.length === 0) return null;
-
-            // Best match: exact base name, otherwise first FB image found
-            const exactMatch = fbImages.find(f => f === `${baseName}_FB.png`);
-            const bestMatch = exactMatch || fbImages[0];
-
-            // Resolve actual URL via imageinfo API
-            const infoParams = new URLSearchParams({
-                action: 'query',
-                titles: `File:${bestMatch}`,
                 prop: 'imageinfo',
                 iiprop: 'url',
+                iiurlwidth: String(FALLBACK_IMAGE_WIDTH),
+                titles: wikiFullBodyTitle(character.name),
                 format: 'json',
+                formatversion: '2',
             });
-
-            const infoResponse = await fetch(`${FANDOM_API_BASE}?${infoParams}`, {
-                headers: { 'User-Agent': 'RapiBot/1.0 (Discord Bot)' },
+            const response = await fetch(`${FANDOM_API_BASE}?${params}`, {
+                headers: { 'User-Agent': USER_AGENT },
             });
-
-            if (!infoResponse.ok) return null;
-
-            const infoData = await infoResponse.json() as {
-                query?: { pages?: Record<string, { imageinfo?: Array<{ url: string }> }> };
-            };
-
-            const pages = infoData.query?.pages || {};
-            for (const page of Object.values(pages)) {
-                const url = page.imageinfo?.[0]?.url;
+            if (response.ok) {
+                const data = await response.json() as {
+                    query?: { pages?: Array<{ imageinfo?: Array<{ url?: string; thumburl?: string }> }> };
+                };
+                const info = data.query?.pages?.[0]?.imageinfo?.[0];
+                const url = info?.thumburl || info?.url;
                 if (url) {
-                    logger.debug`[AssetSync:NIKKE] Fandom fallback for ${character.name}: ${bestMatch}`;
+                    logger.debug`[AssetSync:NIKKE] Wiki fallback for ${character.name}`;
                     return url;
                 }
             }
         } catch (error) {
-            logger.warn`[AssetSync:NIKKE] Fandom fallback failed for ${character.name}: ${error}`;
+            logger.warn`[AssetSync:NIKKE] Wiki fallback failed for ${character.name}: ${error}`;
         }
 
-        return null;
+        const icon = character.metadata?.iconUrl;
+        return typeof icon === 'string' ? icon : null;
     }
 
     async fetchCharacterList(): Promise<CharacterAsset[]> {
-        const response = await fetch(NIKKE_API_URL);
+        const response = await fetch(NIKKE_API_URL, { headers: { 'User-Agent': USER_AGENT } });
         if (!response.ok) {
             throw new Error(`NIKKE API returned ${response.status}: ${response.statusText}`);
         }
@@ -140,29 +125,25 @@ export class NikkeAssetProvider implements GameAssetProvider {
         const characters: CharacterAsset[] = [];
 
         for (const entry of data) {
-            const char = entry as DotGGCharacter;
+            const char = entry as LootAndWaifusCharacter;
+            const manufacturer = primaryManufacturer(char.manufacturer);
 
-            if (!char.name || !char.img || !char.rarity || !char.manufacturer) {
-                logger.warn`[AssetSync:NIKKE] Skipping entry with missing fields: ${JSON.stringify(char)}`;
+            if (!Number.isInteger(char.id) || char.id < 0 || !char.name || !char.rarity || !manufacturer) {
+                logger.warn`[AssetSync:NIKKE] Skipping entry with missing fields: ${JSON.stringify({ id: char.id, name: char.name })}`;
                 continue;
             }
 
-            const codeMatch = char.img.match(/c(\d+)/);
-            if (!codeMatch) {
-                logger.warn`[AssetSync:NIKKE] Could not extract code from img: ${char.img}`;
-                continue;
-            }
-
-            const code = `c${codeMatch[1]}`;
+            const code = characterCode(char.id);
 
             characters.push({
                 name: char.name,
                 code,
                 sourceRarity: char.rarity,
                 imageUrl: `${NIKKE_IMAGE_BASE}/${code}_00.webp`,
-                collab: char.manufacturer === 'Abnormal',
+                collab: manufacturer === 'Abnormal',
                 metadata: {
-                    manufacturer: char.manufacturer,
+                    manufacturer,
+                    ...(char.icon ? { iconUrl: `${LOOT_AND_WAIFUS_BASE}/${char.icon.replace(/^\/+/, '')}` } : {}),
                 },
             });
         }

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NikkeAssetProvider } from '../providers/nikkeAssetProvider';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { NikkeAssetProvider, primaryManufacturer, characterCode, wikiFullBodyTitle } from '../providers/nikkeAssetProvider';
 import { CharacterAsset } from '../types';
 
 describe('NikkeAssetProvider', () => {
@@ -99,57 +99,57 @@ describe('NikkeAssetProvider', () => {
         });
     });
 
-    describe('fetchCharacterList', () => {
-        it('should parse DotGG API response correctly', async () => {
-            const mockResponse = [
-                {
-                    name: 'Rapi',
-                    url: 'rapi',
-                    img: 'si_c010_00_s',
-                    manufacturer: 'Elysion',
-                    squad: 'Counters',
-                    class: 'Attacker',
-                    burst: '1',
-                    rarity: 'SSR',
-                    weapon: 'AR',
-                    burstGen: '0.2%',
-                    element: 'Fire',
-                },
-                {
-                    name: 'Red Hood',
-                    url: 'red-hood',
-                    img: 'si_c470_00_s',
-                    manufacturer: 'Pilgrim',
-                    squad: 'Goddess',
-                    class: 'Attacker',
-                    burst: 'p',
-                    rarity: 'SSR',
-                    weapon: 'SR',
-                    burstGen: '0.3%',
-                    element: 'Fire',
-                },
-            ];
+    describe('helpers', () => {
+        it('picks the real manufacturer next to Over-Spec', () => {
+            expect(primaryManufacturer(['Over-Spec', 'Elysion'])).toBe('Elysion');
+            expect(primaryManufacturer('Pilgrim')).toBe('Pilgrim');
+            expect(primaryManufacturer(['Over-Spec'])).toBe('Over-Spec');
+            expect(primaryManufacturer([])).toBeNull();
+            expect(primaryManufacturer(undefined)).toBeNull();
+        });
 
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve(mockResponse),
-            }));
+        it('pads ids to the DotGG code', () => {
+            expect(characterCode(16)).toBe('c016');
+            expect(characterCode(530)).toBe('c530');
+            expect(characterCode(8004)).toBe('c8004');
+        });
+
+        it('builds the wiki full-body file title', () => {
+            expect(wikiFullBodyTitle('Scarlet: Goddeath')).toBe('File:Scarlet Goddeath FB.png');
+            expect(wikiFullBodyTitle('Sky')).toBe('File:Sky FB.png');
+        });
+    });
+
+    describe('fetchCharacterList', () => {
+        afterEach(() => vi.unstubAllGlobals());
+
+        it('parses the Loot & Waifus list', async () => {
+            const mockResponse = [
+                { id: 10, name: 'Rapi', manufacturer: 'Elysion', rarity: 'SSR', icon: 'characters/nikke/mi_c010_00_s.webp' },
+                { id: 470, name: 'Red Hood', manufacturer: 'Pilgrim', rarity: 'SSR' },
+                { id: 16, name: 'Rapi: Red Hood', manufacturer: ['Over-Spec', 'Elysion'], rarity: 'SSR' },
+                { id: 840, name: 'Ada Wong', manufacturer: 'Abnormal', rarity: 'SSR' },
+            ];
+            const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(mockResponse) });
+            vi.stubGlobal('fetch', fetchMock);
 
             const characters = await provider.fetchCharacterList();
 
-            expect(characters).toHaveLength(2);
-
-            expect(characters[0].name).toBe('Rapi');
-            expect(characters[0].code).toBe('c010');
-            expect(characters[0].sourceRarity).toBe('SSR');
-            expect(characters[0].imageUrl).toBe('https://static.dotgg.gg/nikke/characters/c010_00.webp');
-            expect(characters[0].metadata?.manufacturer).toBe('Elysion');
-
-            expect(characters[1].name).toBe('Red Hood');
-            expect(characters[1].code).toBe('c470');
-            expect(characters[1].metadata?.manufacturer).toBe('Pilgrim');
-
-            vi.unstubAllGlobals();
+            expect(fetchMock.mock.calls[0][0]).toBe('https://lootandwaifus.com/api/nikke/characters.json');
+            expect(fetchMock.mock.calls[0][1].headers['User-Agent']).toMatch(/^RapiBot\/\d+\.\d+\.\d+ /);
+            expect(characters).toHaveLength(4);
+            expect(characters[0]).toEqual({
+                name: 'Rapi',
+                code: 'c010',
+                sourceRarity: 'SSR',
+                imageUrl: 'https://static.dotgg.gg/nikke/characters/c010_00.webp',
+                collab: false,
+                metadata: { manufacturer: 'Elysion', iconUrl: 'https://lootandwaifus.com/characters/nikke/mi_c010_00_s.webp' },
+            });
+            expect(provider.resolveTargetRarity(characters[1])).toBe('pilgrim');
+            expect(characters[2].code).toBe('c016');
+            expect(characters[2].metadata?.manufacturer).toBe('Elysion');
+            expect(characters[3].collab).toBe(true);
         });
 
         it('should throw on non-OK API response', async () => {
@@ -160,8 +160,6 @@ describe('NikkeAssetProvider', () => {
             }));
 
             await expect(provider.fetchCharacterList()).rejects.toThrow('NIKKE API returned 503');
-
-            vi.unstubAllGlobals();
         });
 
         it('should throw on non-array response', async () => {
@@ -171,27 +169,56 @@ describe('NikkeAssetProvider', () => {
             }));
 
             await expect(provider.fetchCharacterList()).rejects.toThrow('non-array response');
-
-            vi.unstubAllGlobals();
         });
 
         it('should skip entries with missing required fields', async () => {
             const mockResponse = [
-                { name: 'Valid', img: 'si_c010_00_s', rarity: 'SSR', manufacturer: 'Elysion' },
-                { name: 'NoImg', rarity: 'SSR', manufacturer: 'Elysion' },
-                { name: 'NoRarity', img: 'si_c020_00_s', manufacturer: 'Elysion' },
+                { id: 10, name: 'Valid', rarity: 'SSR', manufacturer: 'Elysion' },
+                { name: 'NoId', rarity: 'SSR', manufacturer: 'Elysion' },
+                { id: 20, name: 'NoRarity', manufacturer: 'Elysion' },
+                { id: 30, name: 'NoMaker', rarity: 'SSR', manufacturer: [] },
             ];
-
             vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
                 ok: true,
                 json: () => Promise.resolve(mockResponse),
             }));
 
             const characters = await provider.fetchCharacterList();
-            expect(characters).toHaveLength(1);
-            expect(characters[0].name).toBe('Valid');
+            expect(characters.map(c => c.name)).toEqual(['Valid']);
+        });
+    });
 
-            vi.unstubAllGlobals();
+    describe('getFallbackImageUrl', () => {
+        const sky: CharacterAsset = {
+            name: 'Sky', code: 'c530', sourceRarity: 'SSR', imageUrl: 'x',
+            metadata: { manufacturer: 'Elysion', iconUrl: 'https://lootandwaifus.com/characters/nikke/mi_c530_00_s.webp' },
+        };
+
+        afterEach(() => vi.unstubAllGlobals());
+
+        it('prefers the scaled wiki full-body art', async () => {
+            const fetchMock = vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({ query: { pages: [{ imageinfo: [{ url: 'https://wiki/full', thumburl: 'https://wiki/800' }] }] } }),
+            });
+            vi.stubGlobal('fetch', fetchMock);
+
+            expect(await provider.getFallbackImageUrl(sky)).toBe('https://wiki/800');
+            const query = new URL(fetchMock.mock.calls[0][0]).searchParams;
+            expect(query.get('titles')).toBe('File:Sky FB.png');
+        });
+
+        it('falls back to the Loot & Waifus icon when the wiki has no art', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({ query: { pages: [{ missing: true }] } }),
+            }));
+            expect(await provider.getFallbackImageUrl(sky)).toBe('https://lootandwaifus.com/characters/nikke/mi_c530_00_s.webp');
+        });
+
+        it('falls back to the icon when the wiki request fails', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+            expect(await provider.getFallbackImageUrl(sky)).toBe('https://lootandwaifus.com/characters/nikke/mi_c530_00_s.webp');
         });
     });
 });
