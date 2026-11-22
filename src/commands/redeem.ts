@@ -604,11 +604,24 @@ async function handleEdit(interaction: ChatInputCommandInteraction): Promise<voi
         return;
     }
 
-    let current: GameSubscription | null;
+    // The form must open within Discord's three seconds, so a slow (uncached)
+    // read is abandoned. It keeps going in the background and warms the
+    // cache, so running the command again works.
+    let current: GameSubscription | null | undefined;
     try {
-        current = await getGachaDataService().getGameSubscription(interaction.user.id, gameId);
+        current = await withinMs(
+            getGachaDataService().getGameSubscription(interaction.user.id, gameId),
+            PRECHECK_BUDGET_MS
+        );
     } catch (error) {
         await handleCommandError(interaction, error, 'redeem:edit');
+        return;
+    }
+    if (current === undefined) {
+        await interaction.reply({
+            content: '⏳ Loading your details took too long. Please run `/redeem edit` again.',
+            flags: MessageFlags.Ephemeral,
+        });
         return;
     }
     if (!current) {
@@ -710,7 +723,7 @@ async function handleUnsubscribe(interaction: ChatInputCommandInteraction): Prom
             });
         }
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:unsubscribe');
     }
 }
 
@@ -798,7 +811,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
             await interaction.editReply({ embeds: [embed] });
         }
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:status');
     }
 }
 
@@ -845,7 +858,7 @@ async function handleCodes(interaction: ChatInputCommandInteraction): Promise<vo
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:codes');
     }
 }
 
@@ -899,7 +912,7 @@ async function handleModAdd(interaction: ChatInputCommandInteraction): Promise<v
         await redemptionService.notifyNewCode(interaction.client, coupon);
 
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:mod-add');
     }
 }
 
@@ -925,7 +938,7 @@ async function handleModRemove(interaction: ChatInputCommandInteraction): Promis
             await interaction.editReply({ content: `❌ Code \`${code}\` not found for ${gameConfig.name}.` });
         }
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:mod-remove');
     }
 }
 
@@ -1079,7 +1092,7 @@ async function handleModUnsub(interaction: ChatInputCommandInteraction): Promise
             });
         }
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:mod-unsub');
     }
 }
 
@@ -1178,7 +1191,7 @@ async function handleModLookup(interaction: ChatInputCommandInteraction): Promis
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:mod-lookup');
     }
 }
 
@@ -1201,7 +1214,7 @@ async function handleModReset(interaction: ChatInputCommandInteraction): Promise
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:mod-reset');
     }
 }
 
@@ -1209,6 +1222,15 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
     const gameId = validateGameId(interaction.options.getString('game', true));
     const newMode = validateSubscriptionMode(interaction.options.getString('mode', true));
     const gameConfig = getGameConfig(gameId);
+
+    // Saving auto-redeem for a game without it would leave them with nothing:
+    // new-code DMs only go to notification-only subscribers.
+    if (newMode === 'auto-redeem' && !gameConfig.supportsAutoRedeem) {
+        await interaction.editReply({
+            content: `❌ Auto-redeem isn't available for ${gameConfig.name} yet, so you stay on 📬 Notification Only.`
+        });
+        return;
+    }
 
     try {
         const dataService = getGachaDataService();
@@ -1231,7 +1253,7 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
 
         await dataService.switchSubscriptionMode(interaction.user.id, gameId, newMode);
 
-        const modeDescription = newMode === 'auto-redeem' && gameConfig.supportsAutoRedeem
+        const modeDescription = newMode === 'auto-redeem'
             ? 'The bot will now automatically redeem new codes for you.'
             : 'You will now receive DM notifications about new and expiring codes.';
 
@@ -1248,16 +1270,9 @@ async function handleSwitch(interaction: ChatInputCommandInteraction): Promise<v
             .setTimestamp()
             .setFooter({ text: 'Gacha Coupon System', iconURL: ASSET_URLS.rapiBot.thumbnail });
 
-        if (!gameConfig.supportsAutoRedeem && newMode === 'auto-redeem') {
-            embed.addFields({
-                name: '⚠️ Note',
-                value: `Auto-redeem is not yet supported for ${gameConfig.shortName}. You will receive notifications instead.`
-            });
-        }
-
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:switch');
     }
 }
 
@@ -1339,7 +1354,7 @@ async function handlePreferences(interaction: ChatInputCommandInteraction): Prom
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:preferences');
     }
 }
 
@@ -1403,7 +1418,7 @@ async function handleModStats(interaction: ChatInputCommandInteraction): Promise
             await interaction.editReply({ embeds: [embed] });
         }
     } catch (error) {
-        await handleCommandError(interaction, error, 'redeem:subscribe');
+        await handleCommandError(interaction, error, 'redeem:mod-stats');
     }
 }
 
@@ -2065,7 +2080,8 @@ export async function autocompleteRedeemCode(interaction: AutocompleteInteractio
         const filtered = coupons
             .filter(c => c.code.toLowerCase().includes(focusedOption.value.toLowerCase()))
             .slice(0, 25)
-            .map(c => ({ name: `${c.code} - ${c.rewards}`, value: c.code }));
+            // Discord rejects the whole list if any name is over 100 characters
+            .map(c => ({ name: `${c.code} - ${c.rewards}`.slice(0, 100), value: c.code.slice(0, 100) }));
         await interaction.respond(filtered);
     } catch {
         await interaction.respond([]);

@@ -86,6 +86,7 @@ export default {
         .addStringOption(option =>
             option.setName('question')
                 .setDescription('Your question for Rapi')
+                .setMaxLength(1000)
                 .setRequired(true)),
     async execute(interaction: ChatInputCommandInteraction) {
         // Check channel restriction

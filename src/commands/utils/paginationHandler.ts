@@ -1,7 +1,6 @@
-import { CommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle ,
-    MessageFlags
-} from 'discord.js';
+import { CommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { CONSTANTS } from './gachaConstants';
+import { logger } from '../../utils/logger.js';
 
 export async function handlePagination(interaction: CommandInteraction, embeds: EmbedBuilder[]) {
     let currentPage = 0;
@@ -23,47 +22,55 @@ export async function handlePagination(interaction: CommandInteraction, embeds: 
             .setDisabled(embeds.length <= 1)
     );
 
-    const message = await interaction.followUp({ 
-        embeds: [embeds[currentPage]], 
-        components: [row] 
+    const message = await interaction.followUp({
+        embeds: [embeds[currentPage]],
+        components: [row]
     });
 
-    const collector = message.createMessageComponentCollector({ 
-        time: CONSTANTS.pagination.timeoutMs 
+    const collector = message.createMessageComponentCollector({
+        time: CONSTANTS.pagination.timeoutMs
     });
 
+    // Button presses and the final edit can fail if the message is deleted or
+    // the bot loses access to the channel; nothing else would catch them.
     collector.on("collect", async (i) => {
-        if (i.user.id !== interaction.user.id) {
-            await i.reply({ 
-                content: "These aren't your pull results, Commander!", 
-                flags: MessageFlags.Ephemeral 
+        try {
+            if (i.user.id !== interaction.user.id) {
+                await i.reply({
+                    content: "These aren't your pull results, Commander!",
+                    flags: MessageFlags.Ephemeral
+                });
+                return;
+            }
+
+            currentPage = i.customId === "next" ?
+                (currentPage + 1) % embeds.length :
+                (currentPage - 1 + embeds.length) % embeds.length;
+
+            row.components[0].setDisabled(currentPage === 0);
+            row.components[1].setLabel(`Pull ${currentPage + 1} of ${embeds.length}`);
+            row.components[2].setDisabled(currentPage === embeds.length - 1);
+
+            await i.update({
+                embeds: [embeds[currentPage]],
+                components: [row]
             });
-            return;
+        } catch (error) {
+            logger.debug`[Gacha] Page button failed: ${error}`;
         }
-
-        currentPage = i.customId === "next" ? 
-            (currentPage + 1) % embeds.length : 
-            (currentPage - 1 + embeds.length) % embeds.length;
-
-        row.components[0].setDisabled(currentPage === 0);
-        row.components[1].setLabel(`Pull ${currentPage + 1} of ${embeds.length}`);
-        row.components[2].setDisabled(currentPage === embeds.length - 1);
-
-        await i.update({ 
-            embeds: [embeds[currentPage]], 
-            components: [row] 
-        });
     });
 
     collector.on("end", () => {
         const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            row.components.map(component => 
+            row.components.map(component =>
                 ButtonBuilder.from(component).setDisabled(true)
             )
         );
-        message.edit({ 
+        message.edit({
             components: [disabledRow],
             content: "Gacha session ended. Use the command again for more pulls!"
+        }).catch(error => {
+            logger.debug`[Gacha] Could not close the pull results: ${error}`;
         });
     });
-} 
+}

@@ -35,11 +35,11 @@ export default {
     data: new SlashCommandBuilder()
         .setContexts(InteractionContextType.Guild)
         .setName('lucky')
-        .setDescription('Tells you your luck for today'),
+        .setDescription('Tells you your luck (once every 12 hours)'),
     async execute(interaction: CommandInteraction) {
         const userID = interaction.user.id;
         const currentTime = Date.now();
-        const oneDay = 43200000; // UPDATED to be 12 hours instead of 1 full day
+        const oneDay = 43200000; // 12 hours
 
         if (this.lastUsage[userID]) {
             const lastTime = this.lastUsage[userID].lastTime;

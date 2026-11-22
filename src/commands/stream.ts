@@ -29,8 +29,6 @@ export default {
                 .setRequired(false)
         ),
     async execute(interaction: ChatInputCommandInteraction) {
-        if (interaction.commandName !== 'stream') return;
-
         if (interaction.user.id !== STREAMER_USER_ID) {
             await replyEphemeral(interaction, `Commander, you can watch the stream here: <${TWITCH_LINK}>`);
             return;
@@ -51,11 +49,14 @@ export default {
             return;
         }
 
-        const channel = await interaction.client.channels.fetch(ANNOUNCE_CHANNEL_ID) as TextChannel;
-        if (channel) {
+        try {
+            // fetch throws (never returns null) when the channel is gone or hidden
+            const channel = await interaction.client.channels.fetch(ANNOUNCE_CHANNEL_ID) as TextChannel;
             await channel.send(`@here Commander Sefhi is now streaming! You can watch on Youtube or Twitch here: <${url}> <${TWITCH_LINK}>`);
-        } else {
-            logger.warning`Channel with ID ${ANNOUNCE_CHANNEL_ID} not found.`;
+        } catch (error) {
+            logger.warning`Stream announcement to ${ANNOUNCE_CHANNEL_ID} failed: ${error}`;
+            await interaction.editReply('Could not post the announcement: the announcement channel is missing or the bot cannot post there.');
+            return;
         }
         await interaction.editReply('Stream announcement sent!');
     },

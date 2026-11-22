@@ -34,7 +34,7 @@ bun run start
 - **User preferences**: Customizable notification settings
 - **Mod tools**: Code management, subscriber analytics, manual triggers
 
-**Commands**: `/redeem subscribe`, `/redeem edit`, `/redeem codes`, `/redeem status`, `/redeem preferences`
+**Commands**: `/redeem subscribe`, `/redeem edit`, `/redeem codes`, `/redeem status`, `/redeem preferences`, `/redeem switch`
 
 ### 2. **URL Embed Fix (Twitter/X + Pixiv)**
 - Automatically improves embeds in art channels using proxy services
@@ -278,6 +278,7 @@ This project is open source. See the repository for license information.
 - `/redeem status [game]` - View subscription status
 - `/redeem codes <game>` - View active codes
 - `/redeem preferences <game>` - Configure notifications
+- `/redeem switch <game> <mode>` - Switch between auto-redeem and notification-only (auto-redeem only for games that support it)
 - `/redeem help` - View help and FAQs
 
 New codes for Brown Dust 2 and Chaos Zero Nightmare are also posted in `#brown-dust-2` / `#chaos-zero-nightmare` (or `#bd2` / `#czn`), with **Redeem for me**, **Copy code** and a link to the official coupon page, plus a reminder when a code has a day or less left. Rapi pins each new-code post (she needs Pin Messages in that channel) and unpins it once the code expires or is removed. Add `announceChannelNames` to a game in `src/utils/data/gachaGamesConfig.ts` to post another game's codes.

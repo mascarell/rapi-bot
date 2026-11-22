@@ -1074,6 +1074,76 @@ describe('Redeem Command', () => {
         });
     });
 
+    describe('Command review fixes', () => {
+        const gameOption = (game: string, mode?: string) =>
+            (mockInteraction.options!.getString as any).mockImplementation((name: string) =>
+                name === 'game' ? game : name === 'mode' ? (mode ?? null) : null);
+
+        it('refuses switching to auto-redeem for a game without it', async () => {
+            mockDataService.switchSubscriptionMode = vi.fn();
+            mockDataService.getGameSubscription.mockResolvedValue({ mode: 'notification-only', gameUserId: 'x' });
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('switch');
+            gameOption('nikke', 'auto-redeem');
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.switchSubscriptionMode).not.toHaveBeenCalled();
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({ content: expect.stringContaining("isn't available for NIKKE") })
+            );
+        });
+
+        it('still switches a game that supports auto-redeem', async () => {
+            mockDataService.switchSubscriptionMode = vi.fn().mockResolvedValue(undefined);
+            mockDataService.getGameSubscription.mockResolvedValue({ mode: 'notification-only', gameUserId: 'x' });
+            (mockInteraction.options!.getSubcommand as any).mockReturnValue('switch');
+            gameOption('bd2', 'auto-redeem');
+
+            await redeemCommand.execute(mockInteraction);
+
+            expect(mockDataService.switchSubscriptionMode).toHaveBeenCalledWith('user123', 'bd2', 'auto-redeem');
+        });
+
+        it('asks to retry /redeem edit instead of missing the form window on a slow read', async () => {
+            vi.useFakeTimers();
+            try {
+                mockDataService.getGameSubscription.mockReturnValue(new Promise(() => {}));
+                (mockInteraction.options!.getSubcommand as any).mockReturnValue('edit');
+                gameOption('bd2');
+
+                const run = redeemCommand.execute(mockInteraction);
+                await vi.advanceTimersByTimeAsync(2000);
+                await run;
+
+                expect(mockInteraction.showModal).not.toHaveBeenCalled();
+                expect(mockInteraction.reply).toHaveBeenCalledWith(
+                    expect.objectContaining({ content: expect.stringContaining('took too long') })
+                );
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('keeps code autocomplete names within 100 characters', async () => {
+            const mockAutocomplete: any = {
+                guildId: '1054761356416528475',
+                options: {
+                    getFocused: vi.fn().mockReturnValue({ name: 'code', value: '' }),
+                    getString: vi.fn().mockReturnValue('bd2'),
+                },
+                respond: vi.fn().mockResolvedValue({}),
+            };
+            mockDataService.getActiveCoupons.mockResolvedValue([{ code: 'LONG', rewards: 'x'.repeat(300) }]);
+
+            await redeemCommandModule.autocompleteRedeemCode(mockAutocomplete);
+
+            const [[choices]] = mockAutocomplete.respond.mock.calls;
+            expect(choices).toHaveLength(1);
+            expect(choices[0].name.length).toBeLessThanOrEqual(100);
+            expect(choices[0].value).toBe('LONG');
+        });
+    });
+
     describe('Help Subcommand', () => {
         const helpText = (): string =>
             vi.mocked(EmbedBuilder).mock.results
