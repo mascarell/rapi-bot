@@ -11,6 +11,7 @@ import { getEmbedFixService } from '../services/embedFix/embedFixService.js';
 import { getEmbedVotesService } from '../services/embedFix/embedVotesService.js';
 import { replyEphemeral } from '../utils/interactionHelpers.js';
 import { handleCommandError } from '../utils/commandErrorHandler.js';
+import { logger } from '../utils/logger.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -20,7 +21,7 @@ export default {
         .addStringOption(option =>
             option
                 .setName('url')
-                .setDescription('The URL to generate an embed for (Twitter/X supported)')
+                .setDescription('The post to embed (Twitter/X, Pixiv or Instagram)')
                 .setRequired(true)
         ),
 
@@ -74,19 +75,24 @@ export default {
                     embeds: [embed],
                 });
 
-                // Record artwork for voting if in a guild
+                // Record artwork for voting if in a guild. The embed is already
+                // posted, so a failure here is logged, not shown in its place.
                 if (interaction.guildId && interaction.channel) {
-                    const reply = await interaction.fetchReply();
-                    await getEmbedVotesService().recordArtwork(artworkId, {
-                        originalUrl: embedData.originalUrl,
-                        platform: embedData.platform,
-                        artistUsername: embedData.author.username,
-                        artistName: embedData.author.name,
-                        guildId: interaction.guildId,
-                        channelId: interaction.channel.id,
-                        messageId: reply.id,
-                        sharedBy: interaction.user.id,
-                    });
+                    try {
+                        const reply = await interaction.fetchReply();
+                        await getEmbedVotesService().recordArtwork(artworkId, {
+                            originalUrl: embedData.originalUrl,
+                            platform: embedData.platform,
+                            artistUsername: embedData.author.username,
+                            artistName: embedData.author.name,
+                            guildId: interaction.guildId,
+                            channelId: interaction.channel.id,
+                            messageId: reply.id,
+                            sharedBy: interaction.user.id,
+                        });
+                    } catch (error) {
+                        logger.error`[Embed] Could not record artwork ${artworkId} for voting: ${error}`;
+                    }
                 }
             }
         } catch (error) {

@@ -688,6 +688,36 @@ describe('GachaRedemptionService', () => {
             expect(global.fetch).not.toHaveBeenCalled();
         });
 
+        it('notifies auto-redeem subscribers of a game without auto-redeem', async () => {
+            mockDataService.getSubscribersForNotification.mockResolvedValue([
+                {
+                    discordId: 'user789',
+                    subscription: {
+                        gameId: 'nikke',
+                        gameUserId: 'StuckPlayer',
+                        mode: 'auto-redeem',
+                        subscribedAt: new Date().toISOString(),
+                        redeemedCodes: [],
+                    } as GameSubscription,
+                    preferences: { expirationWarnings: true, weeklyDigest: true, newCodeAlerts: true },
+                    dmDisabled: false,
+                },
+            ]);
+
+            await getGachaRedemptionService().notifyNewCode(mockBot as Client, {
+                code: 'NIKKECODE',
+                gameId: 'nikke',
+                rewards: '100 Gems',
+                isActive: true,
+                addedBy: 'mod123',
+                addedAt: new Date().toISOString(),
+            } as GachaCoupon);
+
+            expect(mockBot.users?.fetch).toHaveBeenCalledWith('user789');
+            expect(mockUser.send).toHaveBeenCalled();
+            expect(global.fetch).not.toHaveBeenCalled();
+        });
+
         it('should auto-redeem for auto-redeem subscribers', async () => {
             const mockCoupon: GachaCoupon = {
                 code: 'NEWCODE',

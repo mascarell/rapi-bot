@@ -1604,7 +1604,12 @@ export class GachaRedemptionService {
 
         // Process notification-only subscribers with Promise.allSettled
         // Respects user notification preferences and DM status
-        const notifyOnlySubs = subscribers.filter(s => s.subscription.mode === 'notification-only');
+        // Auto-redeem subscribers of a game without auto-redeem (saved before
+        // /redeem switch refused it) get the notification too, not nothing.
+        const canAutoRedeem = this.supportsAutoRedeem(coupon.gameId);
+        const notifyOnlySubs = subscribers.filter(s =>
+            s.subscription.mode === 'notification-only' || !canAutoRedeem
+        );
         const notifyResults = await Promise.allSettled(
             notifyOnlySubs.map(({ discordId, preferences, dmDisabled }) =>
                 this.subscriberLimit(async () => {
