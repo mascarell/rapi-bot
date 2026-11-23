@@ -1,3 +1,10 @@
+## [2.26.3](https://github.com/mascarell/rapi-bot/compare/v2.26.2...v2.26.3) (2026-11-23)
+
+
+### Bug Fixes
+
+* **scheduler:** pin daily and coupon jobs to UTC; spam stats show this hour ([#277](https://github.com/mascarell/rapi-bot/issues/277)) ([cbeb59e](https://github.com/mascarell/rapi-bot/commit/cbeb59e956c63a5eea309853f82171bc68af6d2e))
+
 ## [2.26.2](https://github.com/mascarell/rapi-bot/compare/v2.26.1...v2.26.2) (2026-11-23)
 
 
