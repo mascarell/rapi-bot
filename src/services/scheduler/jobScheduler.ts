@@ -42,7 +42,7 @@ export interface OneShotSpec {
 
 export type JobKind = 'cron' | 'interval' | 'once';
 
-/** Snapshot of one job, for logs, tests and a future `/mod jobs`. */
+/** Snapshot of one job, for logs, tests and `/mod jobs`. */
 export interface JobInfo {
     name: string;
     kind: JobKind;

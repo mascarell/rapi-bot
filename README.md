@@ -381,12 +381,13 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 - Server owner, Administrator or Timeout Members permission, or a role named `mods`
 - Check: `isModerator(interaction)` (or `await checkModPermission(interaction)`)
 - `/mod` is hidden from members without the Timeout Members permission. To show it to a `mods` role without that permission, add the role to `/mod` under Server Settings > Integrations > Rapi
-- `/mod` is registered per server: the home server gets every tool, other servers get it without `media` and with only `redeem list`. Everything else is registered globally
+- `/mod` is registered per server: the home server gets every tool, other servers get it without `media` or `jobs` and with only `redeem list`. Everything else is registered globally
 - Every slash command is server-only (none work in DMs)
 - `/mod slur list | add | remove | test | history` manages this server's own slur list (see CLAUDE.md)
 - `/mod spam stats | reset` shows spam protection statistics and resets a member's chat command limit
 - `/mod redeem ...` holds the coupon moderator tools (add, remove, list, trigger, scrape, stats, subscribers, lookup, unsub, update, reset); home server only except `list`
 - `/mod media add | list | remove` adds, lists or removes gifs in a chat command pool; home server only
+- `/mod jobs` shows every scheduled job (daily resets, coupon scrapes, cleanups): its schedule, last run and how long it took, next run, and the last error if it failed; home server only
 
 **Rate Limiting:**
 - Outside `#rapi-bot`, 3 chat commands per hour per user; `#rapi-bot` is unlimited
