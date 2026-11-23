@@ -468,13 +468,10 @@ export default {
             .addSubcommand(sub => sub
                 .setName('add')
                 .setDescription('Add a gif to the booba? or booty? pool (asks you to confirm)')
-                .addStringOption(opt => opt
-                    .setName('command')
+                .addStringOption(opt => addMediaPoolChoices(opt
+                    .setName('pool')
                     .setDescription('Which pool')
-                    .setRequired(true)
-                    .addChoices(
-                        { name: MEDIA_POOLS.booba.label, value: 'booba' },
-                        { name: MEDIA_POOLS.booty.label, value: 'booty' }))
+                    .setRequired(true)))
                 .addStringOption(opt => opt
                     .setName('character')
                     .setDescription('The character, searchable by name')

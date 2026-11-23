@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  createPaginatedMessage,
-  PaginationBuilder
+  createPaginatedMessage
 } from './paginationBuilder.js';
 import {
   EmbedBuilder,
@@ -259,58 +258,4 @@ describe('paginationBuilder.ts', () => {
     });
   });
 
-  describe('PaginationBuilder class', () => {
-    it('should build pagination with fluent API', async () => {
-      const builder = PaginationBuilder.create()
-        .setPages(pages)
-        .setCustomIdPrefix('builder')
-        .setTimeout(10000);
-
-      await builder.send(mockInteraction as ChatInputCommandInteraction);
-
-      expect(mockInteraction.editReply).toHaveBeenCalled();
-    });
-
-    it('should allow adding pages individually', async () => {
-      const builder = PaginationBuilder.create()
-        .addPage(pages[0])
-        .addPage(pages[1])
-        .setCustomIdPrefix('builder');
-
-      await builder.send(mockInteraction as ChatInputCommandInteraction);
-
-      expect(mockInteraction.editReply).toHaveBeenCalled();
-    });
-
-    it('should throw error if customIdPrefix not set', async () => {
-      const builder = PaginationBuilder.create().setPages(pages);
-
-      await expect(
-        builder.send(mockInteraction as ChatInputCommandInteraction)
-      ).rejects.toThrow('Custom ID prefix is required');
-    });
-
-    it('should support all configuration options', async () => {
-      const builder = PaginationBuilder.create()
-        .setPages(pages)
-        .setCustomIdPrefix('test')
-        .setTimeout(30000)
-        .setShowPageNumbers(false)
-        .setUnauthorizedMessage('No access');
-
-      await builder.send(mockInteraction as ChatInputCommandInteraction);
-
-      expect(mockInteraction.editReply).toHaveBeenCalled();
-    });
-
-    it('should support method chaining', () => {
-      const builder = PaginationBuilder.create();
-
-      expect(builder.setPages(pages)).toBe(builder);
-      expect(builder.setCustomIdPrefix('test')).toBe(builder);
-      expect(builder.setTimeout(1000)).toBe(builder);
-      expect(builder.setShowPageNumbers(true)).toBe(builder);
-      expect(builder.setUnauthorizedMessage('test')).toBe(builder);
-    });
-  });
 });

@@ -5,7 +5,7 @@ import { checkSensitiveTerms } from '../utils/sensitiveTermsChecker.js';
 import { getSlurModerationService } from '../services/slurModerationService.js';
 import { checkEmbedFixUrls } from '../services/embedFix/urlFixService.js';
 import { checkCoopPing } from './coopPingHandler.js';
-import { ChatCommandRateLimiter } from '../utils/chatCommandRateLimiter.js';
+import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter.js';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager.js';
 import { findRoleByName, logError, isMessageCommand } from '../utils/util.js';
 import { logger } from '../utils/logger.js';
@@ -111,10 +111,10 @@ export async function handleMessage(msg: Message, bot: CustomClient): Promise<vo
                 const remainingSeconds = Math.ceil(remainingTime / 1000);
 
                 // Check for excessive violations
-                const violatorCount = (ChatCommandRateLimiter as any).violators?.[guildId]?.[userId] || 0;
-                if (violatorCount >= 8) {
+                const violatorCount = ChatCommandRateLimiter.getViolationCount(guildId, userId);
+                if (violatorCount >= CHAT_COMMAND_RATE_LIMIT.timeoutViolations) {
                     try {
-                        await msg.member?.timeout(300000, 'Spamming chat commands (8+ violations in 1 hour)');
+                        await msg.member?.timeout(300000, `Spamming chat commands (${CHAT_COMMAND_RATE_LIMIT.timeoutViolations}+ violations in 1 hour)`);
                         await msg.reply({
                             content: `Commander ${msg.author}, you have been timed out for 5 minutes due to excessive spam violations.`,
                         });

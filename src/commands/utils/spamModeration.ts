@@ -17,8 +17,8 @@ export async function handleSpamStats(interaction: ChatInputCommandInteraction, 
     
     const embed = new EmbedBuilder()
         .setColor(0x0099ff)
-        .setTitle('📈 Spam Protection Statistics (Moderator Only)')
-        .setDescription(`**Comprehensive analysis for ${guild.name}**\n\n*Moderator Only: These stats are visible to moderators.*`)
+        .setTitle('📈 Spam Protection Statistics')
+        .setDescription(`**${guild.name}**`)
         .addFields(
             {
                 name: '👥 User Activity',
@@ -27,7 +27,7 @@ export async function handleSpamStats(interaction: ChatInputCommandInteraction, 
             },
             {
                 name: '⚠️ Violation Tracking',
-                value: `• **Violators:** ${stats.topViolators.length}\n• **Violation Rate:** ${violatorPercentage}%\n• **Threshold:** ${CHAT_COMMAND_RATE_LIMIT.violatorThreshold}+ attempts`,
+                value: `• **Violators:** ${stats.topViolators.length}\n• **Violation Rate:** ${violatorPercentage}%\n• **Listed at:** ${CHAT_COMMAND_RATE_LIMIT.violatorThreshold}+ blocked attempts\n• **Timeout at:** ${CHAT_COMMAND_RATE_LIMIT.timeoutViolations}+ blocked attempts in an hour`,
                 inline: true
             },
             {
@@ -36,11 +36,7 @@ export async function handleSpamStats(interaction: ChatInputCommandInteraction, 
                 inline: true
             }
         )
-        .setTimestamp()
-        .setFooter({ 
-            text: 'Spam Protection System v2.0', 
-            iconURL: interaction.client.user?.displayAvatarURL() 
-        });
+        .setTimestamp();
 
     // Add top violators if any exist
     if (stats.topViolators.length > 0) {
@@ -64,16 +60,6 @@ export async function handleSpamStats(interaction: ChatInputCommandInteraction, 
         embed.addFields({
             name: '🔥 Most Spammed Commands',
             value: commandList,
-            inline: false
-        });
-    }
-
-    // Add system recommendations
-    const recommendations = generateRecommendations(stats);
-    if (recommendations.length > 0) {
-        embed.addFields({
-            name: '💡 System Recommendations',
-            value: recommendations.join('\n'),
             inline: false
         });
     }
@@ -109,39 +95,4 @@ export async function handleSpamReset(interaction: ChatInputCommandInteraction, 
         });
 
     await replyWithEmbed(interaction, embed, true);
-}
-
-/**
- * Generates system recommendations based on current statistics
- *
- * @param stats - Current usage statistics
- * @returns Array of recommendation strings
- */
-export function generateRecommendations(stats: any): string[] {
-    const recommendations: string[] = [];
-    
-    // High violation rate recommendation
-    if (stats.totalUsers > 0 && (stats.topViolators.length / stats.totalUsers) > 0.1) {
-        recommendations.push('⚠️ **High violation rate detected** - Consider adjusting rate limits');
-    }
-    
-    // Low activity recommendation
-    if (stats.activeUsers < 3) {
-        recommendations.push('📉 **Low activity** - System is underutilized');
-    }
-    
-    // High usage recommendation
-    if (stats.totalUsage > 100) {
-        recommendations.push('📊 **High command usage** - System is working effectively');
-    }
-    
-    // Command-specific recommendations
-    if (stats.mostSpammedCommands.length > 0) {
-        const topCommand = stats.mostSpammedCommands[0];
-        if (topCommand.count > 20) {
-            recommendations.push(`🎯 **${topCommand.command}** is heavily used - Consider optimization`);
-        }
-    }
-    
-    return recommendations;
 }

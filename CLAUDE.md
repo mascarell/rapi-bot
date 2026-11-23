@@ -15,7 +15,7 @@ Discord bot for gacha games: daily reset notifications, music playback, chat com
 ```
 src/
 ├── commands/           # Slash commands (/redeem, /spam, /gacha, /rules, etc.)
-│   ├── utils/         # Command utilities (commandBase, paginationBuilder)
+│   ├── utils/         # Command utilities (paginationBuilder, modMedia, spamModeration, ...)
 │   └── tests/         # Command tests
 ├── services/           # Business logic services
 │   ├── embedFix/      # Twitter/X + Pixiv URL fix system
@@ -172,7 +172,7 @@ migrated here one command set at a time.
   Server Settings > Integrations. Every subcommand and the autocomplete re-check
   the caller with `isModerator()` (owner, Administrator, Timeout Members, or a
   role named `mods`).
-- `/mod spam stats | reset` (logic in `commands/utils/spamModeration.ts`). Moderator tools live only under `/mod`; `/spam` keeps just `check` for members.
+- `/mod spam stats | reset` (logic in `commands/utils/spamModeration.ts`). The limit and the timeout trigger (`timeoutViolations`, 8 blocked attempts in an hour) both live in `CHAT_COMMAND_RATE_LIMIT` (`utils/chatCommandRateLimiter.ts`); the message handler and the stats embed read it from there. `/spam check` shows the reset time (`<t:unix:R>`) only at 0 uses left, ranks within the current hour, and says "no limit" in a server without a `#rapi-bot` channel. Moderator tools live only under `/mod`; `/spam` keeps just `check` for members.
 - `/mod redeem add | remove | list | trigger | unsub | update | lookup | reset | scrape | stats | subscribers` (`update` takes `userid`, `nickname`, `server`, all optional; omitted ones keep their stored value, and it saves through `updateGameIdentity` like `/redeem edit`) (option builder `addModRedeemSubcommands`, dispatch `executeModRedeem`, code autocomplete `autocompleteRedeemCode`, all in `commands/redeem.ts`; same gacha server allowlist as `/redeem`, and everything except `list` is home-server only via `OPEN_EVERYWHERE`). These live only under `/mod`; `/redeem` has the member subcommands only.
 - `/mod media add` (home server only, `MEDIA_HOME_GUILD_ID`; elsewhere an ephemeral refusal and empty autocomplete): adds a `.gif` (max 25 MB, checked by content type, extension and `GIF8` header) to the `booba?` / `booty?` S3 pools. Name is `<characterSlug>[_<variant>]_<oppai|booty>.gif`, lowercase `[a-z0-9_]`, and `_2_`, `_3_` before the suffix on a collision so nothing is overwritten. Shows an Add/Cancel preview first, then uploads, invalidates the media list cache and posts to the mod-log channel. Logic in `services/mediaPoolService.ts`, command glue in `commands/utils/modMedia.ts`, config in `utils/data/mediaPoolConfig.ts`. Characters come from the NIKKE asset manifest.
 - `/mod media list | remove` (same home-only and moderator gates): `list` shows one gif per page with an Open / download link to the original (`listPoolFiles`, `buildListPages`; optional character filter by `<slug>_` prefix, which also matches longer slugs that start the same way, e.g. `rapi` includes `rapi_red_hood`); `remove` autocompletes file names, accepts only a bare name that exists under the pool prefix (`findPoolFile`), shows a Remove/Cancel preview, then deletes, invalidates the list cache and posts to the mod-log.
@@ -380,13 +380,12 @@ export const getMyService = (): MyService => MyService.getInstance();
 
 **Pagination Pattern** (`src/commands/utils/paginationBuilder.ts`):
 ```typescript
-import { PaginationBuilder } from '../commands/utils/paginationBuilder.js';
+import { createPaginatedMessage } from "../commands/utils/paginationBuilder.js";
 
-const pagination = new PaginationBuilder()
-    .setEmbeds(embedArray)
-    .setTimeout(5 * 60 * 1000);  // 5 minutes
-
-await pagination.send(interaction);
+await createPaginatedMessage(interaction, embedArray, {
+    customIdPrefix: "my-command",
+    timeoutMs: 5 * 60 * 1000,  // 5 minutes
+});
 ```
 
 ## Environment Variables

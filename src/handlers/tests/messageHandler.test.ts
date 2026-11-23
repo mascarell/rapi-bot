@@ -27,9 +27,11 @@ vi.mock('../../utils/util.js', () => ({
     isMessageCommand: () => true,
 }));
 vi.mock('../../utils/chatCommandRateLimiter.js', () => ({
+    CHAT_COMMAND_RATE_LIMIT: { maxCommands: 3, violatorThreshold: 5, timeoutViolations: 8 },
     ChatCommandRateLimiter: {
         check: vi.fn(),
         getRemainingTime: vi.fn(() => 1000),
+        getViolationCount: vi.fn(() => 0),
     },
 }));
 
@@ -113,6 +115,26 @@ describe('handleMessage chat command gating', () => {
         await handleMessage(msg, bot);
         expect(ChatCommandRateLimiter.check).toHaveBeenCalledTimes(1);
         expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('times the member out once blocked attempts reach the configured trigger', async () => {
+        vi.mocked(ChatCommandRateLimiter.check).mockReturnValue(false);
+        vi.mocked(ChatCommandRateLimiter.getViolationCount).mockReturnValue(8);
+        const { msg, bot } = setup({ content: 'booba?', inChannel: 'general', guildHasRapiBot: true });
+        msg.member.timeout = vi.fn().mockResolvedValue(undefined);
+        await handleMessage(msg, bot);
+        expect(msg.member.timeout).toHaveBeenCalledWith(300000, expect.stringContaining('8+'));
+        expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('only warns, without a timeout, one attempt below the trigger', async () => {
+        vi.mocked(ChatCommandRateLimiter.check).mockReturnValue(false);
+        vi.mocked(ChatCommandRateLimiter.getViolationCount).mockReturnValue(7);
+        const { msg, bot } = setup({ content: 'booba?', inChannel: 'general', guildHasRapiBot: true });
+        msg.member.timeout = vi.fn();
+        await handleMessage(msg, bot);
+        expect(msg.member.timeout).not.toHaveBeenCalled();
+        expect(msg.reply).toHaveBeenCalledWith({ content: expect.stringContaining('too frequently') });
     });
 
     it('does not run the command when the limiter says no', async () => {

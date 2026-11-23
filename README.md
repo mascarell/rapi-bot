@@ -70,7 +70,7 @@ bun run start
 ```
 src/
 ├── commands/          # Slash commands (/redeem, /spam, /gacha, etc.)
-│   ├── utils/         # Command utilities (commandBase, paginationBuilder)
+│   ├── utils/         # Command utilities (paginationBuilder, modMedia, spamModeration, ...)
 │   └── tests/         # Command tests
 ├── chatCommands/      # Message-based chat commands
 │   ├── mediaCommands.ts
@@ -390,7 +390,7 @@ Uses [LogTape](https://logtape.org/) for structured logging.
 
 **Rate Limiting:**
 - Outside `#rapi-bot`, 3 chat commands per hour per user; `#rapi-bot` is unlimited
-- Resets at top of every hour (UTC); 8 blocked attempts in an hour is a 5-minute timeout
+- Resets at top of every hour (UTC); `/spam check` shows the reset time only once you are out of uses, and says so when the server has no `#rapi-bot` channel (no limit there); 8 blocked attempts in an hour is a 5-minute timeout
 - View status: `/spam check`
 - Mod stats: `/mod spam stats` (moderators)
 
