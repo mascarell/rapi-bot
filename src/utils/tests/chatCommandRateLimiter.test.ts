@@ -90,3 +90,46 @@ describe('ChatCommandRateLimiter public reads', () => {
         expect(ChatCommandRateLimiter.getWindowSummary(GUILD, THIRD)).toMatchObject({ used: 0, rank: null });
     });
 });
+
+describe('ChatCommandRateLimiter.getUsageStats', () => {
+    const STATS_GUILD = '333333333333333333';
+    const OLD_USER = '444444444444444444';
+    const NOW_USER = '555555555555555555';
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        (ChatCommandRateLimiter as any).usage[STATS_GUILD] = {};
+        (ChatCommandRateLimiter as any).violators[STATS_GUILD] = {};
+        delete (ChatCommandRateLimiter as any).commandUsage[STATS_GUILD];
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('counts only the current hour', () => {
+        // Last hour: a heavy spammer and their commands
+        vi.setSystemTime(new Date('2026-11-21T09:30:00Z'));
+        for (let i = 0; i < 10; i++) ChatCommandRateLimiter.check(STATS_GUILD, OLD_USER, 'booba?');
+
+        // This hour: one normal use
+        vi.setSystemTime(new Date('2026-11-21T10:05:00Z'));
+        ChatCommandRateLimiter.check(STATS_GUILD, NOW_USER, 'booty?');
+
+        const stats = ChatCommandRateLimiter.getUsageStats(STATS_GUILD);
+        expect(stats.totalUsers).toBe(1);
+        expect(stats.totalUsage).toBe(1);
+        expect(stats.activeUsers).toBe(1);
+        expect(stats.topViolators).toEqual([]);
+        expect(stats.mostSpammedCommands).toEqual([{ command: 'booty?', count: 1 }]);
+    });
+
+    it("lists this hour's violators", () => {
+        vi.setSystemTime(new Date('2026-11-21T10:05:00Z'));
+        const attempts = CHAT_COMMAND_RATE_LIMIT.maxCommands + CHAT_COMMAND_RATE_LIMIT.violatorThreshold;
+        for (let i = 0; i < attempts; i++) ChatCommandRateLimiter.check(STATS_GUILD, NOW_USER, 'booba?');
+
+        const stats = ChatCommandRateLimiter.getUsageStats(STATS_GUILD);
+        expect(stats.topViolators).toEqual([{ userId: NOW_USER, attempts: CHAT_COMMAND_RATE_LIMIT.violatorThreshold }]);
+        expect(stats.mostSpammedCommands).toEqual([{ command: 'booba?', count: attempts }]);
+    });
+});

@@ -24,7 +24,13 @@ function productionCrons(): string[] {
     } finally {
         process.env.NODE_ENV = previous;
     }
-    return vi.mocked(schedule.scheduleJob).mock.calls.map(call => call[0] as unknown as string);
+    // Pinned to UTC: each call is { rule, tz: 'Etc/UTC' }
+    return vi.mocked(schedule.scheduleJob).mock.calls.map(call => {
+        const spec = call[0] as unknown as string | { rule: string; tz: string };
+        if (typeof spec === 'string') return spec;
+        expect(spec.tz).toBe('Etc/UTC');
+        return spec.rule;
+    });
 }
 
 describe('GachaCouponScheduler production schedule', () => {

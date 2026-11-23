@@ -97,19 +97,19 @@ const FIXED: Table = {
 function expectedProduction(): Table {
     const table: Table = { ...FIXED };
     for (const [game, warning, reset] of DAILY_GAMES) {
-        table[`daily-reset:${game}-warning`] = cron(warning);
-        table[`daily-reset:${game}-reset`] = cron(reset);
+        table[`daily-reset:${game}-warning`] = utc(warning);
+        table[`daily-reset:${game}-reset`] = utc(reset);
     }
     for (const [id, label, expr] of PVP) {
         table[`pvp:${id}-${label}`] = utc(expr);
     }
     Object.assign(table, {
-        'gacha-weekly-digest': cron('0 12 * * 0'),
-        'gacha-expiration-warnings': cron('0 9 * * *'),
-        'gacha-auto-redemption': cron('15 */6 * * *'),
-        'gacha-code-scraping': cron('*/30 * * * *'),
-        'gacha-expired-cleanup': cron('0 0 * * *'),
-        'gacha-unpin-finished': cron('5,35 * * * *'),
+        'gacha-weekly-digest': utc('0 12 * * 0'),
+        'gacha-expiration-warnings': utc('0 9 * * *'),
+        'gacha-auto-redemption': utc('15 */6 * * *'),
+        'gacha-code-scraping': utc('*/30 * * * *'),
+        'gacha-expired-cleanup': utc('0 0 * * *'),
+        'gacha-unpin-finished': utc('5,35 * * * *'),
         'gacha-startup-code-scraping': once(15_000),
         'asset-sync-periodic': cron('0 * * * *', ' startup=60000'),
         'youtube-poll': cron('*/5 * * * *'),
@@ -120,20 +120,20 @@ function expectedProduction(): Table {
 function expectedDevelopment(): Table {
     const table: Table = { ...FIXED };
     for (const [game] of DAILY_GAMES) {
-        table[`daily-reset:${game}-warning`] = cron('*/5 * * * *');
-        table[`daily-reset:${game}-reset`] = cron('2-59/5 * * * *');
+        table[`daily-reset:${game}-warning`] = utc('*/5 * * * *');
+        table[`daily-reset:${game}-reset`] = utc('2-59/5 * * * *');
     }
     for (const [id, label] of PVP) {
         // Dev mode ignores the timezone pin: an every-N-minutes cron has no zone.
         table[`pvp:${id}-${label}`] = cron('*/3 * * * *');
     }
     Object.assign(table, {
-        'gacha-weekly-digest': cron('*/10 * * * *'),
-        'gacha-expiration-warnings': cron('*/5 * * * *'),
-        'gacha-auto-redemption': cron('*/3 * * * *'),
-        'gacha-code-scraping': cron('*/2 * * * *'),
-        'gacha-expired-cleanup': cron('*/15 * * * *'),
-        'gacha-unpin-finished': cron('*/2 * * * *'),
+        'gacha-weekly-digest': utc('*/10 * * * *'),
+        'gacha-expiration-warnings': utc('*/5 * * * *'),
+        'gacha-auto-redemption': utc('*/3 * * * *'),
+        'gacha-code-scraping': utc('*/2 * * * *'),
+        'gacha-expired-cleanup': utc('*/15 * * * *'),
+        'gacha-unpin-finished': utc('*/2 * * * *'),
         'gacha-startup-code-scraping': once(10_000),
         'asset-sync-periodic': cron('*/10 * * * *', ' startup=60000'),
         'youtube-poll': cron('*/3 * * * *'),
@@ -228,7 +228,8 @@ describe('schedule inventory', () => {
             typeof spec === 'string' ? spec : `${(spec as any).rule} @${(spec as any).tz}`);
         // 12 daily + 6 gacha + youtube + asset sync + 9 pvp + 2 discord.ts
         expect(calls).toHaveLength(12 + 6 + 1 + 1 + 9 + 2);
-        expect(calls).toContain('15 */6 * * *');
+        expect(calls).toContain('15 */6 * * * @Etc/UTC');
+        expect(calls).toContain('0 20 * * * @Etc/UTC');
         expect(calls).toContain('59 14 * * 6 @Etc/UTC');
     });
 });

@@ -285,7 +285,7 @@ export class GachaCouponScheduler {
 
     /** Register one cron job (server local time, as before) with the central scheduler. */
     private scheduleJob(name: string, cron: string, fn: () => Promise<void>): void {
-        getJobScheduler().register({ name, cron }, fn);
+        getJobScheduler().register({ name, cron, tz: 'Etc/UTC' }, fn);
         this.scheduledJobs.add(name);
     }
 

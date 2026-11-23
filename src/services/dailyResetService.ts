@@ -113,7 +113,7 @@ export class DailyResetService {
         // No guard before the central scheduler, and it talks to Discord and S3:
         // give up on a hung run so the next tick is not blocked. Dev ticks are 5 min apart.
         const maxRunMs = this.isDevelopment ? 4 * 60 * 1000 : 10 * 60 * 1000;
-        getJobScheduler().register({ name, cron, maxRunMs }, fn);
+        getJobScheduler().register({ name, cron, tz: 'Etc/UTC', maxRunMs }, fn);
         this.scheduledJobs.set(key, name);
     }
 
