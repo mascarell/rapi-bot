@@ -17,8 +17,8 @@ export class ChatCommandRateLimiter {
     private static usage: Record<string, Record<string, { hourKey: string, count: number }>> = {};
     // violators[guildId][userId] = blocked attempts this hour
     private static violators: Record<string, Record<string, number>> = {};
-    // commandUsage[guildId][commandName] = count of times this command was used (per hour)
-    private static commandUsage: Record<string, Record<string, number>> = {};
+    // commandUsage[guildId] = this hour's count per command name
+    private static commandUsage: Record<string, { hourKey: string, counts: Record<string, number> }> = {};
     // global command count
     private static globalCommandCount: number = 0;
     // per-guild command count
@@ -42,9 +42,11 @@ export class ChatCommandRateLimiter {
 
         // Track command-specific usage
         if (commandName) {
-            if (!this.commandUsage[guildId]) this.commandUsage[guildId] = {};
-            if (!this.commandUsage[guildId][commandName]) this.commandUsage[guildId][commandName] = 0;
-            this.commandUsage[guildId][commandName]++;
+            if (this.commandUsage[guildId]?.hourKey !== hourKey) {
+                this.commandUsage[guildId] = { hourKey, counts: {} };
+            }
+            const counts = this.commandUsage[guildId].counts;
+            counts[commandName] = (counts[commandName] ?? 0) + 1;
         }
 
         // Track global and per-guild command counts
@@ -119,45 +121,41 @@ export class ChatCommandRateLimiter {
         }
     }
 
-    static getUsageStats(guildId: string): { 
-        totalUsers: number; 
-        totalUsage: number; 
+    /**
+     * This hour's chat-command activity in the server. Entries left over from
+     * earlier hours (cleanup only runs every two hours) are ignored.
+     */
+    static getUsageStats(guildId: string): {
+        totalUsers: number;
+        totalUsage: number;
         topViolators: Array<{userId: string, attempts: number}>;
         activeUsers: number;
         mostSpammedCommands: Array<{command: string, count: number}>;
     } {
-        if (!this.usage[guildId]) return { 
-            totalUsers: 0, 
-            totalUsage: 0, 
-            topViolators: [],
-            activeUsers: 0,
-            mostSpammedCommands: []
-        };
-        
-        const totalUsers = Object.keys(this.usage[guildId]).length;
-        const totalUsage = Object.values(this.usage[guildId]).reduce((sum, user) => sum + user.count, 0);
-        
-        // Get top violators (users with 5+ attempts)
-        const violators = this.violators[guildId] || {};
-        const topViolators = Object.entries(violators)
-            .filter(([_, attempts]) => attempts >= CHAT_COMMAND_RATE_LIMIT.violatorThreshold)
+        const hourKey = getCurrentHourKey();
+        const current = Object.entries(this.usage[guildId] ?? {})
+            .filter(([_, entry]) => entry.hourKey === hourKey);
+        const currentIds = new Set(current.map(([id]) => id));
+
+        const totalUsers = current.length;
+        const totalUsage = current.reduce((sum, [_, entry]) => sum + entry.count, 0);
+        const activeUsers = current.filter(([_, entry]) => entry.count > 0).length;
+
+        const topViolators = Object.entries(this.violators[guildId] ?? {})
+            .filter(([userId, attempts]) =>
+                currentIds.has(userId) && attempts >= CHAT_COMMAND_RATE_LIMIT.violatorThreshold)
             .map(([userId, attempts]) => ({ userId, attempts }))
             .sort((a, b) => b.attempts - a.attempts)
-            .slice(0, 5); // Top 5 violators
-        
-        // Count active users (users with recent activity)
-        const hourKey = getCurrentHourKey();
-        const activeUsers = Object.values(this.usage[guildId])
-            .filter(user => user.hourKey === hourKey && user.count > 0)
-            .length;
-        
-        // Get most spammed commands
-        const commandUsage = this.commandUsage[guildId] || {};
-        const mostSpammedCommands = Object.entries(commandUsage)
-            .map(([command, count]) => ({ command, count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5); // Top 5 most spammed commands
-        
+            .slice(0, 5);
+
+        const commandUsage = this.commandUsage[guildId];
+        const mostSpammedCommands = commandUsage?.hourKey === hourKey
+            ? Object.entries(commandUsage.counts)
+                .map(([command, count]) => ({ command, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5)
+            : [];
+
         return { totalUsers, totalUsage, topViolators, activeUsers, mostSpammedCommands };
     }
 
