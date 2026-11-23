@@ -6,7 +6,7 @@ import { logger } from './logger.js';
 
 /**
  * Most slash commands are registered globally. /mod is registered per server
- * instead, so the tools that only work in the home server (media, and every
+ * instead, so the tools that only work in the home server (media, jobs, and every
  * coupon tool but `list`) don't even show up anywhere else. The commands still
  * refuse outside the home server on their own; this only hides them.
  */
@@ -18,7 +18,7 @@ type CommandJson = { name: string; options?: any[]; [key: string]: unknown };
 export function modCommandFor(guildId: string, full: CommandJson): CommandJson {
     if (guildId === HOME_GUILD_ID) return full;
     const options = (full.options ?? [])
-        .filter(group => group.name !== 'media')
+        .filter(group => group.name !== 'media' && group.name !== 'jobs')
         .map(group => group.name === 'redeem'
             ? { ...group, options: (group.options ?? []).filter((sub: any) => OPEN_EVERYWHERE.has(sub.name)) }
             : group)

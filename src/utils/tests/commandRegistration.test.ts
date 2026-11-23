@@ -19,6 +19,8 @@ describe('per-server /mod', () => {
     it('drops media and every redeem tool but list elsewhere', () => {
         const g = groups(modCommandFor(OTHER, full()));
         expect(g.media).toBeUndefined();
+        expect(g.jobs).toBeUndefined();
+        expect(groups(full()).jobs).toEqual([]);
         expect(g.redeem).toEqual(['list']);
         expect(g.slur).toEqual(groups(full()).slur);
         expect(g.spam).toEqual(groups(full()).spam);

@@ -31,6 +31,7 @@ import { handleSpamStats, handleSpamReset } from './utils/spamModeration.js';
 import { handleMediaAdd, handleMediaList, handleMediaRemove, autocompleteMediaCharacter, autocompleteMediaFile, isMediaHomeGuild, MEDIA_HOME_ONLY_MESSAGE } from './utils/modMedia.js';
 import { MEDIA_POOLS, MAX_VARIANT_LENGTH } from '../utils/data/mediaPoolConfig.js';
 import { addModRedeemSubcommands, executeModRedeem, autocompleteRedeemCode } from './redeem.js';
+import { handleJobs } from './utils/modJobs.js';
 
 const addMediaPoolChoices = (opt: SlashCommandStringOption) =>
     opt.addChoices(
@@ -511,7 +512,10 @@ export default {
                     .setRequired(true)
                     .setAutocomplete(true))))
         .addSubcommandGroup(group => addModRedeemSubcommands(
-            group.setName('redeem').setDescription('Coupon codes and subscribers'))),
+            group.setName('redeem').setDescription('Coupon codes and subscribers')))
+        .addSubcommand(sub => sub
+            .setName('jobs')
+            .setDescription('Status of the bot\'s scheduled jobs (home server only)')),
 
     async execute(interaction: ChatInputCommandInteraction) {
         const guild = interaction.guild;
@@ -550,6 +554,8 @@ export default {
                 if (sub === 'remove') return await handleMediaRemove(interaction, guild, findModLogChannel);
             } else if (group === 'redeem') {
                 return await executeModRedeem(interaction);
+            } else if (group === null && sub === 'jobs') {
+                return await handleJobs(interaction);
             }
             await interaction.reply({ content: '❌ Unknown subcommand.', flags: MessageFlags.Ephemeral });
         } catch (error) {
