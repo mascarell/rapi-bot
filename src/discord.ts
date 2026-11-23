@@ -242,6 +242,11 @@ function setBotActivity() {
             type: ActivityType.Playing,
             status: PresenceUpdateStatus.Online,
         },
+        {
+            name: "Grand Theft Auto VI",
+            type: ActivityType.Playing,
+            status: PresenceUpdateStatus.Online,
+        },
     ];
 
     updateBotActivity(activities);
