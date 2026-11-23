@@ -102,7 +102,6 @@ function makeGuild(id: string) {
 function makeInteraction(opts: {
     guildId?: string;
     isMod?: boolean;
-    command?: string;
     sub?: string;
     pool?: string;
     file?: string;
@@ -139,7 +138,6 @@ function makeInteraction(opts: {
             getString: (name: string) =>
                 (
                     {
-                        command: opts.command ?? 'booty',
                         pool: opts.pool ?? 'booty',
                         file: opts.file ?? null,
                         // list treats the character as optional; add always passes one
@@ -179,7 +177,7 @@ describe('/mod media registration', () => {
         expect(group.options.map((o: any) => o.name)).toEqual(['add', 'list', 'remove']);
         const opts = group.options[0].options;
         expect(opts.map((o: any) => [o.name, o.required ?? false])).toEqual([
-            ['command', true],
+            ['pool', true],
             ['character', true],
             ['image', true],
             ['variant', false],
@@ -400,6 +398,13 @@ describe('/mod media add: guards', () => {
         expect(i.reply.mock.calls[0][0].content).toContain('25 MB');
     });
 
+    it('refuses an unknown pool, naming it a pool', async () => {
+        const i = makeInteraction({ pool: 'nope', button: button('add') });
+        await modCommand.execute(i);
+        expect(i.reply.mock.calls[0][0].content).toBe('❌ Unknown pool.');
+        expect(puts).toHaveLength(0);
+    });
+
     it('refuses an unknown character', async () => {
         const i = makeInteraction({ character: 'nope', button: button('add') });
         await modCommand.execute(i);
@@ -412,7 +417,7 @@ describe('/mod media add: guards', () => {
 describe('/mod media add: flow', () => {
     it('shows a preview, then uploads on Add, invalidates cache and logs', async () => {
         const btn = button('add');
-        const i = makeInteraction({ character: 'c2', variant: 'Beach Day', command: 'booba', button: btn });
+        const i = makeInteraction({ character: 'c2', variant: 'Beach Day', pool: 'booba', button: btn });
         await modCommand.execute(i);
 
         const preview = i.editReply.mock.calls[0][0];

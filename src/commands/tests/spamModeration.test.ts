@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../utils/chatCommandRateLimiter', () => ({
-    CHAT_COMMAND_RATE_LIMIT: { maxCommands: 3, violatorThreshold: 3, cleanupIntervalMs: 3_600_000 },
+    CHAT_COMMAND_RATE_LIMIT: { maxCommands: 3, violatorThreshold: 3, timeoutViolations: 8, cleanupIntervalMs: 3_600_000 },
     ChatCommandRateLimiter: {
         getUsageStats: vi.fn(),
         resetUser: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock('../../utils/chatCommandRateLimiter', () => ({
 }));
 
 import { ChatCommandRateLimiter } from '../../utils/chatCommandRateLimiter';
-import { handleSpamStats, handleSpamReset, generateRecommendations } from '../utils/spamModeration';
+import { handleSpamStats, handleSpamReset } from '../utils/spamModeration';
 
 const guild = { id: '111111111111111111', name: 'Test Guild' } as any;
 
@@ -49,7 +49,7 @@ describe('handleSpamStats', () => {
         mostSpammedCommands: [{ command: 'redeem', count: 30 }],
     };
 
-    it('replies ephemerally with the stats embed and says moderators, not the mods role', async () => {
+    it('replies ephemerally with the stats embed and no filler', async () => {
         vi.mocked(ChatCommandRateLimiter.getUsageStats).mockReturnValue(stats as any);
         const interaction = makeInteraction();
         await handleSpamStats(interaction, guild);
@@ -58,24 +58,21 @@ describe('handleSpamStats', () => {
         const arg = interaction.reply.mock.calls[0][0];
         expect(arg.flags).toEqual(EPHEMERAL);
         const embed = arg.embeds[0].toJSON();
-        expect(embed.description).toContain('visible to moderators');
-        expect(embed.description).not.toContain("'mods' role");
+        expect(JSON.stringify(embed)).not.toMatch(/Moderator Only|v2\.0|underutilized|working effectively|optimization/);
+        expect(embed.footer).toBeUndefined();
         const names = embed.fields.map((f: any) => f.name);
-        expect(names).toEqual(
-            expect.arrayContaining(['🚨 Top Violators', '🔥 Most Spammed Commands', '💡 System Recommendations'])
-        );
+        expect(names).toEqual(expect.arrayContaining(['🚨 Top Violators', '🔥 Most Spammed Commands']));
+        expect(names).not.toContain('💡 System Recommendations');
     });
-});
 
-describe('generateRecommendations', () => {
-    it('flags a high violation rate and low activity', () => {
-        const recs = generateRecommendations({
-            totalUsers: 2,
-            activeUsers: 1,
-            totalUsage: 5,
-            topViolators: [{}],
-            mostSpammedCommands: [],
-        });
-        expect(recs).toHaveLength(2);
+    it('shows the real timeout trigger from config next to the listing threshold', async () => {
+        vi.mocked(ChatCommandRateLimiter.getUsageStats).mockReturnValue(stats as any);
+        const interaction = makeInteraction();
+        await handleSpamStats(interaction, guild);
+
+        const embed = interaction.reply.mock.calls[0][0].embeds[0].toJSON();
+        const violation = embed.fields.find((f: any) => f.name === '⚠️ Violation Tracking');
+        expect(violation.value).toContain('Listed at:** 3+');
+        expect(violation.value).toContain('Timeout at:** 8+');
     });
 });

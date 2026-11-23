@@ -289,12 +289,6 @@ describe('/redeem member subcommands', () => {
             ['subscribe', 'edit', 'unsubscribe', 'status', 'codes', 'preferences', 'switch', 'help'],
         );
     });
-
-    it('has no code option left to autocomplete and answers empty', async () => {
-        const i = makeAutocomplete({ isMod: true });
-        await redeemCommand.autocomplete(i);
-        expect(i.respond).toHaveBeenCalledWith([]);
-    });
 });
 
 describe('/mod redeem update keeps every account detail', () => {

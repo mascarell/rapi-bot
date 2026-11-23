@@ -3,6 +3,8 @@ import {
     EmbedBuilder,
     ChatInputCommandInteraction,
     InteractionContextType,
+    ChannelType,
+    Guild,
 } from 'discord.js';
 import { SlashCommand } from '../utils/interfaces/Command.interface.js';
 import { ChatCommandRateLimiter, CHAT_COMMAND_RATE_LIMIT } from '../utils/chatCommandRateLimiter.js';
@@ -55,58 +57,73 @@ export default {
      * @param interaction - The slash command interaction
      * @param guild - The Discord guild
      */
-    async handleCheck(interaction: ChatInputCommandInteraction, guild: any) {
+    async handleCheck(interaction: ChatInputCommandInteraction, guild: Guild) {
         const userId = interaction.user.id;
+        const footer = {
+            text: 'Stay safe on the surface, Commander!',
+            iconURL: interaction.client.user?.displayAvatarURL()
+        };
+
+        // Without a #rapi-bot channel there is nowhere to send people, so the
+        // message handler applies no limit at all (see messageHandler.ts).
+        const hasRapiBotChannel = guild.channels.cache.some(
+            channel => channel.type === ChannelType.GuildText && channel.name === 'rapi-bot'
+        );
+        if (!hasRapiBotChannel) {
+            const noLimitEmbed = new EmbedBuilder()
+                .setColor(0x00ff00)
+                .setTitle('🛡️ Spam Status')
+                .setDescription(`**Commander ${interaction.user}**, there is no chat command limit in this server.`)
+                .setTimestamp()
+                .setFooter(footer);
+            await replyWithEmbed(interaction, noLimitEmbed, true);
+            return;
+        }
+
         const remainingCommands = ChatCommandRateLimiter.getRemainingCommands(guild.id, userId);
-        const remainingTime = ChatCommandRateLimiter.getRemainingTime(guild.id, userId);
+        const summary = ChatCommandRateLimiter.getWindowSummary(guild.id, userId);
         const stats = ChatCommandRateLimiter.getUsageStats(guild.id);
-        const hourKey = (new Date()).getUTCFullYear() + '-' + (new Date()).getUTCMonth() + '-' + (new Date()).getUTCDate() + '-' + (new Date()).getUTCHours();
-        const usageObj = (ChatCommandRateLimiter as any).usage?.[guild.id] || {};
-        const userUsage = usageObj[userId]?.hourKey === hourKey ? usageObj[userId].count : 0;
-        // Rank: sort all users by count descending, find index of this user
-        const allCounts = Object.values(usageObj).filter((u: any) => u.hourKey === hourKey).map((u: any) => u.count);
-        const sorted = [...allCounts].sort((a, b) => b - a);
-        const userRank = userUsage > 0 ? (sorted.indexOf(userUsage) + 1) : stats.totalUsers;
-        // Get most used command
         const mostUsedCommand = stats.mostSpammedCommands.length > 0 ? stats.mostSpammedCommands[0] : null;
-        // Calculate server average
-        const serverAverage = stats.totalUsers > 0 ? (stats.totalUsage / stats.totalUsers).toFixed(1) : '0';
+
+        const fields = [
+            {
+                name: '📊 Commands Remaining',
+                value: `${remainingCommands}/${CHAT_COMMAND_RATE_LIMIT.maxCommands}`,
+                inline: true
+            }
+        ];
+        // The window resets on the hour, so only say when once the member is blocked.
+        if (remainingCommands === 0) {
+            const resetAt = Math.ceil((Date.now() + ChatCommandRateLimiter.getRemainingTime(guild.id, userId)) / 1000);
+            fields.push({ name: '⏰ Time Until Reset', value: `<t:${resetAt}:R>`, inline: true });
+        }
+        fields.push(
+            {
+                name: '🔥 Most Used Chat Command',
+                value: mostUsedCommand ? `"${mostUsedCommand.command}" (${mostUsedCommand.count} times)` : 'None yet',
+                inline: true
+            },
+            {
+                name: '🏆 Your Usage Rank',
+                value: summary.rank === null
+                    ? 'No commands used this hour'
+                    : `#${summary.rank} of ${summary.activeUsers} users this hour`,
+                inline: true
+            },
+            {
+                name: '📈 Server Average',
+                value: `${summary.average.toFixed(1)} commands/user this hour`,
+                inline: true
+            }
+        );
+
         const embed = new EmbedBuilder()
             .setColor(remainingCommands > 0 ? 0x00ff00 : 0xff0000)
             .setTitle('🛡️ Spam Status')
             .setDescription(`**Commander ${interaction.user}**, here's your current status:`)
-            .addFields(
-                { 
-                    name: '📊 Commands Remaining', 
-                    value: `${remainingCommands}/${CHAT_COMMAND_RATE_LIMIT.maxCommands}`, 
-                    inline: true 
-                },
-                { 
-                    name: '⏰ Time Until Reset', 
-                    value: remainingTime > 0 ? `${Math.ceil(remainingTime / 1000)} seconds` : 'Ready to use!', 
-                    inline: true 
-                },
-                {
-                    name: '🔥 Most Used Chat Command',
-                    value: mostUsedCommand ? `"${mostUsedCommand.command}" (${mostUsedCommand.count} times)` : 'None yet',
-                    inline: true
-                },
-                {
-                    name: '🏆 Your Usage Rank',
-                    value: `#${userRank} of ${stats.totalUsers} users`,
-                    inline: true
-                },
-                {
-                    name: '📈 Server Average',
-                    value: `${serverAverage} commands/user`,
-                    inline: true
-                }
-            )
+            .addFields(fields)
             .setTimestamp()
-            .setFooter({ 
-                text: 'Stay safe on the surface, Commander!', 
-                iconURL: interaction.client.user?.displayAvatarURL() 
-            });
+            .setFooter(footer);
         await replyWithEmbed(interaction, embed, true);
     }
 };

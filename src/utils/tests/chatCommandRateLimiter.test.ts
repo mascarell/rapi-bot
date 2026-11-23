@@ -49,3 +49,44 @@ describe('ChatCommandRateLimiter violations', () => {
         expect(violations()).toBe(0);
     });
 });
+
+describe('ChatCommandRateLimiter public reads', () => {
+    const OTHER = '333333333333333333';
+    const THIRD = '444444444444444444';
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-11-21T10:05:00Z'));
+        for (const id of [USER, OTHER, THIRD]) ChatCommandRateLimiter.resetUser(GUILD, id);
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('exposes the timeout trigger in config', () => {
+        expect(CHAT_COMMAND_RATE_LIMIT.timeoutViolations).toBe(8);
+    });
+
+    it('getViolationCount reports blocked attempts', () => {
+        for (let i = 0; i < CHAT_COMMAND_RATE_LIMIT.maxCommands + 2; i++) ChatCommandRateLimiter.check(GUILD, USER);
+        expect(ChatCommandRateLimiter.getViolationCount(GUILD, USER)).toBe(2);
+        expect(ChatCommandRateLimiter.getViolationCount(GUILD, OTHER)).toBe(0);
+    });
+
+    it('getWindowSummary ranks and averages the current hour only', () => {
+        ChatCommandRateLimiter.check(GUILD, OTHER);
+        ChatCommandRateLimiter.check(GUILD, OTHER);
+        ChatCommandRateLimiter.check(GUILD, OTHER);
+        // THIRD used the limiter in the previous hour and must not count now.
+        vi.setSystemTime(new Date('2026-11-21T09:05:00Z'));
+        ChatCommandRateLimiter.check(GUILD, THIRD);
+        ChatCommandRateLimiter.check(GUILD, THIRD);
+        vi.setSystemTime(new Date('2026-11-21T10:05:00Z'));
+        ChatCommandRateLimiter.check(GUILD, USER);
+
+        expect(ChatCommandRateLimiter.getWindowSummary(GUILD, USER)).toEqual({
+            used: 1, rank: 2, activeUsers: 2, average: 2,
+        });
+        expect(ChatCommandRateLimiter.getWindowSummary(GUILD, THIRD)).toMatchObject({ used: 0, rank: null });
+    });
+});

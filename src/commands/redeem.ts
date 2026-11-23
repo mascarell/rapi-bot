@@ -2251,9 +2251,4 @@ export default {
             case 'help': return handleHelp(interaction);
         }
     },
-
-    // Nothing on /redeem autocompletes; kept so the router's autocomplete path still works.
-    async autocomplete(interaction: AutocompleteInteraction) {
-        await interaction.respond([]);
-    }
 };

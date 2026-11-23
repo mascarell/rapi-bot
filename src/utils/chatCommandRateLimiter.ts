@@ -1,7 +1,8 @@
 export const CHAT_COMMAND_RATE_LIMIT = {
     maxCommands: 3,
     cleanupIntervalMs: 2 * 60 * 60 * 1000, // 2 hours
-    violatorThreshold: 5 // Listed as a violator after 5+ blocked attempts in an hour
+    violatorThreshold: 5, // Listed as a violator after 5+ blocked attempts in an hour
+    timeoutViolations: 8 // Blocked attempts in an hour that trigger a spam timeout
 } as const;
 
 function getCurrentHourKey() {
@@ -72,6 +73,36 @@ export class ChatCommandRateLimiter {
             return CHAT_COMMAND_RATE_LIMIT.maxCommands;
         }
         return Math.max(0, CHAT_COMMAND_RATE_LIMIT.maxCommands - this.usage[guildId][userId].count);
+    }
+
+    /** Blocked attempts by this member in the current hour. */
+    static getViolationCount(guildId: string, userId: string): number {
+        return this.violators[guildId]?.[userId] ?? 0;
+    }
+
+    /**
+     * How this member compares to the rest of the server in the current hour.
+     * Entries from earlier hours are ignored. `rank` is null when the member
+     * has not used a command this hour.
+     */
+    static getWindowSummary(guildId: string, userId: string): {
+        used: number;
+        rank: number | null;
+        activeUsers: number;
+        average: number;
+    } {
+        const hourKey = getCurrentHourKey();
+        const counts = Object.entries(this.usage[guildId] ?? {})
+            .filter(([_, entry]) => entry.hourKey === hourKey && entry.count > 0)
+            .map(([id, entry]) => ({ id, count: entry.count }));
+        const used = counts.find(c => c.id === userId)?.count ?? 0;
+        const total = counts.reduce((sum, c) => sum + c.count, 0);
+        return {
+            used,
+            rank: used > 0 ? counts.filter(c => c.count > used).length + 1 : null,
+            activeUsers: counts.length,
+            average: counts.length > 0 ? total / counts.length : 0,
+        };
     }
 
     static resetUser(guildId: string, userId: string): void {

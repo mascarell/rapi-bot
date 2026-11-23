@@ -64,13 +64,13 @@ export async function handleMediaAdd(
         return;
     }
 
-    const poolName = interaction.options.getString('command', true) as MediaPoolName;
+    const poolName = interaction.options.getString('pool', true) as MediaPoolName;
     const code = interaction.options.getString('character', true);
     const attachment = interaction.options.getAttachment('image', true);
     const variant = interaction.options.getString('variant', false)?.trim() || null;
     const pool = MEDIA_POOLS[poolName];
     if (!pool) {
-        await interaction.reply({ content: '❌ Unknown command.', flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: '❌ Unknown pool.', flags: MessageFlags.Ephemeral });
         return;
     }
 
@@ -244,7 +244,7 @@ export async function handleMediaList(interaction: ChatInputCommandInteraction, 
     }
     const poolName = poolFrom(interaction);
     if (!poolName) {
-        await interaction.reply({ content: '❌ Unknown command.', flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: '❌ Unknown pool.', flags: MessageFlags.Ephemeral });
         return;
     }
     const code = interaction.options.getString('character', false);
@@ -294,7 +294,7 @@ export async function handleMediaRemove(
     }
     const poolName = poolFrom(interaction);
     if (!poolName) {
-        await interaction.reply({ content: '❌ Unknown command.', flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: '❌ Unknown pool.', flags: MessageFlags.Ephemeral });
         return;
     }
     const fileName = interaction.options.getString('file', true).trim();
