@@ -1,3 +1,11 @@
+# [2.27.0](https://github.com/mascarell/rapi-bot/compare/v2.26.3...v2.27.0) (2026-11-23)
+
+
+### Features
+
+* **mod:** add /mod jobs to show scheduled job status ([#278](https://github.com/mascarell/rapi-bot/issues/278)) ([e8220aa](https://github.com/mascarell/rapi-bot/commit/e8220aa5f38a21d17764bae7e253719fcb0d6753))
+* **status:** add GTA VI to Rapi's playing statuses ([#279](https://github.com/mascarell/rapi-bot/issues/279)) ([4428310](https://github.com/mascarell/rapi-bot/commit/44283106c25f62af9d601214c9cd51c2d02c9b8e))
+
 ## [2.26.3](https://github.com/mascarell/rapi-bot/compare/v2.26.2...v2.26.3) (2026-11-23)
 
 
