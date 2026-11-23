@@ -26,7 +26,7 @@ export class ChatCommandRateLimiter {
 
     static init(): void {
         getJobScheduler().registerIfAbsent(
-            { name: 'chat-command-ratelimit-cleanup', intervalMs: CHAT_COMMAND_RATE_LIMIT.cleanupIntervalMs },
+            { name: 'chat-command-ratelimit-cleanup', intervalMs: CHAT_COMMAND_RATE_LIMIT.cleanupIntervalMs, maxRunMs: 60_000 },
             () => this.cleanup(),
         );
     }

@@ -60,11 +60,12 @@ export class PvpReminderService {
             if (this.isDevelopment) {
                 const interval = this.config.devModeInterval || 3;
                 // Dev mode: ignore TZ pin (every-N-min cron is TZ-agnostic).
-                getJobScheduler().register({ name, cron: `*/${interval} * * * *` }, send);
+                // Dev ticks are `interval` minutes apart: release a hung run before the next one.
+                getJobScheduler().register({ name, cron: `*/${interval} * * * *`, maxRunMs: Math.max(1, interval - 1) * 60 * 1000 }, send);
             } else {
                 const cron = this.calculateWarningCron(event, warning);
                 // Pin to UTC so DST shifts don't move the cron.
-                getJobScheduler().register({ name, cron, tz: 'Etc/UTC' }, send);
+                getJobScheduler().register({ name, cron, tz: 'Etc/UTC', maxRunMs: 10 * 60 * 1000 }, send);
             }
 
             this.scheduledJobs.set(jobId, name);

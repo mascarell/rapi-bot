@@ -16,7 +16,7 @@ class EmbedCache {
 
     constructor() {
         // Clean up expired entries every 10 minutes
-        getJobScheduler().registerIfAbsent({ name: CLEANUP_JOB, intervalMs: 10 * 60 * 1000 }, () => this.cleanup());
+        getJobScheduler().registerIfAbsent({ name: CLEANUP_JOB, intervalMs: 10 * 60 * 1000, maxRunMs: 60_000 }, () => this.cleanup());
     }
 
     /**

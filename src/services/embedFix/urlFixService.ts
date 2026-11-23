@@ -41,7 +41,7 @@ interface OriginalMessageInfo {
 const processedContentIds = new Map<string, OriginalMessageInfo>();
 
 // Clean old entries every 5 minutes to prevent memory growth
-getJobScheduler().registerIfAbsent({ name: 'embed-url-processed-ids-cleanup', intervalMs: 5 * 60 * 1000 }, () => {
+getJobScheduler().registerIfAbsent({ name: 'embed-url-processed-ids-cleanup', intervalMs: 5 * 60 * 1000, maxRunMs: 60_000 }, () => {
     if (processedContentIds.size > 1000) {
         processedContentIds.clear();
     }

@@ -12,13 +12,15 @@ app.use('/', router);
 
 initDiscordBot();
 
-// There was no shutdown hook before. Stop every timed job, then let the signal
-// do what it always did (the handler is gone after `once`, so re-raising it
-// ends the process with the usual exit status).
-for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+// There was no shutdown hook before. Stop every timed job, then exit with the
+// conventional 128 + signal number status. Exiting explicitly matters: as PID 1
+// in a container the default action for these signals does not apply, so
+// without it the process would ignore `docker stop` until it is killed.
+const SHUTDOWN_SIGNALS = { SIGINT: 2, SIGTERM: 15 } as const;
+for (const [signal, number] of Object.entries(SHUTDOWN_SIGNALS)) {
     process.once(signal, () => {
         getJobScheduler().cancelAll();
-        process.kill(process.pid, signal);
+        process.exit(128 + number);
     });
 }
 

@@ -110,7 +110,10 @@ export class DailyResetService {
     /** Register one cron job with the central scheduler (server local time, as before). */
     private scheduleJob(key: string, cron: string, fn: () => Promise<void>): void {
         const name = `daily-reset:${key}`;
-        getJobScheduler().register({ name, cron }, fn);
+        // No guard before the central scheduler, and it talks to Discord and S3:
+        // give up on a hung run so the next tick is not blocked. Dev ticks are 5 min apart.
+        const maxRunMs = this.isDevelopment ? 4 * 60 * 1000 : 10 * 60 * 1000;
+        getJobScheduler().register({ name, cron, maxRunMs }, fn);
         this.scheduledJobs.set(key, name);
     }
 

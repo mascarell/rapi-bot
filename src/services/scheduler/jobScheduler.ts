@@ -26,6 +26,13 @@ export interface JobSpec {
     intervalMs?: number;
     /** Also run once this long after register(), in addition to the schedule. */
     runOnStartupAfterMs?: number;
+    /**
+     * Longest a run may take before the scheduler gives up on it: it logs an
+     * error once, clears `running` so the next tick can start, and abandons the
+     * stuck promise (its eventual result is ignored). Leave unset for no limit.
+     * For jobs that could hang on a network call with no timeout of its own.
+     */
+    maxRunMs?: number;
 }
 
 export interface OneShotSpec {
@@ -44,6 +51,8 @@ export interface JobInfo {
     intervalMs?: number;
     /** Delay of the startup run (`runOnStartupAfterMs`) or of a one-shot. */
     startupDelayMs?: number;
+    /** Longest a run may take before it is released (see JobSpec.maxRunMs). */
+    maxRunMs?: number;
     running: boolean;
     runCount: number;
     lastRunAt: Date | null;
@@ -59,6 +68,9 @@ interface JobEntry {
     cronJob?: schedule.Job;
     interval?: ReturnType<typeof setInterval>;
     startupTimer?: ReturnType<typeof setTimeout>;
+    watchdog?: ReturnType<typeof setTimeout>;
+    /** Id of the run that currently owns `running`; a late settle of an older run is ignored. */
+    runId: number;
     running: boolean;
     runCount: number;
     lastRunAt: Date | null;
@@ -99,6 +111,7 @@ export class JobScheduler {
                 startupDelayMs: spec.runOnStartupAfterMs,
             },
             fn,
+            runId: 0,
             running: false,
             runCount: 0,
             lastRunAt: null,
@@ -106,16 +119,21 @@ export class JobScheduler {
             lastError: null,
         };
 
+        if (spec.maxRunMs !== undefined && !(spec.maxRunMs > 0)) {
+            throw new Error(`Job "${spec.name}": maxRunMs must be positive`);
+        }
+
         if (hasCron) {
             const job = spec.tz
                 ? schedule.scheduleJob({ rule: spec.cron!, tz: spec.tz }, () => this.run(entry, 'schedule'))
                 : schedule.scheduleJob(spec.cron!, () => this.run(entry, 'schedule'));
-            if (!job) {
+            if (job) {
+                entry.cronJob = job;
+            } else {
                 // node-schedule returns null for an expression it cannot parse.
-                logger.error`[Scheduler] Job ${spec.name} not scheduled: invalid cron ${spec.cron}`;
-                return;
+                // The startup run below does not depend on the cron, as before.
+                logger.error`[Scheduler] Job ${spec.name} has no schedule: invalid cron ${spec.cron}`;
             }
-            entry.cronJob = job;
         } else {
             entry.interval = setInterval(() => this.run(entry, 'schedule'), spec.intervalMs);
         }
@@ -148,6 +166,7 @@ export class JobScheduler {
         const entry: JobEntry = {
             spec: { name: spec.name, kind: 'once', startupDelayMs: spec.delayMs },
             fn,
+            runId: 0,
             running: false,
             runCount: 0,
             lastRunAt: null,
@@ -199,6 +218,8 @@ export class JobScheduler {
         entry.cronJob?.cancel();
         if (entry.interval) clearInterval(entry.interval);
         if (entry.startupTimer) clearTimeout(entry.startupTimer);
+        if (entry.watchdog) clearTimeout(entry.watchdog);
+        entry.watchdog = undefined;
         entry.cronJob = undefined;
         entry.interval = undefined;
         entry.startupTimer = undefined;
@@ -212,18 +233,42 @@ export class JobScheduler {
         }
 
         entry.running = true;
+        const runId = ++entry.runId;
         const started = Date.now();
         entry.lastRunAt = new Date(started);
         entry.runCount++;
+
+        const { maxRunMs } = entry.spec;
+        if (maxRunMs !== undefined) {
+            entry.watchdog = setTimeout(() => {
+                if (entry.runId !== runId || !entry.running) return;
+                entry.watchdog = undefined;
+                entry.running = false;
+                entry.lastDurationMs = Date.now() - started;
+                entry.lastError = `exceeded maxRunMs (${maxRunMs}ms); abandoned`;
+                logger.error`[Scheduler] Job ${name} still running after ${maxRunMs}ms; releasing it so the next run can start`;
+            }, maxRunMs);
+        }
+
         try {
             await entry.fn({ trigger });
-            entry.lastError = null;
+            if (entry.runId === runId && entry.running) entry.lastError = null;
         } catch (error) {
-            entry.lastError = error instanceof Error ? error.message : String(error);
+            // An abandoned run's failure is still worth logging, but it must
+            // not overwrite the status of the run that replaced it (or the
+            // watchdog's note on this one).
+            if (entry.runId === runId && entry.running) {
+                entry.lastError = error instanceof Error ? error.message : String(error);
+            }
             logger.error`[Scheduler] Job ${name} failed: ${error}`;
         } finally {
-            entry.lastDurationMs = Date.now() - started;
-            entry.running = false;
+            // Only the run that still owns `running` may finish it.
+            if (entry.runId === runId && entry.running) {
+                if (entry.watchdog) clearTimeout(entry.watchdog);
+                entry.watchdog = undefined;
+                entry.lastDurationMs = Date.now() - started;
+                entry.running = false;
+            }
         }
     }
 
@@ -243,6 +288,7 @@ export class JobScheduler {
             tz: spec.tz,
             intervalMs: spec.intervalMs,
             startupDelayMs: spec.startupDelayMs,
+            maxRunMs: spec.maxRunMs,
             running: entry.running,
             runCount: entry.runCount,
             lastRunAt: entry.lastRunAt,

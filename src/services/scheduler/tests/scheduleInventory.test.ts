@@ -8,8 +8,10 @@
  * the bot does something (daily resets, PvP reminders, coupon redemption), so
  * update it deliberately, never to make the test pass.
  *
- * The services are the real ones built from the real configs; only node-schedule
- * is replaced by a recorder, and the network-facing services are stubbed.
+ * The jobs are registered by the real startup path (initializeServices with the
+ * real configs, the real discord.ts registration functions, the real limiter
+ * and Twitch wiring); only node-schedule is replaced by a recorder, and the
+ * network-facing collaborators are stubbed.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -28,6 +30,22 @@ vi.mock('../../assetSync/assetSyncService.js', () => ({
 vi.mock('../../youtubeNotificationService.js', () => ({
     getYouTubeNotificationService: () => ({
         pollAndNotify: async () => ({ notified: 0, errors: 0 }),
+    }),
+}));
+// Collaborators of initializeServices that would reach S3 / Discord.
+vi.mock('../../channelMonitorService', () => ({
+    getChannelMonitorService: () => ({ initialize: async () => undefined, startMonitoring: () => undefined }),
+}));
+vi.mock('../../reactionConfirmationService', () => ({
+    getReactionConfirmationService: () => ({ startListening: () => undefined }),
+}));
+vi.mock('../../rulesManagementService', () => ({
+    getRulesManagementService: () => ({ initializeRulesMessage: async () => ({ success: true }) }),
+}));
+vi.mock('../../notificationSubscriptionService', () => ({
+    getNotificationSubscriptionService: () => ({
+        registerNotificationType: () => undefined,
+        startListening: () => undefined,
     }),
 }));
 vi.mock('../../../utils/logger.js', () => ({
@@ -123,20 +141,20 @@ function expectedDevelopment(): Table {
     return table;
 }
 
+/** Names that had a maxRunMs in the last registry built. */
+let limited = new Set<string>();
+
+/** Jobs that already had their own overlap guard on master keep no time limit. */
+const GUARDED_ON_MASTER = /^(gacha-(weekly-digest|expiration-warnings|auto-redemption|code-scraping|expired-cleanup|unpin-finished|startup-.*)|youtube-poll|asset-sync-periodic)$/;
+
 /** Build every service the way serviceInitializer / discord.ts do, then read the registry. */
 async function buildRegistry(nodeEnv: 'production' | 'development'): Promise<Table> {
     vi.resetModules();
     process.env.NODE_ENV = nodeEnv;
 
     const { getJobScheduler } = await import('../jobScheduler');
-    const { BOT_ACTIVITY_CRON, RANDOM_MESSAGES_CRON } = await import('../schedules');
-    const { DailyResetService } = await import('../../dailyResetService');
-    const { dailyResetServiceConfig } = await import('../../../utils/data/gamesResetConfig');
-    const { PvpReminderService } = await import('../../pvpReminderService');
-    const { pvpReminderServiceConfig } = await import('../../../utils/data/pvpEventsConfig');
-    const { GachaCouponScheduler } = await import('../../gachaCouponScheduler');
-    const { YouTubeNotificationScheduler } = await import('../../youtubeNotificationScheduler');
-    const { AssetSyncScheduler } = await import('../../assetSync/assetSyncScheduler');
+    const { registerBotActivityJob, registerRandomMessagesJob } = await import('../discordJobs');
+    const { initializeServices } = await import('../../../bootstrap/serviceInitializer');
     const { ChatCommandRateLimiter } = await import('../../../utils/chatCommandRateLimiter');
     const { RateLimiter } = await import('../../../commands/utils/rateLimiter');
     const { startStreamStatusCheck } = await import('../../../utils/twitch');
@@ -146,27 +164,20 @@ async function buildRegistry(nodeEnv: 'production' | 'development'): Promise<Tab
 
     const bot: any = { guilds: { cache: new Map() } };
 
-    new DailyResetService(bot, dailyResetServiceConfig).initializeSchedules();
-    new GachaCouponScheduler(bot, {
-        weeklyDigestInterval: 10,
-        expirationWarningInterval: 5,
-        autoRedemptionInterval: 3,
-        triggerOnStartup: false,
-        startupDelay: 10,
-    }).initializeSchedules();
-    await new YouTubeNotificationScheduler(bot).initializeSchedules();
-    new PvpReminderService(bot, pvpReminderServiceConfig).initializeSchedules();
-    new AssetSyncScheduler({ devSyncIntervalMinutes: 10, logLastSyncOnStartup: false }).initializeSchedules();
+    // The real startup path: daily resets, gacha, YouTube, PvP and asset sync
+    // are all built by initializeServices with their real configs.
+    await initializeServices(bot);
     ChatCommandRateLimiter.init();
     RateLimiter.init();
     startStreamStatusCheck({});
 
-    // discord.ts is too heavy to import (it builds the Discord client); its two
-    // crons live in schedules.ts and are registered under these names there.
-    const scheduler = getJobScheduler();
-    scheduler.register({ name: 'bot-activity', cron: BOT_ACTIVITY_CRON }, () => undefined);
-    scheduler.register({ name: 'random-messages', cron: RANDOM_MESSAGES_CRON }, () => undefined);
+    // discord.ts is too heavy to import (it builds the Discord client), but it
+    // registers through these two functions, which are the real ones.
+    registerBotActivityJob(() => undefined);
+    registerRandomMessagesJob(async () => undefined);
 
+    const scheduler = getJobScheduler();
+    limited = new Set(scheduler.list().filter(job => job.maxRunMs !== undefined).map(job => job.name));
     const table: Table = {};
     for (const job of scheduler.list()) {
         if (job.kind === 'cron') {
@@ -200,6 +211,14 @@ describe('schedule inventory', () => {
 
     it('development schedule is unchanged', async () => {
         expect(await buildRegistry('development')).toEqual(expectedDevelopment());
+    });
+
+    it('gives a time limit to every job that had no overlap guard on master, and to no other', async () => {
+        for (const env of ['production', 'development'] as const) {
+            const table = await buildRegistry(env);
+            const expectLimited = Object.keys(table).filter(name => !GUARDED_ON_MASTER.test(name));
+            expect([...limited].sort()).toEqual(expectLimited.sort());
+        }
     });
 
     it('registers exactly the cron expressions the old code passed to node-schedule (production)', async () => {

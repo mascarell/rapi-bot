@@ -58,11 +58,14 @@ describe('JobScheduler', () => {
             expect(fn).toHaveBeenCalledWith({ trigger: 'schedule' });
         });
 
-        it('does not register a job node-schedule rejects (null)', () => {
+        it('logs a cron node-schedule rejects (null) but still runs the startup run', async () => {
             scheduleJob.mockReturnValueOnce(null);
-            scheduler.register({ name: 'bad', cron: 'nonsense' }, () => undefined);
-            expect(scheduler.has('bad')).toBe(false);
+            const fn = vi.fn();
+            scheduler.register({ name: 'bad', cron: 'nonsense', runOnStartupAfterMs: 1000 }, fn);
             expect(errorLog).toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(fn).toHaveBeenCalledTimes(1);
+            expect(fn).toHaveBeenCalledWith({ trigger: 'startup' });
         });
 
         it('reports the next run when node-schedule can tell', () => {
@@ -173,6 +176,84 @@ describe('JobScheduler', () => {
             expect(other).toHaveBeenCalledTimes(1);
             finish();
             await pending;
+        });
+    });
+
+    describe('maxRunMs', () => {
+        it('releases a hung run after maxRunMs, logs once, and lets the next tick run', async () => {
+            const fn = vi.fn(() => new Promise<void>(() => undefined)); // never settles
+            scheduler.register({ name: 'hung', cron: '* * * * *', maxRunMs: 1000 }, fn);
+
+            void cronCallbacks[0]();
+            await vi.advanceTimersByTimeAsync(999);
+            expect(scheduler.get('hung')?.running).toBe(true);
+            await cronCallbacks[0](); // still guarded
+            expect(fn).toHaveBeenCalledTimes(1);
+
+            await vi.advanceTimersByTimeAsync(1);
+            expect(scheduler.get('hung')).toMatchObject({ running: false, lastDurationMs: 1000 });
+            expect(scheduler.get('hung')?.lastError).toMatch(/maxRunMs/);
+            expect(errorLog).toHaveBeenCalledTimes(1);
+
+            void cronCallbacks[0]();
+            expect(fn).toHaveBeenCalledTimes(2);
+            expect(scheduler.get('hung')?.running).toBe(true);
+        });
+
+        it('ignores the late settle of an abandoned run, so it cannot finish the new one', async () => {
+            const finishers: Array<() => void> = [];
+            const fn = vi.fn(() => new Promise<void>(resolve => { finishers.push(resolve); }));
+            scheduler.register({ name: 'late', cron: '* * * * *', maxRunMs: 1000 }, fn);
+
+            const first = cronCallbacks[0]();
+            await vi.advanceTimersByTimeAsync(1000); // first abandoned
+            void cronCallbacks[0](); // second run starts
+            expect(scheduler.get('late')?.running).toBe(true);
+
+            finishers[0](); // the abandoned run finally settles
+            await first;
+            expect(scheduler.get('late')?.running).toBe(true); // still the second run's
+            await cronCallbacks[0](); // so a third tick is still skipped
+            expect(fn).toHaveBeenCalledTimes(2);
+
+            finishers[1]();
+            await vi.advanceTimersByTimeAsync(0);
+            expect(scheduler.get('late')?.running).toBe(false);
+        });
+
+        it('does not touch the new run\'s watchdog when an old run settles', async () => {
+            const finishers: Array<() => void> = [];
+            const fn = vi.fn(() => new Promise<void>(resolve => { finishers.push(resolve); }));
+            scheduler.register({ name: 'w', cron: '* * * * *', maxRunMs: 1000 }, fn);
+
+            const first = cronCallbacks[0]();
+            await vi.advanceTimersByTimeAsync(1000);
+            void cronCallbacks[0]();
+            finishers[0]();
+            await first;
+
+            await vi.advanceTimersByTimeAsync(1000); // second run hangs too
+            expect(scheduler.get('w')?.running).toBe(false);
+            expect(errorLog).toHaveBeenCalledTimes(2);
+        });
+
+        it('leaves a job without maxRunMs guarded for as long as it runs', async () => {
+            const fn = vi.fn(() => new Promise<void>(() => undefined));
+            scheduler.register({ name: 'nolimit', cron: '* * * * *' }, fn);
+            void cronCallbacks[0]();
+            await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
+            expect(scheduler.get('nolimit')?.running).toBe(true);
+        });
+
+        it('a run that finishes in time leaves no watchdog behind', async () => {
+            scheduler.register({ name: 'ok', cron: '* * * * *', maxRunMs: 1000 }, async () => undefined);
+            await cronCallbacks[0]();
+            expect(vi.getTimerCount()).toBe(0);
+            expect(errorLog).not.toHaveBeenCalled();
+        });
+
+        it('rejects a non-positive maxRunMs', () => {
+            expect(() => scheduler.register({ name: 'z', cron: '* * * * *', maxRunMs: 0 }, () => undefined)).toThrow(/maxRunMs/);
         });
     });
 

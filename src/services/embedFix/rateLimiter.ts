@@ -16,7 +16,7 @@ class EmbedFixRateLimiter {
 
     constructor() {
         // Clean up old entries every 5 minutes
-        getJobScheduler().registerIfAbsent({ name: CLEANUP_JOB, intervalMs: 5 * 60 * 1000 }, () => this.cleanup());
+        getJobScheduler().registerIfAbsent({ name: CLEANUP_JOB, intervalMs: 5 * 60 * 1000, maxRunMs: 60_000 }, () => this.cleanup());
     }
 
     /**

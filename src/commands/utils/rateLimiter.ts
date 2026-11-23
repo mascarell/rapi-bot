@@ -6,7 +6,7 @@ export class RateLimiter {
 
     static init(): void {
         getJobScheduler().registerIfAbsent(
-            { name: 'gacha-pull-ratelimit-cleanup', intervalMs: CONSTANTS.rateLimit.cleanupIntervalMs },
+            { name: 'gacha-pull-ratelimit-cleanup', intervalMs: CONSTANTS.rateLimit.cleanupIntervalMs, maxRunMs: 60_000 },
             () => this.cleanup(),
         );
     }
