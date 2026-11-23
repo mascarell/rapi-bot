@@ -6,14 +6,17 @@
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
 import { RateLimitEntry } from '../../utils/interfaces/EmbedFix.interface';
 
+import { getJobScheduler } from '../scheduler/jobScheduler.js';
+
+const CLEANUP_JOB = 'embed-ratelimit-cleanup';
+
 class EmbedFixRateLimiter {
     private guildLimits: Map<string, RateLimitEntry> = new Map();
     private userLimits: Map<string, RateLimitEntry> = new Map();
-    private cleanupInterval: NodeJS.Timeout | null = null;
 
     constructor() {
         // Clean up old entries every 5 minutes
-        this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+        getJobScheduler().registerIfAbsent({ name: CLEANUP_JOB, intervalMs: 5 * 60 * 1000, maxRunMs: 60_000 }, () => this.cleanup());
     }
 
     /**
@@ -118,10 +121,7 @@ class EmbedFixRateLimiter {
      * Stop the cleanup interval (for graceful shutdown)
      */
     destroy(): void {
-        if (this.cleanupInterval) {
-            clearInterval(this.cleanupInterval);
-            this.cleanupInterval = null;
-        }
+        getJobScheduler().cancel(CLEANUP_JOB);
     }
 }
 

@@ -1,15 +1,15 @@
 import { Client } from 'discord.js';
-import schedule from 'node-schedule';
 import { getYouTubeNotificationService } from './youtubeNotificationService.js';
 import { logger } from '../utils/logger.js';
+import { getJobScheduler } from './scheduler/jobScheduler.js';
+
+const YOUTUBE_POLL_JOB = 'youtube-poll';
 
 /**
  * Scheduler for YouTube upload notification polling
  */
 export class YouTubeNotificationScheduler {
     private bot: Client;
-    private scheduledJobs: Map<string, schedule.Job> = new Map();
-    private runningTasks: Set<string> = new Set();
     private isDevelopment: boolean;
 
     constructor(bot: Client) {
@@ -39,11 +39,8 @@ export class YouTubeNotificationScheduler {
             ? '*/3 * * * *'     // Every 3 minutes in dev
             : '*/5 * * * *';    // Every 5 minutes in prod
 
-        const taskName = 'youtube-poll';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) return;
-            this.runningTasks.add(taskName);
-
+        // The central scheduler skips a tick while the previous poll is still running.
+        getJobScheduler().register({ name: YOUTUBE_POLL_JOB, cron: cronExpression }, async () => {
             try {
                 const service = getYouTubeNotificationService();
                 const result = await service.pollAndNotify(this.bot);
@@ -52,22 +49,15 @@ export class YouTubeNotificationScheduler {
                 }
             } catch (error) {
                 logger.error`[YouTube] Poll error: ${error}`;
-            } finally {
-                this.runningTasks.delete(taskName);
             }
         });
 
-        if (job) {
-            this.scheduledJobs.set(taskName, job);
-            logger.debug`[YouTube] Scheduled polling: ${cronExpression}`;
-        }
+        logger.debug`[YouTube] Scheduled polling: ${cronExpression}`;
     }
 
     public cancelAllSchedules(): void {
-        for (const [name, job] of this.scheduledJobs) {
-            job.cancel();
-            logger.debug`[YouTube] Cancelled scheduled job: ${name}`;
+        if (getJobScheduler().cancel(YOUTUBE_POLL_JOB)) {
+            logger.debug`[YouTube] Cancelled scheduled job: ${YOUTUBE_POLL_JOB}`;
         }
-        this.scheduledJobs.clear();
     }
 }

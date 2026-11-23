@@ -2,8 +2,13 @@ import axios from 'axios';
 import { ActivityType, PresenceUpdateStatus } from 'discord.js';
 import { setIsStreaming } from './util.js';
 import { logger } from './logger.js';
+import { getJobScheduler } from '../services/scheduler/jobScheduler.js';
+import { TWITCH_STREAM_CHECK_INTERVAL_MS } from '../services/scheduler/schedules.js';
 
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+/** Without a timeout a stalled connection would hang the check forever. */
+const TWITCH_REQUEST_TIMEOUT_MS = 10_000;
+
+const TWITCH_CLIENT_ID =process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const TWITCH_USERNAME = 'sefhi_922';
 const TWITCH_LINK = `https://www.twitch.tv/${TWITCH_USERNAME}`;
@@ -22,7 +27,8 @@ async function getAccessToken(): Promise<string> {
                 client_id: TWITCH_CLIENT_ID,
                 client_secret: TWITCH_CLIENT_SECRET,
                 grant_type: 'client_credentials'
-            }
+            },
+            timeout: TWITCH_REQUEST_TIMEOUT_MS,
         });
 
         const newToken = response.data.access_token;
@@ -49,7 +55,8 @@ async function getUserId(): Promise<string> {
             headers: {
                 'Client-ID': TWITCH_CLIENT_ID,
                 'Authorization': `Bearer ${token}`
-            }
+            },
+            timeout: TWITCH_REQUEST_TIMEOUT_MS,
         });
         return response.data.data[0].id;
     } catch (error) {
@@ -70,7 +77,8 @@ export async function checkStreamStatus(client: any): Promise<boolean> {
             headers: {
                 'Client-ID': TWITCH_CLIENT_ID,
                 'Authorization': `Bearer ${token}`
-            }
+            },
+            timeout: TWITCH_REQUEST_TIMEOUT_MS,
         });
 
         const streamData = response.data.data[0];
@@ -106,7 +114,7 @@ export async function checkStreamStatus(client: any): Promise<boolean> {
 
 export function startStreamStatusCheck(client: any) {
     // Check every 5 minutes
-    setInterval(async () => {
+    getJobScheduler().register({ name: 'twitch-stream-check', intervalMs: TWITCH_STREAM_CHECK_INTERVAL_MS, maxRunMs: 4 * 60 * 1000 }, async () => {
         await checkStreamStatus(client);
-    }, 5 * 60 * 1000);
+    });
 } 

@@ -18,6 +18,7 @@ vi.mock('../../../utils/logger.js', () => ({
 }));
 
 import { AssetSyncScheduler, PROD_SYNC_CRON } from '../assetSyncScheduler';
+import { resetJobScheduler } from '../../scheduler/jobScheduler';
 
 const RESULT = { results: [], totalSynced: 1, totalSkipped: 0, totalFailed: 0 };
 
@@ -25,6 +26,7 @@ describe('AssetSyncScheduler', () => {
     const env = process.env.NODE_ENV;
 
     beforeEach(() => {
+        resetJobScheduler();
         vi.useFakeTimers();
         syncIncremental.mockReset().mockResolvedValue(RESULT);
         scheduleJob.mockClear();
@@ -52,6 +54,11 @@ describe('AssetSyncScheduler', () => {
 
     it('skips the startup sync when turned off or cancelled', async () => {
         new AssetSyncScheduler({ logLastSyncOnStartup: false, startupSyncDelayMs: -1 }).initializeSchedules();
+        await vi.advanceTimersByTimeAsync(60_000);
+        expect(syncIncremental).not.toHaveBeenCalled();
+
+        // One central scheduler holds one 'asset-sync-periodic' job at a time.
+        resetJobScheduler();
         const cancelled = new AssetSyncScheduler({ logLastSyncOnStartup: false, startupSyncDelayMs: 1000 });
         cancelled.initializeSchedules();
         cancelled.cancelAllSchedules();

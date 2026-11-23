@@ -10,7 +10,7 @@ import {
 import { REST } from '@discordjs/rest';
 import path from "path";
 import fs from "fs";
-import schedule from 'node-schedule';
+import { registerBotActivityJob, registerRandomMessagesJob } from './services/scheduler/discordJobs.js';
 import 'moment-timezone';
 
 import * as util from "./utils/util.js";
@@ -246,7 +246,7 @@ function setBotActivity() {
 
     updateBotActivity(activities);
 
-    schedule.scheduleJob('0 */4 * * *', function () {
+    registerBotActivityJob(() => {
         if (!getIsStreaming()) {
             updateBotActivity(activities);
         }
@@ -275,7 +275,7 @@ function greetNewMembers() {
  * Send random messages to #nikke channel
  */
 function sendRandomMessages() {
-    schedule.scheduleJob('0 */6 * * *', async () => {
+    registerRandomMessagesJob(async () => {
         const guilds = bot.guilds.cache.values();
         for (const guild of guilds) {
             const channel = findChannelByName(guild, "nikke");

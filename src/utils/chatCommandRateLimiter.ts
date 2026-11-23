@@ -1,3 +1,5 @@
+import { getJobScheduler } from '../services/scheduler/jobScheduler.js';
+
 export const CHAT_COMMAND_RATE_LIMIT = {
     maxCommands: 3,
     cleanupIntervalMs: 2 * 60 * 60 * 1000, // 2 hours
@@ -23,7 +25,10 @@ export class ChatCommandRateLimiter {
     private static guildCommandCount: Record<string, number> = {};
 
     static init(): void {
-        setInterval(() => this.cleanup(), CHAT_COMMAND_RATE_LIMIT.cleanupIntervalMs);
+        getJobScheduler().registerIfAbsent(
+            { name: 'chat-command-ratelimit-cleanup', intervalMs: CHAT_COMMAND_RATE_LIMIT.cleanupIntervalMs, maxRunMs: 60_000 },
+            () => this.cleanup(),
+        );
     }
 
     static check(guildId: string, userId: string, commandName?: string): boolean {

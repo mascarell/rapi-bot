@@ -13,6 +13,7 @@ vi.mock('../couponSourceService.js', () => ({
 
 import schedule from 'node-schedule';
 import { GachaCouponScheduler } from '../gachaCouponScheduler';
+import { resetJobScheduler } from '../scheduler/jobScheduler';
 
 /** Cron expressions the scheduler registered in production mode. */
 function productionCrons(): string[] {
@@ -28,6 +29,7 @@ function productionCrons(): string[] {
 
 describe('GachaCouponScheduler production schedule', () => {
     beforeEach(() => {
+        resetJobScheduler();
         vi.useFakeTimers();
         vi.mocked(schedule.scheduleJob).mockClear();
     });

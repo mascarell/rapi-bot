@@ -1,7 +1,9 @@
-import schedule from 'node-schedule';
 import { getAssetSyncService } from './assetSyncService.js';
 import { logger } from '../../utils/logger.js';
+import { getJobScheduler } from '../scheduler/jobScheduler.js';
 import { SyncAllResult, SyncResult } from './types.js';
+
+const PERIODIC_JOB = 'asset-sync-periodic';
 
 /** Production cron: every hour, on the hour. */
 export const PROD_SYNC_CRON = '0 * * * *';
@@ -27,8 +29,6 @@ interface AssetSyncSchedulerConfig {
  * Incremental syncs only download new characters, so they're cheap.
  */
 export class AssetSyncScheduler {
-    private scheduledJobs: Map<string, schedule.Job> = new Map();
-    private startupTimer: ReturnType<typeof setTimeout> | null = null;
     private runningTasks: Set<string> = new Set();
     private isDevelopment: boolean;
     private config: Required<AssetSyncSchedulerConfig>;
@@ -44,7 +44,6 @@ export class AssetSyncScheduler {
 
     public initializeSchedules(): void {
         this.schedulePeriodicSync();
-        this.scheduleStartupSync();
 
         if (this.config.logLastSyncOnStartup) {
             this.logLastSyncTimes();
@@ -77,20 +76,17 @@ export class AssetSyncScheduler {
             ? `*/${this.config.devSyncIntervalMinutes} * * * *`
             : PROD_SYNC_CRON;
 
-        const job = schedule.scheduleJob(cronExpression, () => this.runIncrementalSync('periodic'));
-
-        if (job) {
-            this.scheduledJobs.set('asset-sync-periodic', job);
-            logger.info`[AssetSync] Periodic sync scheduled: ${cronExpression}`;
-        }
-    }
-
-    private scheduleStartupSync(): void {
-        if (this.config.startupSyncDelayMs < 0) return;
-        this.startupTimer = setTimeout(() => {
-            this.startupTimer = null;
-            void this.runIncrementalSync('startup');
-        }, this.config.startupSyncDelayMs);
+        // The startup run (a negative delay turns it off) shares the job, so it
+        // also skips while a periodic sync is running.
+        getJobScheduler().register(
+            {
+                name: PERIODIC_JOB,
+                cron: cronExpression,
+                runOnStartupAfterMs: this.config.startupSyncDelayMs < 0 ? undefined : this.config.startupSyncDelayMs,
+            },
+            ({ trigger }) => this.runIncrementalSync(trigger === 'startup' ? 'startup' : 'periodic'),
+        );
+        logger.info`[AssetSync] Periodic sync scheduled: ${cronExpression}`;
     }
 
     private async logLastSyncTimes(): Promise<void> {
@@ -120,13 +116,7 @@ export class AssetSyncScheduler {
     }
 
     public cancelAllSchedules(): void {
-        for (const [, job] of this.scheduledJobs) {
-            job.cancel();
-        }
-        this.scheduledJobs.clear();
-        if (this.startupTimer) {
-            clearTimeout(this.startupTimer);
-            this.startupTimer = null;
-        }
+        // Also clears the pending startup run.
+        getJobScheduler().cancel(PERIODIC_JOB);
     }
 }

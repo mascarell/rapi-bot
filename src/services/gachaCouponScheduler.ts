@@ -1,5 +1,4 @@
 import { Client } from 'discord.js';
-import schedule from 'node-schedule';
 import { getGachaRedemptionService } from './gachaRedemptionService.js';
 import { getGachaDataService } from './gachaDataService.js';
 import { getCouponAnnouncementService } from './couponAnnouncementService.js';
@@ -7,6 +6,7 @@ import { getSupportedGameIds, getAutoRedeemGames } from '../utils/data/gachaGame
 import { GachaGameId } from '../utils/interfaces/GachaCoupon.interface';
 import { syncCouponSources, CouponSyncResult, gamesWithNewCodes } from './couponSourceService.js';
 import { logger } from '../utils/logger.js';
+import { getJobScheduler, JobInfo } from './scheduler/jobScheduler.js';
 
 /**
  * Configuration for dev mode intervals (in minutes)
@@ -44,8 +44,8 @@ const DEFAULT_DEV_CONFIG: DevModeConfig = {
  */
 export class GachaCouponScheduler {
     private bot: Client;
-    private scheduledJobs: Map<string, schedule.Job> = new Map();
-    private runningTasks: Set<string> = new Set(); // Prevents duplicate task execution
+    /** Names of the jobs this scheduler registered with the central JobScheduler. */
+    private scheduledJobs: Set<string> = new Set();
     private isDevelopment: boolean;
     private devConfig: DevModeConfig;
 
@@ -69,7 +69,7 @@ export class GachaCouponScheduler {
         // Always scrape codes on startup (after a short delay to let bot fully initialize)
         // This ensures we have the latest codes immediately after restart/deploy
         const startupDelay = this.isDevelopment ? this.devConfig.startupDelay : 15;
-        setTimeout(async () => {
+        this.runOnce('gacha-startup-code-scraping', startupDelay * 1000, async () => {
             try {
                 const result = await this.triggerCodeScraping();
                 if (result.success) {
@@ -82,14 +82,20 @@ export class GachaCouponScheduler {
             } catch (error) {
                 logger.error`[Startup] Code scraping error: ${error}`;
             }
-        }, startupDelay * 1000);
+        });
 
         // In dev mode, optionally trigger all tasks after a short delay for immediate testing
         if (this.isDevelopment && this.devConfig.triggerOnStartup) {
-            setTimeout(async () => {
+            this.runOnce('gacha-startup-trigger-all', this.devConfig.startupDelay * 1000, async () => {
                 await this.triggerAllTasks();
-            }, this.devConfig.startupDelay * 1000);
+            });
         }
+    }
+
+    /** One-off startup run on the central scheduler. */
+    private runOnce(name: string, delayMs: number, fn: () => Promise<void>): void {
+        getJobScheduler().runOnce({ name, delayMs }, fn);
+        this.scheduledJobs.add(name);
     }
 
     /**
@@ -137,13 +143,7 @@ export class GachaCouponScheduler {
             ? `*/${interval} * * * *`  // Every N minutes in dev
             : '0 12 * * 0';            // Sundays at 12:00 UTC
 
-        const taskName = 'weekly-digest';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) {
-                return;
-            }
-
-            this.runningTasks.add(taskName);
+        this.scheduleJob('gacha-weekly-digest', cronExpression, async () => {
             try {
                 const redemptionService = getGachaRedemptionService();
                 const gameIds = getSupportedGameIds();
@@ -153,12 +153,8 @@ export class GachaCouponScheduler {
                 }
             } catch (error) {
                 logger.error`Error running gacha weekly digest: ${error}`;
-            } finally {
-                this.runningTasks.delete(taskName);
             }
         });
-
-        this.scheduledJobs.set('gacha-weekly-digest', job);
     }
 
     /**
@@ -170,13 +166,7 @@ export class GachaCouponScheduler {
             ? `*/${interval} * * * *`  // Every N minutes in dev
             : '0 9 * * *';             // Daily at 09:00 UTC
 
-        const taskName = 'expiration-warnings';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) {
-                return;
-            }
-
-            this.runningTasks.add(taskName);
+        this.scheduleJob('gacha-expiration-warnings', cronExpression, async () => {
             try {
                 const redemptionService = getGachaRedemptionService();
                 const gameIds = getSupportedGameIds();
@@ -186,12 +176,8 @@ export class GachaCouponScheduler {
                 }
             } catch (error) {
                 logger.error`Error running gacha expiration warnings: ${error}`;
-            } finally {
-                this.runningTasks.delete(taskName);
             }
         });
-
-        this.scheduledJobs.set('gacha-expiration-warnings', job);
     }
 
     /**
@@ -210,24 +196,14 @@ export class GachaCouponScheduler {
             ? `*/${interval} * * * *`  // Every N minutes in dev
             : '15 */6 * * *';          // Every 6 hours at :15
 
-        const taskName = 'auto-redemption';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) {
-                return;
-            }
-
-            this.runningTasks.add(taskName);
+        this.scheduleJob('gacha-auto-redemption', cronExpression, async () => {
             try {
                 const redemptionService = getGachaRedemptionService();
                 await redemptionService.processAllAutoRedemptions(this.bot);
             } catch (error) {
                 logger.error`Error running gacha auto-redemption: ${error}`;
-            } finally {
-                this.runningTasks.delete(taskName);
             }
         });
-
-        this.scheduledJobs.set('gacha-auto-redemption', job);
     }
 
     /**
@@ -241,13 +217,7 @@ export class GachaCouponScheduler {
             ? `*/${interval} * * * *`  // Every N minutes in dev
             : '*/30 * * * *';          // Every 30 minutes in production
 
-        const taskName = 'code-scraping';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) {
-                return;
-            }
-
-            this.runningTasks.add(taskName);
+        this.scheduleJob('gacha-code-scraping', cronExpression, async () => {
             try {
                 const result = await syncCouponSources();
 
@@ -273,12 +243,8 @@ export class GachaCouponScheduler {
                 }
             } catch (error) {
                 logger.error`Error running code scraping: ${error}`;
-            } finally {
-                this.runningTasks.delete(taskName);
             }
         });
-
-        this.scheduledJobs.set('gacha-code-scraping', job);
     }
 
     /**
@@ -291,18 +257,10 @@ export class GachaCouponScheduler {
             ? `*/${interval} * * * *`
             : '5,35 * * * *';
 
-        const taskName = 'unpin-finished';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) return;
-            this.runningTasks.add(taskName);
-            try {
-                await getCouponAnnouncementService().unpinFinished(this.bot);
-            } finally {
-                this.runningTasks.delete(taskName);
-            }
+        // A failure is caught and logged by the scheduler.
+        this.scheduleJob('gacha-unpin-finished', cronExpression, async () => {
+            await getCouponAnnouncementService().unpinFinished(this.bot);
         });
-
-        this.scheduledJobs.set('gacha-unpin-finished', job);
     }
 
     /**
@@ -315,41 +273,44 @@ export class GachaCouponScheduler {
             ? `*/${interval} * * * *`  // Every N minutes in dev
             : '0 0 * * *';             // Daily at midnight UTC
 
-        const taskName = 'expired-cleanup';
-        const job = schedule.scheduleJob(cronExpression, async () => {
-            if (this.runningTasks.has(taskName)) {
-                return;
-            }
-
-            this.runningTasks.add(taskName);
+        this.scheduleJob('gacha-expired-cleanup', cronExpression, async () => {
             try {
                 const dataService = getGachaDataService();
                 await dataService.cleanupExpiredCoupons();
             } catch (error) {
                 logger.error`Error running expired code cleanup: ${error}`;
-            } finally {
-                this.runningTasks.delete(taskName);
             }
         });
+    }
 
-        this.scheduledJobs.set('gacha-expired-cleanup', job);
+    /** Register one cron job (server local time, as before) with the central scheduler. */
+    private scheduleJob(name: string, cron: string, fn: () => Promise<void>): void {
+        getJobScheduler().register({ name, cron }, fn);
+        this.scheduledJobs.add(name);
     }
 
     /**
-     * Cancel all scheduled jobs
+     * Cancel all scheduled jobs, including the startup runs still pending
      */
     public cancelAllSchedules(): void {
-        this.scheduledJobs.forEach((job, name) => {
-            job.cancel();
-        });
+        const scheduler = getJobScheduler();
+        for (const name of this.scheduledJobs) {
+            scheduler.cancel(name);
+        }
         this.scheduledJobs.clear();
     }
 
     /**
-     * Get all scheduled jobs (for debugging)
+     * Get all scheduled jobs, keyed by job name (for debugging)
      */
-    public getScheduledJobs(): Map<string, schedule.Job> {
-        return this.scheduledJobs;
+    public getScheduledJobs(): Map<string, JobInfo> {
+        const scheduler = getJobScheduler();
+        const jobs = new Map<string, JobInfo>();
+        for (const name of this.scheduledJobs) {
+            const info = scheduler.get(name);
+            if (info) jobs.set(name, info);
+        }
+        return jobs;
     }
 
     // Manual triggers for testing

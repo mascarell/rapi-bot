@@ -1,10 +1,14 @@
 import { CONSTANTS } from './gachaConstants';
+import { getJobScheduler } from '../../services/scheduler/jobScheduler.js';
 
 export class RateLimiter {
     private static usage: Record<string, number[]> = {};
 
     static init(): void {
-        setInterval(() => this.cleanup(), CONSTANTS.rateLimit.cleanupIntervalMs);
+        getJobScheduler().registerIfAbsent(
+            { name: 'gacha-pull-ratelimit-cleanup', intervalMs: CONSTANTS.rateLimit.cleanupIntervalMs, maxRunMs: 60_000 },
+            () => this.cleanup(),
+        );
     }
 
     static check(userId: string): boolean {
