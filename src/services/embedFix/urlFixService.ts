@@ -14,6 +14,7 @@
 
 import { Message, TextChannel } from 'discord.js';
 import { logger } from '../../utils/logger.js';
+import { getJobScheduler } from '../scheduler/jobScheduler.js';
 
 // Fixup service domains that we should skip (already fixed)
 const FIXUP_DOMAINS = [
@@ -40,11 +41,11 @@ interface OriginalMessageInfo {
 const processedContentIds = new Map<string, OriginalMessageInfo>();
 
 // Clean old entries every 5 minutes to prevent memory growth
-setInterval(() => {
+getJobScheduler().registerIfAbsent({ name: 'embed-url-processed-ids-cleanup', intervalMs: 5 * 60 * 1000 }, () => {
     if (processedContentIds.size > 1000) {
         processedContentIds.clear();
     }
-}, 5 * 60 * 1000);
+});
 
 /**
  * URL Fix Service

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { DailyResetService } from '../dailyResetService';
+import { resetJobScheduler } from '../scheduler/jobScheduler';
 import { DailyResetConfig } from '../../utils/interfaces/DailyResetConfig.interface';
 import { Client, Guild, TextChannel, Collection } from 'discord.js';
 import * as schedule from 'node-schedule';
@@ -44,6 +45,7 @@ describe('DailyResetService', () => {
     let testConfig: DailyResetConfig;
 
     beforeEach(() => {
+        resetJobScheduler();
         // Create mock bot
         mockBot = {
             guilds: {

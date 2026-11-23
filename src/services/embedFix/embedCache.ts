@@ -6,14 +6,17 @@
 import { EMBED_FIX_CONFIG } from '../../utils/data/embedFixConfig';
 import { CachedEmbed, EmbedData } from '../../utils/interfaces/EmbedFix.interface';
 
+import { getJobScheduler } from '../scheduler/jobScheduler.js';
+
+const CLEANUP_JOB = 'embed-cache-cleanup';
+
 class EmbedCache {
     private cache: Map<string, CachedEmbed> = new Map();
     private negativeCache: Map<string, number> = new Map(); // Stores expiry time for failed requests
-    private cleanupInterval: NodeJS.Timeout | null = null;
 
     constructor() {
         // Clean up expired entries every 10 minutes
-        this.cleanupInterval = setInterval(() => this.cleanup(), 10 * 60 * 1000);
+        getJobScheduler().registerIfAbsent({ name: CLEANUP_JOB, intervalMs: 10 * 60 * 1000 }, () => this.cleanup());
     }
 
     /**
@@ -140,10 +143,7 @@ class EmbedCache {
      * Stop the cleanup interval (for graceful shutdown)
      */
     destroy(): void {
-        if (this.cleanupInterval) {
-            clearInterval(this.cleanupInterval);
-            this.cleanupInterval = null;
-        }
+        getJobScheduler().cancel(CLEANUP_JOB);
     }
 }
 

@@ -1,10 +1,10 @@
 import { Client, EmbedBuilder, Guild } from 'discord.js';
-import schedule from 'node-schedule';
 import { DailyResetConfig, DailyResetServiceConfig } from '../utils/interfaces/DailyResetConfig.interface';
 import { findChannelByName, findRoleByName, logError } from '../utils/util';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager';
 import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
 import { logger } from '../utils/logger.js';
+import { getJobScheduler, JobInfo } from './scheduler/jobScheduler.js';
 
 /**
  * Service for managing daily reset messages across multiple games
@@ -12,7 +12,8 @@ import { logger } from '../utils/logger.js';
 export class DailyResetService {
     private bot: Client;
     private configs: DailyResetConfig[];
-    private scheduledJobs: Map<string, schedule.Job> = new Map();
+    /** Local key (`<game>-warning` / `<game>-reset`) -> scheduler job name. */
+    private scheduledJobs: Map<string, string> = new Map();
     private devModeInterval: number;
     private isDevelopment: boolean;
 
@@ -70,19 +71,17 @@ export class DailyResetService {
             // Schedule warning if enabled
             if (config.warningConfig?.enabled) {
                 const warningCron = `*/${this.devModeInterval} * * * *`;
-                const warningJob = schedule.scheduleJob(warningCron, async () => {
+                this.scheduleJob(`${config.game}-warning`, warningCron, async () => {
                     await this.sendWarningMessage(config);
                 });
-                this.scheduledJobs.set(`${config.game}-warning`, warningJob);
             }
 
             // Schedule reset with 2-minute offset from warning
             const resetOffset = 2; // minutes after warning
             const resetCron = `${resetOffset}-59/${this.devModeInterval} * * * *`;
-            const resetJob = schedule.scheduleJob(resetCron, async () => {
+            this.scheduleJob(`${config.game}-reset`, resetCron, async () => {
                 await this.sendResetMessage(config);
             });
-            this.scheduledJobs.set(`${config.game}-reset`, resetJob);
 
         } else {
             // Production mode: Schedule at exact times
@@ -95,19 +94,24 @@ export class DailyResetService {
                     config.warningConfig.minutesBefore
                 );
                 const warningCron = `${warningMinute} ${warningHour} * * *`;
-                const warningJob = schedule.scheduleJob(warningCron, async () => {
+                this.scheduleJob(`${config.game}-warning`, warningCron, async () => {
                     await this.sendWarningMessage(config);
                 });
-                this.scheduledJobs.set(`${config.game}-warning`, warningJob);
             }
 
             // Schedule reset at configured time
             const resetCron = `${config.resetTime.minute} ${config.resetTime.hour} * * *`;
-            const resetJob = schedule.scheduleJob(resetCron, async () => {
+            this.scheduleJob(`${config.game}-reset`, resetCron, async () => {
                 await this.sendResetMessage(config);
             });
-            this.scheduledJobs.set(`${config.game}-reset`, resetJob);
         }
+    }
+
+    /** Register one cron job with the central scheduler (server local time, as before). */
+    private scheduleJob(key: string, cron: string, fn: () => Promise<void>): void {
+        const name = `daily-reset:${key}`;
+        getJobScheduler().register({ name, cron }, fn);
+        this.scheduledJobs.set(key, name);
     }
 
     /**
@@ -415,16 +419,23 @@ export class DailyResetService {
      * Cancel all scheduled jobs (useful for cleanup)
      */
     public cancelAllSchedules(): void {
-        this.scheduledJobs.forEach((job, gameName) => {
-            job.cancel();
-        });
+        const scheduler = getJobScheduler();
+        for (const name of this.scheduledJobs.values()) {
+            scheduler.cancel(name);
+        }
         this.scheduledJobs.clear();
     }
 
     /**
-     * Get all scheduled jobs (useful for debugging)
+     * Get all scheduled jobs, keyed `<game>-warning` / `<game>-reset` (useful for debugging)
      */
-    public getScheduledJobs(): Map<string, schedule.Job> {
-        return this.scheduledJobs;
+    public getScheduledJobs(): Map<string, JobInfo> {
+        const scheduler = getJobScheduler();
+        const jobs = new Map<string, JobInfo>();
+        for (const [key, name] of this.scheduledJobs) {
+            const info = scheduler.get(name);
+            if (info) jobs.set(key, info);
+        }
+        return jobs;
     }
 }

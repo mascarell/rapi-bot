@@ -2,6 +2,8 @@ import axios from 'axios';
 import { ActivityType, PresenceUpdateStatus } from 'discord.js';
 import { setIsStreaming } from './util.js';
 import { logger } from './logger.js';
+import { getJobScheduler } from '../services/scheduler/jobScheduler.js';
+import { TWITCH_STREAM_CHECK_INTERVAL_MS } from '../services/scheduler/schedules.js';
 
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
@@ -106,7 +108,7 @@ export async function checkStreamStatus(client: any): Promise<boolean> {
 
 export function startStreamStatusCheck(client: any) {
     // Check every 5 minutes
-    setInterval(async () => {
+    getJobScheduler().register({ name: 'twitch-stream-check', intervalMs: TWITCH_STREAM_CHECK_INTERVAL_MS }, async () => {
         await checkStreamStatus(client);
-    }, 5 * 60 * 1000);
+    });
 } 

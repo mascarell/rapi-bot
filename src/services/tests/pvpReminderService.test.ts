@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PvpReminderService } from '../pvpReminderService';
+import { resetJobScheduler } from '../scheduler/jobScheduler';
 import { PvpEventConfig, PvpReminderServiceConfig, PvpWarningConfig } from '../../utils/interfaces/PvpEventConfig.interface';
 import { Client, Guild, TextChannel } from 'discord.js';
 import * as util from '../../utils/util';
@@ -41,6 +42,7 @@ describe('PvpReminderService', () => {
     let testConfig: PvpReminderServiceConfig;
 
     beforeEach(() => {
+        resetJobScheduler();
         mockBot = {
             guilds: {
                 cache: new Map()

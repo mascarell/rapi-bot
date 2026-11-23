@@ -1,10 +1,10 @@
 import { Client, EmbedBuilder, Guild } from 'discord.js';
-import schedule from 'node-schedule';
 import { PvpEventConfig, PvpWarningConfig, PvpReminderServiceConfig } from '../utils/interfaces/PvpEventConfig.interface.js';
 import { findChannelByName, logError } from '../utils/util.js';
 import { getRandomCdnMediaUrl } from '../utils/cdn/mediaManager.js';
 import { getNotificationSubscriptionService } from './notificationSubscriptionService.js';
 import { logger } from '../utils/logger.js';
+import { getJobScheduler, JobInfo } from './scheduler/jobScheduler.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,7 +21,8 @@ const RESTART_DEDUP_TTL_MS = 14 * DAY_MS;              // sweep dedup keys older
 export class PvpReminderService {
     private bot: Client;
     private config: PvpReminderServiceConfig;
-    private scheduledJobs: Map<string, schedule.Job> = new Map();
+    /** Local key (`<event>-<label>`) -> scheduler job name. */
+    private scheduledJobs: Map<string, string> = new Map();
     private isDevelopment: boolean;
     /** restart de-dup: `${event.id}:${warning.label}:${ymd}` → fire timestamp */
     private lastFiredAt: Map<string, number> = new Map();
@@ -52,25 +53,22 @@ export class PvpReminderService {
         for (const warning of event.warnings) {
             const jobId = `${event.id}-${warning.label}`;
 
-            let job: schedule.Job | null;
+            const name = `pvp:${jobId}`;
+            const send = async () => {
+                await this.sendWarningToAllGuilds(event, warning);
+            };
             if (this.isDevelopment) {
                 const interval = this.config.devModeInterval || 3;
                 // Dev mode: ignore TZ pin (every-N-min cron is TZ-agnostic).
-                job = schedule.scheduleJob(`*/${interval} * * * *`, async () => {
-                    await this.sendWarningToAllGuilds(event, warning);
-                });
+                getJobScheduler().register({ name, cron: `*/${interval} * * * *` }, send);
             } else {
                 const cron = this.calculateWarningCron(event, warning);
                 // Pin to UTC so DST shifts don't move the cron.
-                job = schedule.scheduleJob({ rule: cron, tz: 'Etc/UTC' }, async () => {
-                    await this.sendWarningToAllGuilds(event, warning);
-                });
+                getJobScheduler().register({ name, cron, tz: 'Etc/UTC' }, send);
             }
 
-            if (job) {
-                this.scheduledJobs.set(jobId, job);
-                logger.debug`[PVP] Scheduled ${event.id} ${warning.label} warning`;
-            }
+            this.scheduledJobs.set(jobId, name);
+            logger.debug`[PVP] Scheduled ${event.id} ${warning.label} warning`;
         }
     }
 
@@ -435,17 +433,24 @@ export class PvpReminderService {
      * Cancel all scheduled jobs
      */
     public cancelAllSchedules(): void {
-        for (const [, job] of this.scheduledJobs) {
-            job.cancel();
+        const scheduler = getJobScheduler();
+        for (const name of this.scheduledJobs.values()) {
+            scheduler.cancel(name);
         }
         this.scheduledJobs.clear();
     }
 
     /**
-     * Get all scheduled jobs (for debugging)
+     * Get all scheduled jobs, keyed `<event>-<label>` (for debugging)
      */
-    public getScheduledJobs(): Map<string, schedule.Job> {
-        return this.scheduledJobs;
+    public getScheduledJobs(): Map<string, JobInfo> {
+        const scheduler = getJobScheduler();
+        const jobs = new Map<string, JobInfo>();
+        for (const [key, name] of this.scheduledJobs) {
+            const info = scheduler.get(name);
+            if (info) jobs.set(key, info);
+        }
+        return jobs;
     }
 }
 
