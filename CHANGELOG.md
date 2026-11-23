@@ -1,3 +1,10 @@
+## [2.26.2](https://github.com/mascarell/rapi-bot/compare/v2.26.1...v2.26.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* **commands:** tidy /spam check, /mod spam stats and /mod media, drop dead helpers ([#275](https://github.com/mascarell/rapi-bot/issues/275)) ([4e10ea9](https://github.com/mascarell/rapi-bot/commit/4e10ea96b8c9562a1d93707b8754491d92a25fea)), closes [#rapi-bot](https://github.com/mascarell/rapi-bot/issues/rapi-bot)
+
 ## [2.26.1](https://github.com/mascarell/rapi-bot/compare/v2.26.0...v2.26.1) (2026-11-22)
 
 
